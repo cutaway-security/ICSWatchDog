@@ -1,0 +1,159 @@
+<!--Started by ics_blitz-->
+<Sysmon schemaversion="4.50">
+    <!--SYSMON META CONFIG-->
+    <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+    <CheckRevocation/>
+    <EventFiltering>
+        <RuleGroup name="" groupRelation="or">
+            <FileCreate onmatch=""include>
+                <!--Dangerous Attachments: https://support.intermedia.com/app/articles/detail/a_id/12447/~/email-protection%3A-list-of-dangerous-attachments-->
+                <!--Microsoft Office Extensions: https://learn.microsoft.com/en-us/deployoffice/compat/office-file-format-reference-->
+                <!--Start IOCs tied to MITRE ATT&CK-->
+                <TargetFilename name="MITRE T1023" condition="contains">\Start Menu</TargetFilename>
+                <TargetFilename name="MITRE T1165" condition="contains">\Startup</TargetFilename>
+                <!--Archive-->
+                <TargetFilename name="Archive: ace" condition="end with">.ace</TargetFilename>
+                <TargetFilename name="Archive: iso" condition="end with">.iso</TargetFilename>
+                <TargetFilename name="Archive: rar" condition="end with">.rar</TargetFilename>
+                <TargetFilename name="Archive: zip" condition="end with">.zip</TargetFilename>
+                <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
+                <TargetFilename name="Archive: 7zip" condition="end with">.7zip</TargetFilename>
+                <TargetFilename name="Archive: arj" condition="end with">.arj</TargetFilename>                
+                <TargetFilename name="Archive: lzh" condition="end with">.lzh</TargetFilename>
+                <TargetFilename name="Archive: r01" condition="end with">.r01</TargetFilename>
+                <TargetFilename name="Archive: r14" condition="end with">.r14</TargetFilename>
+                <TargetFilename name="Archive: r18" condition="end with">.r18</TargetFilename>
+                <TargetFilename name="Archive: r25" condition="end with">.r25</TargetFilename>
+                <TargetFilename name="Archive: tar" condition="end with">.tar</TargetFilename>
+                <TargetFilename name="Archive: tgz" condition="end with">.tgz</TargetFilename>
+                <TargetFilename name="Archive: tar.gz" condition="end with">.tar.gz</TargetFilename>
+                <TargetFilename name="Archive: ova" condition="end with">.ova</TargetFilename>
+                <TargetFilename name="Archive: ovf" condition="end with">.ovf</TargetFilename>
+                <TargetFilename name="Archive: vmx" condition="end with">.vmx</TargetFilename>
+                <TargetFilename name="Archive: vmdk" condition="end with">.vmdk</TargetFilename>
+                <TargetFilename name="Archive: vhd" condition="end with">.vhd</TargetFilename>
+                <TargetFilename name="Archive: vhdx" condition="end with">.vhdx</TargetFilename>
+                <TargetFilename name="Archive: z" condition="end with">.z</TargetFilename>
+                <!--New Scripts-->               
+                <TargetFilename name="Script: scr" condition="end with">.scr</TargetFilename>
+                <TargetFilename name="Script: js" condition="end with">.js</TargetFilename>
+                <TargetFilename name="Script: jse" condition="end with">.jse</TargetFilename>
+                <TargetFilename name="Script: vb" condition="end with">.vb</TargetFilename>
+                <TargetFilename name="Script: vba" condition="end with">.vba</TargetFilename>
+                <TargetFilename name="Script: vbe" condition="end with">.vbe</TargetFilename>
+                <TargetFilename name="Script: vbs" condition="end with">.vbs</TargetFilename>
+                <TargetFilename name="Script: pcd" condition="end with">.pcd</TargetFilename>
+                <TargetFilename name="Script: wsc" condition="end with">.wsc</TargetFilename>
+                <TargetFilename name="Script: wsf" condition="end with">.wsf</TargetFilename>
+                <TargetFilename name="Script: wsh" condition="end with">.wsh</TargetFilename>
+                <TargetFilename name="Script: ws" condition="end with">.ws</TargetFilename>
+                <TargetFilename name="Script: hta" condition="end with">.hta</TargetFilename>
+                <TargetFilename name="Script: js" condition="end with">.js</TargetFilename>
+                <TargetFilename name="Script: jse" condition="end with">.jse</TargetFilename>
+                <TargetFilename name="Script: cmd" condition="end with">.cmd</TargetFilename>
+                <TargetFilename name="Script: bat" condition="end with">.bat</TargetFilename>
+                <TargetFilename name="Script: acc" condition="end with">.acc</TargetFilename>
+                <TargetFilename name="Script: asp" condition="end with">.asp</TargetFilename>
+                <TargetFilename name="Script: ccs" condition="end with">.ccs</TargetFilename>
+                <TargetFilename name="Script: htx" condition="end with">.htx</TargetFilename>
+                <TargetFilename name="Script: je" condition="end with">.je</TargetFilename>
+                <TargetFilename name="Script: php" condition="end with">.php</TargetFilename>
+                <TargetFilename name="Script: php3" condition="end with">.php3</TargetFilename>
+                <TargetFilename name="Script: sbs" condition="end with">.sbs</TargetFilename>
+                <TargetFilename name="Script: sct" condition="end with">.sct</TargetFilename>
+                <TargetFilename name="Script: shb" condition="end with">.shb</TargetFilename>
+                <TargetFilename name="Script: shd" condition="end with">.shd</TargetFilename>
+                <TargetFilename name="Script: ws" condition="end with">.ws</TargetFilename>
+                <TargetFilename name="Script: wst" condition="end with">.wst</TargetFilename>
+                <TargetFilename name="Script: jar" condition="end with">.jar</TargetFilename>
+                <TargetFilename name="Script: ps1" condition="end with">.ps1</TargetFilename>
+                <TargetFilename name="Script: ps1xml" condition="end with">.ps1xml</TargetFilename>
+                <TargetFilename name="Script: ps2" condition="end with">.ps2</TargetFilename>
+                <TargetFilename name="Script: ps2xml" condition="end with">.ps2xml</TargetFilename>
+                <TargetFilename name="Script: psc1" condition="end with">.psc1</TargetFilename>
+                <TargetFilename name="Script: psc2" condition="end with">.psc2</TargetFilename>
+                <TargetFilename name="Script: msh" condition="end with">.msh</TargetFilename>
+                <TargetFilename name="Script: msh1" condition="end with">.msh1</TargetFilename>
+                <TargetFilename name="Script: msh2" condition="end with">.msh2</TargetFilename>
+                <TargetFilename name="Script: mshxml" condition="end with">.mshxml</TargetFilename>
+                <TargetFilename name="Script: msh1xml" condition="end with">.msh1xml</TargetFilename>
+                <TargetFilename name="Script: mxh2xml" condition="end with">.msh2xml</TargetFilename>
+                <!--New Executables-->
+                <TargetFilename name="Executable: exe" condition="end with">.exe</TargetFilename>
+                <TargetFilename name="Executable: pif" condition="end with">.pif</TargetFilename>
+                <TargetFilename name="Executable: reg" condition="end with">.reg</TargetFilename>
+                <TargetFilename name="Executable: scr" condition="end with">.scr</TargetFilename>
+                <TargetFilename name="Executable: sct" condition="end with">.sct</TargetFilename>
+                <TargetFilename name="Executable: shs" condition="end with">.shs</TargetFilename>
+                <TargetFilename name="Executable: shb" condition="end with">.shb</TargetFilename>
+                <TargetFilename name="Executable: msi" condition="end with">.msi</TargetFilename>
+                <TargetFilename name="Executable: msp" condition="end with">.msp</TargetFilename>
+                <TargetFilename name="Executable: msc" condition="end with">.msc</TargetFilename>
+                <TargetFilename name="Executable: class" condition="end with">.class</TargetFilename>
+                <TargetFilename name="Executable: com" condition="end with">.com</TargetFilename>
+                <TargetFilename name="Executable: dll" condition="end with">.dll</TargetFilename>
+                <TargetFilename name="Executable: dmg" condition="end with">.dmg</TargetFilename>
+                <TargetFilename name="Executable: drv" condition="end with">.drv</TargetFilename>
+                <TargetFilename name="Executable: vgrp" condition="end with">.grp</TargetFilename>
+                <TargetFilename name="Executable: ocx" condition="end with">.ocx</TargetFilename>
+                <TargetFilename name="Executable: ovl" condition="end with">.ovl</TargetFilename>
+                <TargetFilename name="Executable: sys" condition="end with">.sys</TargetFilename>
+                <TargetFilename name="Executable: vdl" condition="end with">.vdl</TargetFilename>
+                <TargetFilename name="Executable: vxd" condition="end with">.vxd</TargetFilename>
+                <!--Dynamic HTML / Help Files-->
+                <TargetFilename name="HTML/HELP: chm" condition="end with">.chm</TargetFilename>
+                <TargetFilename name="HTML/HELP: hlp" condition="end with">.hlp</TargetFilename>
+                <TargetFilename name="HTML/HELP: hta" condition="end with">.hta</TargetFilename>
+                <TargetFilename name="HTML/HELP: htm" condition="end with">.htm</TargetFilename>
+                <TargetFilename name="HTML/HELP: html" condition="end with">.html</TargetFilename>
+                <TargetFilename name="HTML/HELP: mht" condition="end with">.mht</TargetFilename>
+                <TargetFilename name="HTML/HELP: mhtml" condition="end with">.mhtml</TargetFilename>
+                <!--Document Files - Servers ONLY-->
+                <TargetFilename name="Documents: pub" condition="end with">.pub</TargetFilename>
+                <TargetFilename name="Documents: pdf" condition="end with">.pdf</TargetFilename>
+                <TargetFilename name="Documents: odt" condition="end with">.odt</TargetFilename>
+                <TargetFilename name="Documents: rtf" condition="end with">.rtf</TargetFilename>
+                <TargetFilename name="Documents: wps" condition="end with">.wps</TargetFilename>
+                <TargetFilename name="Documents: xps" condition="end with">.xps</TargetFilename>
+                <TargetFilename name="Documents: doc" condition="end with">.doc</TargetFilename>
+                <TargetFilename name="Documents: docx" condition="end with">.docx</TargetFilename>
+                <TargetFilename name="Documents: docm" condition="end with">.docm</TargetFilename>
+                <TargetFilename name="Documents: dot" condition="end with">.dot</TargetFilename>
+                <TargetFilename name="Documents: dotx" condition="end with">.dotx</TargetFilename>
+                <TargetFilename name="Documents: dbf" condition="end with">.dbf</TargetFilename>
+                <TargetFilename name="Documents: dif" condition="end with">.dif</TargetFilename>
+                <TargetFilename name="Documents: ods" condition="end with">.ods</TargetFilename>
+                <TargetFilename name="Documents: prn" condition="end with">.prn</TargetFilename>
+                <TargetFilename name="Documents: slk" condition="end with">.slk</TargetFilename>
+                <TargetFilename name="Documents: xia" condition="end with">.xia</TargetFilename>
+                <TargetFilename name="Documents: xla" condition="end with">.xla</TargetFilename>
+                <TargetFilename name="Documents: xlam" condition="end with">.xlam</TargetFilename>
+                <TargetFilename name="Documents: xls" condition="end with">.xls</TargetFilename>
+                <TargetFilename name="Documents: xlsb" condition="end with">.xlsb</TargetFilename>
+                <TargetFilename name="Documents: xlsm" condition="end with">.xlsm</TargetFilename>
+                <TargetFilename name="Documents: xlsx" condition="end with">.xlsx</TargetFilename>
+                <TargetFilename name="Documents: xlt" condition="end with">.xlt</TargetFilename>
+                <TargetFilename name="Documents: xlt," condition="end with">.xltm</TargetFilename>
+                <TargetFilename name="Documents: xltx" condition="end with">.xltx</TargetFilename>
+                <TargetFilename name="Documents: xlw" condition="end with">.xlw</TargetFilename>
+                <TargetFilename name="Documents: emf" condition="end with">.emf</TargetFilename>
+                <TargetFilename name="Documents: mp3" condition="end with">.mp3</TargetFilename>
+                <TargetFilename name="Documents: mp4" condition="end with">.mp4</TargetFilename>
+                <TargetFilename name="Documents: odp" condition="end with">.odp</TargetFilename>
+                <TargetFilename name="Documents: pot" condition="end with">.pot</TargetFilename>
+                <TargetFilename name="Documents: potx" condition="end with">.potx</TargetFilename>
+                <TargetFilename name="Documents: ppa" condition="end with">.ppa</TargetFilename>
+                <TargetFilename name="Documents: ppam" condition="end with">.ppam</TargetFilename>
+                <TargetFilename name="Documents: pps" condition="end with">.pps</TargetFilename>
+                <TargetFilename name="Documents: ppsm" condition="end with">.ppsm</TargetFilename>
+                <TargetFilename name="Documents: ppsx" condition="end with">.ppsx</TargetFilename>
+                <TargetFilename name="Documents: ppt" condition="end with">.ppt</TargetFilename>
+                <TargetFilename name="Documents: pptm" condition="end with">.pptm</TargetFilename>
+                <TargetFilename name="Documents: pptx" condition="end with">.pptx</TargetFilename>
+                <TargetFilename name="Documents: thmx" condition="end with">.thmx</TargetFilename>
+                <TargetFilename name="Documents: wmf" condition="end with">.wmf</TargetFilename>
+                <TargetFilename name="Documents: wmv" condition="end with">.wmv</TargetFilename>
+            </FileCreate>
+        </RuleGroup>
+        </EventFiltering>
+</Sysmon>
