@@ -1,4 +1,9 @@
-<!--Started by ics_blitz-->
+<!--
+  Version:	v0.1
+  Author:	Aaron Boyd (icsblitz)
+  Project:	ICSWatchDog
+  License:	Creative Commons Attribution 4.0 | You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
+-->
 <Sysmon schemaversion="4.50">
     <!--SYSMON META CONFIG-->
     <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
