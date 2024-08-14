@@ -6,8 +6,8 @@
 
   Fork version:	v0.1
   Fork author:	Don C. Weber (@cutaway)
-  Fork project:	sysmon-configs
-  Fork license:	<N/A>
+  Fork project:	ICSWatchDog
+  Fork license:	Creative Commons Attribution 4.0 | You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
 
   REQUIRED: Sysmon version 13 or higher (due to changes in syntax and bug-fixes)
 	https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon

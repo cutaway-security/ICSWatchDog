@@ -10,6 +10,10 @@ The following projects provide similar functionality and have also inspired some
 * [Working With Sysmon Configurations Like a Pro Through Better Tooling - Matt Graeber](https://posts.specterops.io/working-with-sysmon-configurations-like-a-pro-through-better-tooling-be7ad7f99a47)
 * [Sysinternals Sysmon suspicious activity guide](https://learn.microsoft.com/en-us/archive/blogs/motiba/sysinternals-sysmon-suspicious-activity-guide)
 
+# Project License
+
+[Creative Commons Attribution 4.0 International](https://choosealicense.com/licenses/cc-by-4.0/): You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
+
 # Contributors
 
 * [Don C. Weber (cutaway)](https://www.linkedin.com/in/cutaway/)
