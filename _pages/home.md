@@ -8,7 +8,7 @@ header:
   overlay_image: /assets/images/icswatchdog_banner_0.png
   actions:
     - label: "<i class='fas fa-download'></i> Download now"
-      url: "https://github.com/cutaway-security/otlighthouse"
+      url: "https://github.com/cutaway-security/icswatchdog"
 excerpt: >
   The [ICS Watch Dog](https://icswatchdog.com) project aims to provide a usable Sysmon implementation from the start of your monitoring program through its maturity. We are here to help your team and we are hoping your team will help this project via issues, comments, discussions, and usable templates.
 feature_row:
