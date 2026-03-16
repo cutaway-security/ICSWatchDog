@@ -35,6 +35,10 @@ permalink: /configurations/
         <td>OT Enhanced</td>
       </tr>
       <tr>
+        <td>Jump host, bastion host, or kiosk system</td>
+        <td>Jump Host</td>
+      </tr>
+      <tr>
         <td>Experienced team, role-specific tuning</td>
         <td>OT Advanced</td>
       </tr>
@@ -76,6 +80,25 @@ permalink: /configurations/
   <p><strong>Best for:</strong> OT environments ready for ICS-specific endpoint monitoring.</p>
 </section>
 
+<section class="read-section" id="jumphost">
+  <h3>Jump Host / Bastion Host</h3>
+  <p><strong>Status:</strong> Available<br>
+  <strong>Minimum Sysmon:</strong> v15+ (schema 4.90)<br>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4 (PRIMARY FOCUS), #5</p>
+  <p>Comprehensive monitoring for jump hosts, bastion hosts, and kiosk systems used for OT remote access. These systems are the primary controlled entry point into OT networks and warrant the most thorough monitoring. Features include:</p>
+  <ul>
+    <li>Minimal process exclusions (jump hosts should have very predictable activity)</li>
+    <li>ALL network connections logged (every connection through the chokepoint matters)</li>
+    <li>Clipboard monitoring (Event ID 24) for detecting data transfer between networks</li>
+    <li>New executable detection (Event ID 29, schema 4.90)</li>
+    <li>AppLocker and RDP configuration change monitoring</li>
+    <li>DLL image loading enabled (disabled in baselines)</li>
+    <li>Recycle Bin and Group Policy monitoring</li>
+  </ul>
+  <p><strong>Best for:</strong> Jump hosts, bastion hosts, kiosk workstations providing controlled remote access to OT networks.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-jumphost.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-jumphost.xml</a></p>
+</section>
+
 <section class="read-section" id="ot-enhanced">
   <h3>OT Enhanced</h3>
   <p><strong>Status:</strong> In Development<br>
@@ -101,7 +124,7 @@ permalink: /configurations/
   <p><strong>Author:</strong> Aaron Boyd (icsblitz)<br>
   <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
   <p>Monitors file creation events, tracking dangerous attachment types, scripts, executables, and other files of interest. Useful for environments where file creation monitoring is the immediate priority.</p>
-  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/community/sysmonconfig-filecreate-only.xml" target="_blank" rel="noopener">community/sysmonconfig-filecreate-only.xml</a></p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/community/sysmonconfig-filecreate-only.xml" target="_blank" rel="noopener">community/sysmonconfig-filecreate-only.xml</a></p>
 </section>
 
 <h2 id="reference-configurations">Reference Configurations</h2>
@@ -113,7 +136,7 @@ permalink: /configurations/
   <p><strong>Source Version:</strong> 74 (2021-07-08)<br>
   <strong>Source Project:</strong> <a href="https://github.com/SwiftOnSecurity/sysmon-config" target="_blank" rel="noopener">SwiftOnSecurity/sysmon-config</a></p>
   <p>The well-known SwiftOnSecurity configuration. Retained as a reference for comparison and learning. This is an IT-focused general-purpose configuration with extensive inline documentation.</p>
-  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/reference/sysmonconfig-swiftonsecurity-v74.xml" target="_blank" rel="noopener">reference/sysmonconfig-swiftonsecurity-v74.xml</a></p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml" target="_blank" rel="noopener">reference/sysmonconfig-swiftonsecurity-v74.xml</a></p>
 </section>
 
 <h2>Similar and Inspiring Projects</h2>

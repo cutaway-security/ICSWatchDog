@@ -8,44 +8,29 @@
 
 ## What Was Accomplished
 
-### Phase 1: Project Foundation (Complete)
-### Phase 2: Website Build (Complete)
-### Phase 3a: Sysmon Research and Audit (Complete)
+### Phase 1-3a: Complete (see previous sessions)
+
 ### Phase 3b: Config Restructuring (Complete)
+- Created sysmon-configs/ directory with community/ and reference/ subdirectories
+- Moved and renamed all configs into sysmon-configs/
+- Moved icswatchdog_32x32.png to images/
+- Added disclaimers to community and reference configs
 
 ### Phase 3c: Config Implementation (Complete)
-
-**sysmonconfig-baseline-it.xml** - Built from scratch:
-- Schema 4.50, enterprise-focused, no personal app exclusions
-- 14 event IDs configured with include/exclude rules
-- MITRE ATT&CK technique references in comments
-- Event types: ProcessCreate, FileCreateTime, NetworkConnect, ProcessTerminate, DriverLoad, ImageLoad (disabled), CreateRemoteThread, RawAccessRead (disabled), ProcessAccess (lsass monitoring), FileCreate, RegistryEvent, FileCreateStreamHash, PipeEvent, WmiEvent, DnsQuery, FileDelete (archived, disabled), ProcessTampering, FileDeleteDetected
-- Detailed header: SANS control mapping, tuning requirements, disclaimer, references
-- Well-commented for Windows admins new to Sysmon
-
-**sysmonconfig-baseline-ot.xml** - Progression of IT Baseline:
-- Same schema 4.50 base, same event IDs
-- Key OT differences from IT Baseline:
-  - Less aggressive NetworkConnect exclusions (svchost not excluded on OT systems)
-  - Less aggressive DnsQuery exclusions (OT DNS activity is more significant)
-  - ICS/OT file types added to FileCreate: .ap17/.ap18/.ap19 (TIA Portal), .s7p (STEP 7), .project (CODESYS), .st (IEC 61131), .hex/.bin/.fw (firmware), .opf (OPC)
-  - Archive types added (.zip, .rar, .7z, .iso)
-  - ICS vendor directory monitoring (Siemens, Rockwell, Schneider, Wonderware, ArchestrA, OSIsoft PI, Ignition, Kepware, SEL, CODESYS)
-  - OT-specific comments throughout explaining why rules differ from IT
-  - Vendor examples clearly documented as needing validation
-
-**sysmonconfig-enhanced-ot.xml** - Stub:
-- Schema 4.50 placeholder with detailed header documenting planned features
-- Industrial port monitoring, expanded vendor coverage planned
-
-**sysmonconfig-advanced-ot.xml** - Stub:
-- Schema 4.90 placeholder with detailed header documenting planned features
-- Event IDs 27-29, role-specific tuning planned
-
-**community/sysmonconfig-filecreate-only.xml** - Fixed:
-- Pre-existing XML error corrected (malformed onmatch attribute: `""include` -> `"include"`)
-
-All 6 configs validated via xmllint (6/6 valid).
+- Built sysmonconfig-baseline-it.xml from scratch (schema 4.50, 14 event IDs, MITRE ATT&CK refs)
+- Built sysmonconfig-baseline-ot.xml as OT progression (vendor directory monitoring, ICS file types, adjusted exclusions)
+- Built sysmonconfig-jumphost.xml (schema 4.90, comprehensive monitoring, clipboard tracking, AppLocker/RDP registry monitoring, minimal exclusions, FileExecutableDetected)
+- Added Recycle Bin monitoring to IT and OT baselines (executables, scripts, archives)
+- Added AppLocker registry monitoring to IT and OT baselines
+- Added Group Policy file monitoring to IT and OT baselines
+- Stubbed enhanced-ot and advanced-ot configs with planned feature documentation
+- Fixed pre-existing XML error in community filecreate-only config
+- All 7 configs validated via xmllint (7/7 valid)
+- Reorganized repo: configs in sysmon-configs/, favicon in images/, root is clean
+- Updated README.md with new paths, jump host config, sysmon-configs/ directory
+- Updated site configs page with jump host section, updated all GitHub links to sysmon-configs/ paths
+- Updated site nav and landing page with jump host card
+- Jekyll build verified (0.012s, no errors)
 
 ## In Progress
 
@@ -57,21 +42,23 @@ All 6 configs validated via xmllint (6/6 valid).
 
 ## Next Steps
 
-1. Review Phase 3c deliverables (new configs)
+1. Review Phase 3c deliverables
 2. Begin Phase 4: Documentation
-
-## Open Questions
-
-- None currently blocking
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| sysmonconfig-baseline-it.xml | Created from scratch - IT baseline config |
-| sysmonconfig-baseline-ot.xml | Created from scratch - OT baseline config |
-| sysmonconfig-enhanced-ot.xml | Created as stub with planned features documented |
-| sysmonconfig-advanced-ot.xml | Created as stub with planned features documented |
-| community/sysmonconfig-filecreate-only.xml | Fixed XML error (malformed onmatch attribute) |
-| claude-dev/PLAN.md | Phase 3c marked complete |
-| claude-dev/RESUME.md | Updated with Phase 3c summary |
+| sysmon-configs/sysmonconfig-baseline-it.xml | Created; added Recycle Bin and AppLocker monitoring |
+| sysmon-configs/sysmonconfig-baseline-ot.xml | Created; added Recycle Bin and AppLocker monitoring |
+| sysmon-configs/sysmonconfig-jumphost.xml | Created (schema 4.90, comprehensive jump host config) |
+| sysmon-configs/sysmonconfig-enhanced-ot.xml | Created as stub |
+| sysmon-configs/sysmonconfig-advanced-ot.xml | Created as stub |
+| sysmon-configs/community/sysmonconfig-filecreate-only.xml | Moved, disclaimer added, XML error fixed |
+| sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml | Moved, renamed, disclaimer added |
+| images/icswatchdog_32x32.png | Moved from root |
+| README.md | Updated with sysmon-configs/ paths, jump host, new structure |
+| docs/_pages/configurations.html | Added jump host, updated all paths to sysmon-configs/ |
+| docs/_includes/nav.html | Added jump host to dropdown |
+| docs/index.html | Added jump host card, removed OT Advanced card (5 cards better than 6) |
+| claude-dev/RESUME.md | Updated with session activity |

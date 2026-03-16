@@ -1,51 +1,42 @@
 <!--
-  ICS Watch Dog - OT Baseline Sysmon Configuration
+  ICS Watch Dog - Jump Host / Bastion Host Sysmon Configuration
   Version:      v1.0
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
-  Minimum Sysmon:   v13+ (schema 4.50)
-  Target:           ICS/OT Windows systems (HMI, engineering workstations, historians, OT infrastructure)
+  Minimum Sysmon:   v15+ (schema 4.90)
+  Target:           Jump hosts, bastion hosts, kiosk systems used for OT remote access
 
   SANS ICS 5 Critical Controls Supported:
-    #1 ICS Incident Response - Forensic evidence via process, file, registry, network logs
-    #2 Defensible Architecture - Detection of processes crossing network boundaries
-    #3 ICS Network Visibility - Host-side complement to network monitoring (process-to-connection correlation)
-    #4 Secure Remote Access - Detection of known remote access / RMM tools
-    #5 Vulnerability Management - Software execution, driver loading, and service change logging
+    #1 ICS Incident Response - Comprehensive forensic evidence on the primary entry point
+    #2 Defensible Architecture - Validates jump host is functioning as intended chokepoint
+    #3 ICS Network Visibility - Every connection through the jump host is logged with process context
+    #4 Secure Remote Access - PRIMARY FOCUS: detects all remote access tool usage, RDP sessions, clipboard activity
+    #5 Vulnerability Management - Software execution and change tracking
 
   DESCRIPTION:
-    This is the OT BASELINE configuration. It builds on the IT Baseline (sysmonconfig-baseline-it.xml)
-    with ICS/OT-specific additions:
-    - Monitoring for ICS/OT vendor software processes (as examples)
-    - ICS-relevant file type monitoring (PLC projects, HMI configs, firmware)
-    - Remote access tool detection (same as IT Baseline)
-    - Adjusted exclusions appropriate for OT environments
+    Jump hosts and bastion hosts are the primary controlled entry point into OT networks.
+    They are high-value targets for attackers and warrant the most comprehensive monitoring
+    of any system in the environment. This config is intentionally verbose because:
+    - Jump hosts should have VERY predictable process activity
+    - Every connection through a jump host is significant
+    - Any unexpected software execution warrants investigation
+    - Clipboard monitoring detects data exfiltration between networks
 
-    VENDOR SOFTWARE EXAMPLES: The ICS/OT vendor process rules below are EXAMPLES based on
-    default installation paths and process names from vendor documentation. These MUST be
-    validated against your actual installations. Process names, paths, and service names
-    vary by product version, edition, and installation choices.
+    This config enables Event IDs that are disabled in the baseline configs:
+    - Event ID 24 (ClipboardChange) - detects data transfer via clipboard
+    - Event ID 29 (FileExecutableDetected) - detects new executable files (schema 4.90)
 
-    Vendors included as examples:
-    - Siemens (TIA Portal, WinCC)
-    - Rockwell / Allen-Bradley (Studio 5000, RSLogix, FactoryTalk, RSLinx)
-    - Schneider Electric (EcoStruxure Control Expert, Citect SCADA)
-    - AVEVA / Wonderware (InTouch, System Platform / ArchestrA)
-    - AVEVA / OSIsoft (PI Data Archive subsystems)
-    - Inductive Automation (Ignition Gateway)
-    - SEL / Schweitzer (ACSELERATOR QuickSet, Compass)
-    - CODESYS (IDE and runtime)
-    - Kepware / KEPServerEX (OPC server)
+    IMPORTANT: This config uses schema 4.90 (Sysmon v15+). Jump hosts should run
+    current Windows versions and can support newer Sysmon features.
 
   TUNING:
-    Administrators MUST review and tune this configuration for their environment.
-    - Validate vendor process names and paths against your actual installations
-    - Add your site-specific ICS/OT software following the examples provided
-    - Review remote access tool rules and exclude sanctioned tools as appropriate
-    - Test in a non-production environment before deploying to production systems
-    - Consider system performance impact - see deployment documentation at icswatchdog.com
+    - This config generates MORE events than baseline configs by design
+    - Review and exclude your organization's approved remote access solution
+    - AppLocker or similar application whitelisting is strongly recommended on jump hosts
+    - Monitor event volume during initial deployment and adjust as needed
+    - Test in a non-production environment before deploying to production
 
   DISCLAIMER:
     This configuration is provided as-is for educational and operational use.
@@ -53,17 +44,15 @@
     specific systems. Cutaway Security, LLC and contributors assume no liability
     for any impact resulting from the use of this configuration. Users are
     responsible for testing in their own environments before production deployment.
-    This is especially critical in ICS/OT environments where system availability
-    and safety are paramount.
 
   REFERENCES:
     - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
     - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - CISA Secure Remote Access Guide: https://www.cisa.gov/sites/default/files/2023-06/Guide%20to%20Securing%20Remote%20Access%20Software_clean%20Final_508c.pdf
     - LOLRMM Project: https://lolrmm.io/
-    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
 -->
 
-<Sysmon schemaversion="4.50">
+<Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
   <CheckRevocation/>
 
@@ -72,37 +61,22 @@
     <!--
     ================================================================
     EVENT ID 1: PROCESS CREATION [ProcessCreate]
-    Default: Log all process creation, exclude known noisy system processes.
-    OT Addition: No additional exclusions - OT systems should have minimal
-    process noise compared to IT workstations. Log broadly.
+    MINIMAL exclusions. Jump hosts should have very predictable processes.
+    Any unexpected process execution warrants investigation.
     ================================================================
     -->
     <RuleGroup name="ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="exclude">
-        <!-- Windows system noise (same as IT Baseline) -->
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <!-- Only the absolute minimum system noise -->
         <Image condition="is">C:\Windows\System32\conhost.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
         <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
         <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
         <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
-        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
-        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
-        <!-- Windows Defender noise -->
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
         <!--
-        NOTE: OT systems should have fewer running processes than IT workstations.
-        Be conservative with exclusions. If a process is unexpected on an OT system,
-        you WANT to see it in the logs.
-        Add your site-specific enterprise software exclusions below this line.
+        NOTE: Intentionally fewer exclusions than baseline configs.
+        On a jump host, you WANT to see RuntimeBroker, backgroundTaskHost,
+        audiodg, etc. if they run - these indicate the system may have
+        unnecessary features enabled.
         -->
       </ProcessCreate>
     </RuleGroup>
@@ -110,49 +84,34 @@
     <!--
     ================================================================
     EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
-    Detects timestomping (same as IT Baseline).
+    Log all timestomping attempts. Minimal exclusions on jump host.
     ================================================================
     -->
     <RuleGroup name="FileCreateTime" groupRelation="or">
       <FileCreateTime onmatch="exclude">
         <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
-        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
-        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
       </FileCreateTime>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
-    OT Addition: Less aggressive exclusions than IT Baseline.
-    On OT systems, network connections are more significant and should be
-    logged broadly. Unexpected outbound connections from an HMI or
-    engineering workstation warrant investigation.
+    LOG ALL network connections. Jump hosts are chokepoints - every
+    connection is significant. NO exclusions.
     ================================================================
     -->
     <RuleGroup name="NetworkConnect" groupRelation="or">
-      <NetworkConnect onmatch="exclude">
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
-        <!--
-        NOTE: svchost.exe is NOT excluded in the OT config. On OT systems, svchost
-        network connections may be significant and worth reviewing. If this generates
-        too much noise, add svchost.exe exclusion after reviewing your baseline.
-        -->
-      </NetworkConnect>
+      <NetworkConnect onmatch="exclude"/>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
-    Same as IT Baseline.
+    Log all process termination - useful for session tracking.
     ================================================================
     -->
     <RuleGroup name="ProcessTerminate" groupRelation="or">
       <ProcessTerminate onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
         <Image condition="is">C:\Windows\System32\conhost.exe</Image>
       </ProcessTerminate>
     </RuleGroup>
@@ -160,10 +119,7 @@
     <!--
     ================================================================
     EVENT ID 6: DRIVER LOADED [DriverLoad]
-    Same as IT Baseline. Log all non-Microsoft drivers.
-    OT NOTE: ICS/OT vendor drivers (e.g., for PLC communications hardware,
-    serial adapters, USB-to-serial converters) will appear here. This is
-    expected and useful for asset inventory.
+    Log all non-Microsoft drivers. Jump hosts should have minimal drivers.
     ================================================================
     -->
     <RuleGroup name="DriverLoad" groupRelation="or">
@@ -176,17 +132,26 @@
     <!--
     ================================================================
     EVENT ID 7: IMAGE LOADED [ImageLoad]
-    Disabled by default (same as IT Baseline).
+    ENABLED on jump hosts - monitors DLL loading.
+    Jump hosts have predictable DLL activity. Unexpected DLLs warrant
+    investigation. This generates significant volume but is warranted
+    on high-value chokepoints.
+    Exclude known system DLLs to manage volume.
     ================================================================
     -->
     <RuleGroup name="ImageLoad" groupRelation="or">
-      <ImageLoad onmatch="include"/>
+      <ImageLoad onmatch="exclude">
+        <ImageLoaded condition="begin with">C:\Windows\System32\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\SysWOW64\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\WinSxS\</ImageLoaded>
+        <Signed condition="is">true</Signed>
+      </ImageLoad>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
-    Same as IT Baseline.
+    Log all remote thread creation except core system processes.
     ================================================================
     -->
     <RuleGroup name="CreateRemoteThread" groupRelation="or">
@@ -203,17 +168,19 @@
     <!--
     ================================================================
     EVENT ID 9: RAW ACCESS READ [RawAccessRead]
-    Disabled by default (same as IT Baseline).
+    ENABLED on jump hosts - detects disk-level data access attempts.
     ================================================================
     -->
     <RuleGroup name="RawAccessRead" groupRelation="or">
-      <RawAccessRead onmatch="include"/>
+      <RawAccessRead onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+      </RawAccessRead>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 10: PROCESS ACCESS [ProcessAccess]
-    Same as IT Baseline - monitor lsass.exe access.
+    Monitor lsass.exe access - credential theft detection.
     ================================================================
     -->
     <RuleGroup name="ProcessAccess" groupRelation="or">
@@ -225,18 +192,16 @@
     <!--
     ================================================================
     EVENT ID 11: FILE CREATED [FileCreate]
-    OT Addition: Adds ICS/OT-specific file types and vendor project files.
-    These are EXAMPLES - add your site-specific file types.
+    Broad monitoring. Jump hosts should have very few file changes.
     ================================================================
     -->
     <RuleGroup name="FileCreate" groupRelation="or">
       <FileCreate onmatch="include">
-        <!-- === Startup and persistence locations (same as IT Baseline) === -->
+        <!-- Startup and persistence locations -->
         <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
         <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
         <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
-
-        <!-- === Executable and script file types (same as IT Baseline) === -->
+        <!-- Executable and script file types -->
         <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
         <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
         <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
@@ -249,86 +214,60 @@
         <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
         <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
         <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
-
-        <!-- === User download/temp locations (same as IT Baseline) === -->
-        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
-        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
-        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
-
-        <!--
-        ================================================================
-        OT-SPECIFIC FILE TYPES
-        These are EXAMPLES of ICS/OT-relevant file types.
-        Add your site-specific file types following this pattern.
-        ================================================================
-        -->
-
-        <!-- PLC programming project files -->
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap17</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap18</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap19</TargetFilename>
-        <TargetFilename name="ICS: Siemens STEP 7 project" condition="end with">.s7p</TargetFilename>
-        <TargetFilename name="ICS: CODESYS project" condition="end with">.project</TargetFilename>
-        <TargetFilename name="ICS: IEC 61131 structured text" condition="end with">.st</TargetFilename>
-
-        <!-- HMI/SCADA project files -->
-        <TargetFilename name="ICS: AVEVA InTouch app" condition="end with">.app</TargetFilename>
-
-        <!-- Firmware and binary files relevant to OT -->
-        <TargetFilename name="ICS: Firmware hex" condition="end with">.hex</TargetFilename>
-        <TargetFilename name="ICS: Firmware binary" condition="end with">.bin</TargetFilename>
-        <TargetFilename name="ICS: Firmware update" condition="end with">.fw</TargetFilename>
-
-        <!-- Configuration files -->
-        <TargetFilename name="ICS: OPC config" condition="end with">.opf</TargetFilename>
-
-        <!-- Archive files (common malware delivery in OT environments) -->
+        <!-- Archives (potential staging) -->
         <TargetFilename name="Archive: ZIP" condition="end with">.zip</TargetFilename>
         <TargetFilename name="Archive: RAR" condition="end with">.rar</TargetFilename>
         <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
         <TargetFilename name="Archive: ISO" condition="end with">.iso</TargetFilename>
-
-        <!-- Vendor installation directories (monitor changes to ICS software) -->
-        <TargetFilename name="ICS: Siemens directory" condition="contains">\Siemens\</TargetFilename>
-        <TargetFilename name="ICS: Rockwell directory" condition="contains">\Rockwell Software\</TargetFilename>
-        <TargetFilename name="ICS: Schneider directory" condition="contains">\Schneider Electric\</TargetFilename>
-        <TargetFilename name="ICS: Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
-        <TargetFilename name="ICS: ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
-        <TargetFilename name="ICS: OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
-        <TargetFilename name="ICS: Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
-        <TargetFilename name="ICS: Kepware directory" condition="contains">\Kepware\</TargetFilename>
-        <TargetFilename name="ICS: SEL directory" condition="contains">\SEL\</TargetFilename>
-        <TargetFilename name="ICS: CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
+        <!-- User locations - any file creation here is notable on a jump host -->
+        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+        <TargetFilename name="User Desktop" condition="contains">\Desktop\</TargetFilename>
+        <TargetFilename name="User Documents" condition="contains">\Documents\</TargetFilename>
+        <!-- Recycle Bin (malware staging/hiding) -->
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <!-- Group Policy / AppLocker changes -->
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
-    Same as IT Baseline - autostart and critical registry locations.
-    OT NOTE: ICS vendor software may register services and autostart entries.
-    These are expected and useful for tracking software changes on OT systems.
+    Same as baselines plus AppLocker monitoring.
     ================================================================
     -->
     <RuleGroup name="RegistryEvent" groupRelation="or">
       <RegistryEvent onmatch="include">
+        <!-- Autostart locations -->
         <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
         <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
         <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
         <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <!-- Services -->
         <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <!-- Scheduled tasks -->
         <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <!-- AppInit DLLs -->
         <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <!-- Image File Execution Options -->
         <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <!-- Winlogon -->
         <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
         <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <!-- AppLocker policy changes -->
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!-- Terminal Services / RDP configuration changes -->
+        <TargetObject name="RDP config" condition="contains">\Terminal Services</TargetObject>
+        <TargetObject name="RDP authentication" condition="contains">\Terminal Server\WinStations</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
-    Same as IT Baseline.
+    Same as baselines.
     ================================================================
     -->
     <RuleGroup name="FileCreateStreamHash" groupRelation="or">
@@ -347,23 +286,17 @@
     <!--
     ================================================================
     EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
-    Same as IT Baseline.
+    Log ALL named pipes. Jump hosts should have minimal pipe activity.
     ================================================================
     -->
     <RuleGroup name="PipeCreated" groupRelation="or">
-      <PipeEvent onmatch="exclude">
-        <PipeName condition="is">\lsass</PipeName>
-        <PipeName condition="is">\wkssvc</PipeName>
-        <PipeName condition="is">\srvsvc</PipeName>
-        <PipeName condition="is">\winreg</PipeName>
-        <PipeName condition="is">\spoolss</PipeName>
-      </PipeEvent>
+      <PipeEvent onmatch="exclude"/>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
-    Same as IT Baseline - log all WMI persistence.
+    Log all WMI activity.
     ================================================================
     -->
     <RuleGroup name="WmiEvent" groupRelation="or">
@@ -373,26 +306,21 @@
     <!--
     ================================================================
     EVENT ID 22: DNS QUERY [DnsQuery]
-    OT Addition: Less aggressive exclusions than IT Baseline.
-    DNS queries from OT systems are more significant. Many OT systems
-    should have minimal DNS activity. Unexpected DNS queries from an HMI
-    or engineering workstation warrant investigation.
-    NOTE: If the OT system is air-gapped, this event type will generate
-    minimal noise and provides value if the gap is ever bridged.
+    Log ALL DNS queries. Jump hosts should have minimal DNS activity.
+    Any unexpected domain resolution warrants investigation.
     ================================================================
     -->
     <RuleGroup name="DnsQuery" groupRelation="or">
       <DnsQuery onmatch="exclude">
         <QueryName condition="end with">.microsoft.com</QueryName>
         <QueryName condition="end with">.windowsupdate.com</QueryName>
-        <QueryName condition="end with">.windows.com</QueryName>
       </DnsQuery>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
-    Disabled by default (same as IT Baseline).
+    Disabled - use Event ID 26 (FileDeleteDetected) instead for lower overhead.
     ================================================================
     -->
     <RuleGroup name="FileDelete" groupRelation="or">
@@ -401,8 +329,23 @@
 
     <!--
     ================================================================
+    EVENT ID 24: CLIPBOARD CHANGE [ClipboardChange]
+    ENABLED on jump hosts. Detects data transfer via clipboard between
+    RDP sessions. Important for detecting data exfiltration across
+    network boundaries (SANS Control #2, #4).
+    NOTE: This generates events every time clipboard content changes.
+    On a jump host this is acceptable - clipboard transfers between
+    networks are exactly what needs monitoring.
+    ================================================================
+    -->
+    <RuleGroup name="ClipboardChange" groupRelation="or">
+      <ClipboardChange onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
     EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
-    Same as IT Baseline - log all process tampering.
+    Log all process tampering.
     ================================================================
     -->
     <RuleGroup name="ProcessTampering" groupRelation="or">
@@ -412,7 +355,7 @@
     <!--
     ================================================================
     EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
-    Same as IT Baseline.
+    Broader monitoring on jump hosts - any file deletion is notable.
     ================================================================
     -->
     <RuleGroup name="FileDeleteDetected" groupRelation="or">
@@ -423,7 +366,24 @@
         <TargetFilename condition="end with">.ps1</TargetFilename>
         <TargetFilename condition="end with">.bat</TargetFilename>
         <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.zip</TargetFilename>
+        <TargetFilename condition="end with">.rar</TargetFilename>
+        <TargetFilename condition="end with">.7z</TargetFilename>
       </FileDeleteDetected>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 29: FILE EXECUTABLE DETECTED [FileExecutableDetected]
+    Schema 4.90 feature. Detects new executable files (PE format)
+    written to disk. Critical on jump hosts - any new executable
+    warrants immediate investigation.
+    ================================================================
+    -->
+    <RuleGroup name="FileExecutableDetected" groupRelation="or">
+      <FileExecutableDetected onmatch="exclude"/>
     </RuleGroup>
 
   </EventFiltering>

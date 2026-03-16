@@ -8,24 +8,25 @@
 
 ## Configuration Files
 
-ICS Watch Dog configs follow a progressive structure from IT baseline through OT-specific advanced monitoring.
+All configs are in the [`sysmon-configs/`](sysmon-configs/) directory.
 
 ### Curated Configs
 
 | Config | Description | Sysmon Version |
 |--------|-------------|----------------|
-| sysmonconfig-baseline-it.xml | Enterprise IT starting point -- general Windows monitoring | v13+ (schema 4.50) |
-| sysmonconfig-baseline-ot.xml | OT baseline -- adds ICS/OT vendor and process monitoring | v13+ (schema 4.50) |
-| sysmonconfig-enhanced-ot.xml | Broader OT coverage -- industrial port awareness | In Development |
-| sysmonconfig-advanced-ot.xml | Advanced OT -- newer Sysmon features, role-specific | In Development |
+| [sysmonconfig-baseline-it.xml](sysmon-configs/sysmonconfig-baseline-it.xml) | Enterprise IT starting point - general Windows monitoring, remote access tool detection | v13+ (schema 4.50) |
+| [sysmonconfig-baseline-ot.xml](sysmon-configs/sysmonconfig-baseline-ot.xml) | OT baseline - adds ICS/OT vendor monitoring, ICS file types, adjusted OT exclusions | v13+ (schema 4.50) |
+| [sysmonconfig-jumphost.xml](sysmon-configs/sysmonconfig-jumphost.xml) | Jump host / bastion host - comprehensive monitoring, clipboard tracking, minimal exclusions | v15+ (schema 4.90) |
+| [sysmonconfig-enhanced-ot.xml](sysmon-configs/sysmonconfig-enhanced-ot.xml) | Broader OT coverage - industrial port awareness | In Development |
+| [sysmonconfig-advanced-ot.xml](sysmon-configs/sysmonconfig-advanced-ot.xml) | Advanced OT - newer Sysmon features, role-specific | In Development |
 
 ### Community Configs
 
-Community-contributed configurations for specific use cases. See [community/](community/) directory.
+Community-contributed configurations for specific use cases. See [sysmon-configs/community/](sysmon-configs/community/).
 
 | Config | Author | Description |
 |--------|--------|-------------|
-| [community/sysmonconfig-filecreate-only.xml](community/sysmonconfig-filecreate-only.xml) | Aaron Boyd (icsblitz) | File creation monitoring |
+| [sysmonconfig-filecreate-only.xml](sysmon-configs/community/sysmonconfig-filecreate-only.xml) | Aaron Boyd (icsblitz) | File creation monitoring |
 
 ### Reference Configs
 
@@ -33,12 +34,12 @@ Third-party configs retained for learning and comparison. Not maintained by ICS 
 
 | Config | Source | Description |
 |--------|--------|-------------|
-| [reference/sysmonconfig-swiftonsecurity-v74.xml](reference/sysmonconfig-swiftonsecurity-v74.xml) | [SwiftOnSecurity](https://github.com/SwiftOnSecurity/sysmon-config) | Original SwiftOnSecurity v74 (2021-07-08) |
+| [sysmonconfig-swiftonsecurity-v74.xml](sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml) | [SwiftOnSecurity](https://github.com/SwiftOnSecurity/sysmon-config) | Original SwiftOnSecurity v74 (2021-07-08) |
 
 ## Quick Start
 
 1. Download [Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon) from Microsoft
-2. Download a configuration file from this repository (start with the IT baseline)
+2. Download a configuration file from the `sysmon-configs/` directory (start with the IT baseline)
 3. Install from an elevated command prompt:
 
 ```
@@ -57,7 +58,7 @@ Community-contributed configurations are not maintained or tested by Cutaway Sec
 
 ## Contributing
 
-Contributions are welcome via pull requests or GitHub issues (feature enhancements). Community configs are placed in the `community/` directory with author attribution. See the [Community Contributions](https://icswatchdog.com/community/) page for guidelines.
+Contributions are welcome via pull requests or GitHub issues (feature enhancements). Community configs are placed in the `sysmon-configs/community/` directory with author attribution. See the [Community Contributions](https://icswatchdog.com/community/) page for guidelines.
 
 ## Similar Projects
 

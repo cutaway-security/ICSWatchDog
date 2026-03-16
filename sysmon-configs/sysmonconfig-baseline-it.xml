@@ -237,6 +237,10 @@
         <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
         <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
         <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+        <!-- Recycle Bin - executables, scripts, and archives (malware staging/hiding) -->
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <!-- Group Policy changes (includes AppLocker policy updates) -->
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
@@ -265,6 +269,8 @@
         <!-- Winlogon -->
         <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
         <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <!-- AppLocker policy changes (application whitelisting) -->
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
