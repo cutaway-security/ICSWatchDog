@@ -125,6 +125,19 @@ git branch -d release-v#
 - Update PLAN.md on claude-dev with next phase goals
 - Update RESUME.md with release summary
 
+## Website-Only Deployment
+
+To deploy website changes without a full release (e.g., documentation updates, page fixes, styling changes):
+
+1. Commit and push changes on `claude-dev`
+2. Run the deploy script:
+
+```bash
+./claude-dev/deploy-site.sh
+```
+
+This updates the `gh-pages` branch without affecting `main`. No tagging or release branch needed.
+
 ## Rollback
 
 If a release needs to be reverted, reset main to the previous release tag:

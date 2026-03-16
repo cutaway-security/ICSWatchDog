@@ -72,7 +72,7 @@ else
     DEPLOY_DATE="$(date +%Y-%m-%d_%H%M%S)"
     git commit -m "Deploy site ${DEPLOY_DATE}"
     echo "Pushing to gh-pages..."
-    git push origin gh-pages
+    git push origin gh-pages --force
     echo "Site deployed successfully."
 fi
 

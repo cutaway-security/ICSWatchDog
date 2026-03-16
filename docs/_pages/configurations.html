@@ -69,6 +69,7 @@ permalink: /configurations/
   <strong>SANS Controls:</strong> #1 (Incident Response), #4 (Secure Remote Access), #5 (Vulnerability Management)</p>
   <p>Enterprise IT starting point for any Windows system. General-purpose monitoring covering process creation, network connections, file creation, and registry changes. Includes detection of known remote access tools (TeamViewer, AnyDesk, VNC, ScreenConnect, and others) per CISA/NSA guidance. This is explicitly an IT-focused configuration -- it does not include OT-specific rules.</p>
   <p><strong>Best for:</strong> Teams deploying Sysmon for the first time on any Windows system. Start here.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-it.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-baseline-it.xml</a></p>
 </section>
 
 <section class="read-section" id="ot-baseline">
@@ -78,6 +79,7 @@ permalink: /configurations/
   <strong>SANS Controls:</strong> #1, #2 (Defensible Architecture), #3 (Network Visibility), #4, #5</p>
   <p>Builds on the IT Baseline with OT-specific additions. Adds monitoring examples for major ICS/OT vendor software (Siemens, Rockwell, Schneider Electric, AVEVA/OSIsoft PI, Ignition, SEL), ICS-relevant file type monitoring, and adjusted exclusions for OT environments. Vendor-specific rules are examples that must be validated against your actual installations.</p>
   <p><strong>Best for:</strong> OT environments ready for ICS-specific endpoint monitoring.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-ot.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-baseline-ot.xml</a></p>
 </section>
 
 <section class="read-section" id="jumphost">
@@ -105,6 +107,7 @@ permalink: /configurations/
   <strong>SANS Controls:</strong> #1, #2, #3, #4, #5</p>
   <p>Broader OT coverage including network connection monitoring for industrial ports (Modbus TCP/502, EtherNet/IP/44818, OPC-UA/4840, DNP3/20000, S7comm/102). Detects which processes connect to these ports -- useful for identifying unauthorized access. May use newer Sysmon schema features.</p>
   <p><strong>Best for:</strong> Teams with established monitoring looking to increase visibility into OT network activity.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-enhanced-ot.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-enhanced-ot.xml</a></p>
 </section>
 
 <section class="read-section" id="ot-advanced">
@@ -113,6 +116,7 @@ permalink: /configurations/
   <strong>SANS Controls:</strong> #1, #2, #3, #4, #5</p>
   <p>Advanced monitoring leveraging newer Sysmon features (FileBlockExecutable, FileExecutableDetected). Provides role-specific customization guidance for HMI stations, engineering workstations, historians, and other OT system roles. Developed further as the project matures.</p>
   <p><strong>Best for:</strong> Experienced teams ready for comprehensive, role-specific endpoint monitoring.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-advanced-ot.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-advanced-ot.xml</a></p>
 </section>
 
 <h2 id="community-configurations">Community Configurations</h2>
