@@ -4,6 +4,12 @@
 
 All development occurs on the `claude-dev` branch. When a version is ready for public release, follow these steps.
 
+### Tagging Convention
+
+- claude-dev tag: `release-v<VERSION>` (marks the development snapshot)
+- Release branch: `release-v<VERSION>` (used for stripping dev files before merge)
+- main tag: `v<VERSION>` (marks the public release)
+
 ### Pre-Release Checklist
 
 - [ ] All planned features for this release are complete and tested
@@ -26,13 +32,13 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 
    ```bash
    git checkout claude-dev
-   git tag -a v<VERSION> -m "Release v<VERSION>: <brief description>"
+   git tag -a release-v<VERSION> -m "Release v<VERSION>: <brief description>"
    ```
 
 3. **Create a release branch**
 
    ```bash
-   git checkout -b release/v<VERSION>
+   git checkout -b release-v<VERSION>
    ```
 
 4. **Remove development-only files and directories**
@@ -54,15 +60,15 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 
    ```bash
    git checkout main
-   git merge release/v<VERSION>
-   git tag -a v<VERSION>-release -m "Release v<VERSION>"
+   git merge release-v<VERSION>
+   git tag -a v<VERSION> -m "Release v<VERSION>"
    git push origin main --tags
    ```
 
 7. **Clean up release branch**
 
    ```bash
-   git branch -d release/v<VERSION>
+   git branch -d release-v<VERSION>
    git checkout claude-dev
    ```
 
