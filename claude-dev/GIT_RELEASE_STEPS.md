@@ -11,9 +11,10 @@ All development occurs on the `claude-dev` branch. Releases strip development fi
 
 | Item | Format | Example | Purpose |
 |------|--------|---------|---------|
-| Dev snapshot tag | `release-v#` | `release-v3` | Marks the claude-dev state that produced a release |
+| Dev snapshot tag | `tag-v#` | `tag-v3` | Marks the claude-dev state that produced a release |
 | Release branch | `release-v#` | `release-v3` | Temporary branch for stripping dev files |
 | Main release tag | `v#` | `v3` | Marks the public release on main; used for rollbacks |
+
 
 List existing tags before creating a new one:
 
@@ -47,7 +48,7 @@ Expected: `On branch claude-dev` with `nothing to commit, working tree clean`. I
 ### 2. Tag the release on claude-dev
 
 ```bash
-git tag -a release-v# -m "Release v#: <brief description>"
+git tag -a tag-v# -m "Release v#: <brief description>"
 git push origin --tags
 ```
 
