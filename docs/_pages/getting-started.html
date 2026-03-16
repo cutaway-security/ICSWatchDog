@@ -83,6 +83,18 @@ permalink: /getting-started/
   <pre><code>wevtutil.exe sl Microsoft-Windows-Sysmon/Operational /ca:O:BAG:SYD:(A;;0xf0005;;;SY)(A;;0x5;;;BA)(A;;0x1;;;S-1-5-32-573)(A;;0x1;;;NS)</code></pre>
 </section>
 
+<section class="read-section">
+  <h2>Performance and Latency</h2>
+  <p>A common concern in ICS/OT environments is whether Sysmon will impact system performance or introduce network latency. Key points:</p>
+  <ul>
+    <li><strong>Sysmon does not introduce network latency</strong> - It logs events locally; it does not intercept or delay network traffic</li>
+    <li><strong>CPU/memory impact is minimal</strong> - Sysmon is designed to be lightweight. Baseline configs are conservative by design.</li>
+    <li><strong>OT systems typically generate fewer events</strong> - OT workstations and HMIs run fewer applications than IT systems, resulting in less Sysmon activity</li>
+    <li><strong>High-volume events are disabled by default</strong> - ImageLoad (Event ID 7) and RawAccessRead (Event ID 9) are disabled in baseline configs due to volume</li>
+  </ul>
+  <p>For detailed guidance on phased deployment, system criticality decisions, and tuning, see the <a href="{{ site.baseurl }}/deployment/">Deployment Considerations</a> page.</p>
+</section>
+
 <div class="callout callout-info">
-  <p><strong>Next steps:</strong> Browse the <a href="{{ site.baseurl }}/configurations/">Configuration Files</a> to find the right config for your environment. As your team gains experience, advance to higher-tier configurations.</p>
+  <p><strong>Next steps:</strong> Browse the <a href="{{ site.baseurl }}/configurations/">Configuration Files</a> to find the right config for your environment. Read the <a href="{{ site.baseurl }}/deployment/">Deployment Considerations</a> guide before deploying to production OT systems. As your team gains experience, advance to more comprehensive configurations.</p>
 </div>

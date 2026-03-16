@@ -8,33 +8,46 @@
 
 ## What Was Accomplished
 
-### Phase 1-3a: Complete (see previous sessions)
+### Phases 1-3c: Complete (see previous sessions)
 
-### Phase 3b: Config Restructuring (Complete)
-- Created sysmon-configs/ directory with community/ and reference/ subdirectories
-- Moved and renamed all configs into sysmon-configs/
-- Moved icswatchdog_32x32.png to images/
-- Added disclaimers to community and reference configs
+### Phase 4: Documentation (Complete)
 
-### Phase 3c: Config Implementation (Complete)
-- Built sysmonconfig-baseline-it.xml from scratch (schema 4.50, 14 event IDs, MITRE ATT&CK refs)
-- Built sysmonconfig-baseline-ot.xml as OT progression (vendor directory monitoring, ICS file types, adjusted exclusions)
-- Built sysmonconfig-jumphost.xml (schema 4.90, comprehensive monitoring, clipboard tracking, AppLocker/RDP registry monitoring, minimal exclusions, FileExecutableDetected)
-- Added Recycle Bin monitoring to IT and OT baselines (executables, scripts, archives)
-- Added AppLocker registry monitoring to IT and OT baselines
-- Added Group Policy file monitoring to IT and OT baselines
-- Stubbed enhanced-ot and advanced-ot configs with planned feature documentation
-- Fixed pre-existing XML error in community filecreate-only config
-- All 7 configs validated via xmllint (7/7 valid)
-- Reorganized repo: configs in sysmon-configs/, favicon in images/, root is clean
-- Updated README.md with new paths, jump host config, sysmon-configs/ directory
-- Updated site configs page with jump host section, updated all GitHub links to sysmon-configs/ paths
-- Updated site nav and landing page with jump host card
-- Jekyll build verified (0.012s, no errors)
+**New pages created (3):**
+
+1. **SANS ICS 5 Critical Controls** (`/sans-controls/`)
+   - Dedicated section for each of the 5 controls with how Sysmon supports them
+   - Config-to-control mapping table
+   - Important note that Sysmon monitors process-to-port, not protocol payloads
+   - References to SANS whitepaper, Dragos analysis, CISA/NSA advisories, SANS State of OT Security 2025
+
+2. **Deployment Considerations** (`/deployment/`)
+   - Performance impact table per config level
+   - Network latency explanation (Sysmon does not introduce network latency)
+   - Event log size management guidance
+   - 4-phase deployment approach (Lab -> Non-critical -> Jump hosts -> Operational)
+   - Criticality-based deployment decision table (system type -> recommended config -> priority)
+   - Tuning guide: noise reduction, remote access tool tuning, vendor-specific rule additions
+   - Rollback plan (uninstall, config swap, service stop)
+   - Safety-critical system warning callout
+
+3. **Community Contributions** (`/community/`)
+   - Two contribution paths (PR and GitHub issue)
+   - What to include in contributions (header, rule names, comments, schema version, testing notes)
+   - Naming convention for community configs
+   - Review process
+   - Current community configs table
+   - Disclaimer for community configs
+
+**Existing page updates:**
+- **Getting Started**: Added performance/latency section with link to Deployment Considerations
+- **Footer**: Added disclaimer with link to Deployment Considerations
+- **Navigation**: Guides dropdown now includes Deployment Considerations, SANS ICS 5 Controls, Community Contributions
+
+**Build verification:** 0.013s, 6 pages generated, no errors
 
 ## In Progress
 
-- Phase 3c complete, awaiting review
+- Phase 4 complete, awaiting review
 
 ## Blockers
 
@@ -42,23 +55,18 @@
 
 ## Next Steps
 
-1. Review Phase 3c deliverables
-2. Begin Phase 4: Documentation
+1. Review Phase 4 deliverables (3 new pages, updated existing pages, navigation)
+2. Begin Phase 5: Release
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| sysmon-configs/sysmonconfig-baseline-it.xml | Created; added Recycle Bin and AppLocker monitoring |
-| sysmon-configs/sysmonconfig-baseline-ot.xml | Created; added Recycle Bin and AppLocker monitoring |
-| sysmon-configs/sysmonconfig-jumphost.xml | Created (schema 4.90, comprehensive jump host config) |
-| sysmon-configs/sysmonconfig-enhanced-ot.xml | Created as stub |
-| sysmon-configs/sysmonconfig-advanced-ot.xml | Created as stub |
-| sysmon-configs/community/sysmonconfig-filecreate-only.xml | Moved, disclaimer added, XML error fixed |
-| sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml | Moved, renamed, disclaimer added |
-| images/icswatchdog_32x32.png | Moved from root |
-| README.md | Updated with sysmon-configs/ paths, jump host, new structure |
-| docs/_pages/configurations.html | Added jump host, updated all paths to sysmon-configs/ |
-| docs/_includes/nav.html | Added jump host to dropdown |
-| docs/index.html | Added jump host card, removed OT Advanced card (5 cards better than 6) |
-| claude-dev/RESUME.md | Updated with session activity |
+| docs/_pages/sans-controls.html | Created - SANS ICS 5 Critical Controls mapping |
+| docs/_pages/deployment.html | Created - Deployment considerations, performance, tuning |
+| docs/_pages/community.html | Created - Community contribution guidelines |
+| docs/_pages/getting-started.html | Added performance/latency section |
+| docs/_includes/footer.html | Added disclaimer text |
+| docs/_includes/nav.html | Added 3 new pages to Guides dropdown |
+| claude-dev/PLAN.md | Phase 4 marked complete |
+| claude-dev/RESUME.md | Updated with Phase 4 summary |

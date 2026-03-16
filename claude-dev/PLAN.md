@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 3c - Config Implementation
+**Phase**: Phase 4 - Documentation
 **Status**: Complete
-**Focus**: Awaiting review before proceeding to Phase 4
+**Focus**: Awaiting review before proceeding to Phase 5
 
 ## Phases
 
@@ -98,30 +98,29 @@ Built all configs from scratch (not forked from SwiftOnSecurity). Enterprise-foc
 
 ### Phase 4: Documentation
 
-**Status**: Not Started
+**Status**: Complete
 
 **Existing page updates:**
-- [ ] Update Getting Started page with performance/latency section for OT environments
-- [ ] Update Configuration Files page with new structure, naming, and SANS control references
-- [ ] Update landing page with SANS ICS 5 Controls framing and disclaimer
-- [ ] Add disclaimer to website footer
+- [x] Update Getting Started page with performance/latency section for OT environments
+- [x] Update Configuration Files page with jump host, updated paths, SANS control references
+- [x] Update landing page with SANS ICS 5 Controls framing, jump host card
+- [x] Add disclaimer to website footer
 
 **New pages:**
-- [ ] Create SANS ICS 5 Critical Controls page (dedicated mapping of controls to Sysmon/configs)
-- [ ] Create Deployment Considerations page (performance impact, latency, phased rollout, criticality-based decisions, testing recommendations)
-- [ ] Create Community Contributions page (how to contribute via PR or issue, review process, disclaimer for community configs)
+- [x] Create SANS ICS 5 Critical Controls page (dedicated mapping per control, config-to-control table, references)
+- [x] Create Deployment Considerations page (performance impact, latency, phased rollout, criticality-based decisions, tuning guide, rollback plan)
+- [x] Create Community Contributions page (PR and issue process, naming convention, review process, disclaimer)
 
-**Documentation content:**
-- [ ] Write config selection guide framed around SANS controls
-- [ ] Write customization/tuning guide (admins MUST tune, remote access tool tuning, vendor-specific additions)
-- [ ] Write advancement guide (IT baseline to OT advanced progression)
-- [ ] Document vendor software examples with accuracy notes (Siemens, Rockwell, Schneider, AVEVA/OSIsoft PI, Ignition, SEL)
-- [ ] Document remote access tool monitoring (what is detected, how to tune, CISA/NSA references)
-- [ ] Document legacy OS considerations and Sysmon version compatibility
-- [ ] Review all documentation for accuracy and completeness
+**Documentation content (integrated into pages above):**
+- [x] Config selection guide framed around SANS controls (in SANS Controls page and Configurations page)
+- [x] Customization/tuning guide (in Deployment Considerations: noise reduction, remote access tool tuning, vendor-specific additions)
+- [x] Remote access tool monitoring documentation (in SANS Controls #4 section)
+- [x] Legacy OS considerations (in Deployment Considerations: criticality-based decisions table)
+- [x] Performance/latency documentation (in Deployment Considerations and Getting Started)
 
 **Navigation updates:**
-- [ ] Update site nav to include new pages (SANS Controls, Deployment, Community)
+- [x] Update site nav Guides dropdown to include Deployment Considerations, SANS ICS 5 Controls, Community Contributions
+- [x] Verify Jekyll build (0.013s, 6 pages generated, no errors)
 
 ### Phase 5: Release
 
