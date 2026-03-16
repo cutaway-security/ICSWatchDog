@@ -32,7 +32,7 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 
    ```bash
    rm -rf claude-dev/
-   rm -rf site/
+   rm -rf docs/
    rm -f CLAUDE.md
    rm -f index.html  # if still present
    ```
@@ -40,7 +40,7 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 4. **Verify the release branch**
 
    - Confirm all user-facing files are present and correct (configs, README, License, images)
-   - Confirm no development files remain (claude-dev/, site/, CLAUDE.md)
+   - Confirm no development files remain (claude-dev/, docs/, CLAUDE.md)
    - Validate XML configs are well-formed
    - Review README.md for accuracy
 

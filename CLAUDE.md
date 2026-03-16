@@ -76,7 +76,7 @@ Before moving to the next phase:
 | Framework | Jekyll via Just the Docs theme |
 | Theme Method | remote_theme (no vendored theme files) |
 | Hosting | GitHub Pages, served from gh-pages branch |
-| Source Location | site/ directory on claude-dev branch |
+| Source Location | docs/ directory on claude-dev branch |
 | Domain | icswatchdog.com (CNAME) |
 | Config/Repo Links | All site links to configs and repo MUST point to main branch |
 
@@ -154,7 +154,7 @@ When making changes, update the appropriate documents:
 | Session activity | claude-dev/RESUME.md |
 | Problem encountered | claude-dev/RESUME.md |
 | Config change | XML header, site docs |
-| Website change | site/ directory |
+| Website change | docs/ directory |
 | Usage change | README.md |
 
 ---

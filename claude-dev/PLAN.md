@@ -20,22 +20,22 @@ Provide a usable, tiered set of Sysmon configuration files for ICS/OT environmen
 - [x] Update ARCHITECTURE.md with system design
 - [x] Update PLAN.md with development roadmap
 - [x] Update RESUME.md with current session state
-- [x] Update GIT_RELEASE_STEPS.md to include site/ exclusion and gh-pages deploy step
+- [x] Update GIT_RELEASE_STEPS.md to include docs/ exclusion and gh-pages deploy step
 - [x] Remove index.html from claude-dev branch (replaced by Jekyll site and descriptive README)
-- [x] Create deploy script for pushing site/ to gh-pages
+- [x] Create deploy script for pushing docs/ to gh-pages
 
 ### Phase 2: Website Build
 
 **Status**: Complete (pending review, deploy deferred to Phase 5)
 
-- [x] Initialize site/ directory with Jekyll project structure
+- [x] Initialize docs/ directory with Jekyll project structure
 - [x] Configure Just the Docs theme (gem-based, dark color scheme)
-- [x] Migrate branding assets (logo, banner, background, favicon) into site/assets/images/
+- [x] Migrate branding assets (logo, banner, background, favicon) into docs/assets/images/
 - [x] Create landing page (project overview, value proposition, quick links)
 - [x] Create config listing page (all tiers with descriptions and links to main branch)
 - [x] Create getting-started page (what is Sysmon, why use it in ICS/OT, deployment steps)
 - [x] Update README.md to be descriptive and helpful as the repo landing page for GitHub visitors
-- [x] Set up CNAME for icswatchdog.com in site/
+- [x] Set up CNAME for icswatchdog.com in docs/
 - [x] Test local Jekyll build (successful, 0.339s)
 - [ ] Deploy to gh-pages and verify (deferred to Phase 5 release)
 
@@ -89,7 +89,7 @@ Each tier may have multiple config variants (e.g., a legacy-safe version using s
 **Status**: Not Started
 
 - [ ] Final review of all configs and documentation
-- [ ] Merge configs, README, License, and images to main (exclude site/ and claude-dev/)
+- [ ] Merge configs, README, License, and images to main (exclude docs/ and claude-dev/)
 - [ ] Remove index.html from main during merge (if not already removed)
 - [ ] Deploy site to gh-pages
 - [ ] Verify all site links point to main branch
@@ -101,7 +101,7 @@ Each tier may have multiple config variants (e.g., a legacy-safe version using s
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-03-16 | Website source in site/ on claude-dev, deployed to gh-pages | Users cloning main for configs should not get website source files |
+| 2026-03-16 | Website source in docs/ on claude-dev, deployed to gh-pages | Users cloning main for configs should not get website source files |
 | 2026-03-16 | Just the Docs theme via remote_theme | Documentation-focused, lightweight, hierarchical navigation, no vendored files |
 | 2026-03-16 | Tiered config progression (Starter through Advanced) | Lowers barrier to entry, provides growth path for maturity |
 | 2026-03-16 | SwiftOnSecurity config retained as reference with attribution | Provides familiar baseline, proper credit to source project |
@@ -111,6 +111,7 @@ Each tier may have multiple config variants (e.g., a legacy-safe version using s
 | 2026-03-16 | File-create-only config starts as standalone, may integrate later | Authored by experienced ICS/OT team member, serves specific use case outside tier progression |
 | 2026-03-16 | Remove index.html, use README as repo landing page | Jekyll site serves as the public website; README serves GitHub visitors; index.html is redundant |
 | 2026-03-16 | Existing configs are starting points, not sacred | Updates and restructuring are expected as the project matures |
+| 2026-03-16 | Renamed site/ to docs/ | GitHub Pages only supports / or /docs as source directories; docs/ enables direct preview from claude-dev branch |
 
 ## Out of Scope
 

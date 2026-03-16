@@ -1,22 +1,22 @@
 #!/bin/bash
-# deploy-site.sh - Deploy the site/ directory contents to the gh-pages branch
+# deploy-site.sh - Deploy the docs/ directory contents to the gh-pages branch
 #
 # Usage: Run from the repository root while on the claude-dev branch.
 #   ./claude-dev/deploy-site.sh
 #
 # This script:
 # 1. Verifies you are on the claude-dev branch
-# 2. Verifies the site/ directory exists
-# 3. Copies site/ contents to a temporary location
+# 2. Verifies the docs/ directory exists
+# 3. Copies docs/ contents to a temporary location
 # 4. Switches to gh-pages (orphan branch if it does not exist)
-# 5. Replaces gh-pages content with site/ contents
+# 5. Replaces gh-pages content with docs/ contents
 # 6. Commits and pushes to gh-pages
 # 7. Switches back to claude-dev
 
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-SITE_DIR="${REPO_ROOT}/site"
+DOCS_DIR="${REPO_ROOT}/docs"
 TEMP_DIR="$(mktemp -d)"
 
 # Verify we are on claude-dev
@@ -26,19 +26,19 @@ if [ "${CURRENT_BRANCH}" != "claude-dev" ]; then
     exit 1
 fi
 
-# Verify site/ exists and has content
-if [ ! -d "${SITE_DIR}" ]; then
-    echo "ERROR: site/ directory not found at ${SITE_DIR}"
+# Verify docs/ exists and has content
+if [ ! -d "${DOCS_DIR}" ]; then
+    echo "ERROR: docs/ directory not found at ${DOCS_DIR}"
     exit 1
 fi
 
-if [ -z "$(ls -A "${SITE_DIR}")" ]; then
-    echo "ERROR: site/ directory is empty"
+if [ -z "$(ls -A "${DOCS_DIR}")" ]; then
+    echo "ERROR: docs/ directory is empty"
     exit 1
 fi
 
-echo "Copying site/ contents to temporary directory..."
-cp -r "${SITE_DIR}/." "${TEMP_DIR}/"
+echo "Copying docs/ contents to temporary directory..."
+cp -r "${DOCS_DIR}/." "${TEMP_DIR}/"
 
 # Check for uncommitted changes
 if ! git diff-index --quiet HEAD --; then
@@ -60,7 +60,7 @@ fi
 echo "Clearing existing gh-pages content..."
 find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} +
 
-# Copy site contents
+# Copy docs contents
 echo "Deploying site contents..."
 cp -r "${TEMP_DIR}/." .
 

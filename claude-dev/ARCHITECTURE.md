@@ -18,16 +18,16 @@ ICS Watch Dog consists of two components: (1) a set of tiered Sysmon XML configu
 | Branch | Purpose | Contains |
 |--------|---------|----------|
 | main | Public release | Sysmon XML configs, README, License, images |
-| claude-dev | Active development | Everything: configs, site/ source, claude-dev/ planning |
-| gh-pages | Deployed website | Built Jekyll site (deployed from claude-dev site/) |
+| claude-dev | Active development | Everything: configs, docs/ source, claude-dev/ planning |
+| gh-pages | Deployed website | Built Jekyll site (deployed from claude-dev docs/) |
 
 Key rules:
 - All development happens on claude-dev
-- Website source lives in site/ on claude-dev
+- Website source lives in docs/ on claude-dev
 - All site links to configs and the repo point to main branch
-- Release process merges configs to main (excluding site/ and claude-dev/)
-- Deploy process pushes site/ contents to gh-pages
-- For manual site review, GitHub Pages source is temporarily switched to claude-dev, then switched back when review is complete
+- Release process merges configs to main (excluding docs/ and claude-dev/)
+- Deploy process pushes docs/ contents to gh-pages
+- For manual site review, GitHub Pages can be pointed to claude-dev branch /docs folder, then switched back when review is complete
 
 ## Config Tier Structure
 
@@ -77,7 +77,7 @@ ICSWatchDog/
         PLAN.md
         RESUME.md
         GIT_RELEASE_STEPS.md
-    site/                                  # Jekyll website source (dev only)
+    docs/                                  # Jekyll website source (dev only)
         _config.yml
         _pages/
         assets/
