@@ -22,26 +22,32 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 
 ### Release Steps
 
-1. **Check existing tags to determine next version**
+1. **Check current branch and switch to claude-dev if needed**
+
+   ```bash
+   git status
+   git checkout claude-dev  # if not already on claude-dev
+   ```
+
+2. **Check existing tags to determine next version**
 
    ```bash
    git tag
    ```
 
-2. **Tag the release on claude-dev**
+3. **Tag the release on claude-dev**
 
    ```bash
-   git checkout claude-dev
    git tag -a release-v<VERSION> -m "Release v<VERSION>: <brief description>"
    ```
 
-3. **Create a release branch**
+4. **Create a release branch**
 
    ```bash
    git checkout -b release-v<VERSION>
    ```
 
-4. **Remove development-only files and directories**
+5. **Remove development-only files and directories**
 
    ```bash
    rm -rf claude-dev/
@@ -50,13 +56,13 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
    rm -f CLAUDE.md
    ```
 
-5. **Verify the release branch**
+6. **Verify the release branch**
 
    - Confirm user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
    - Confirm no development files remain (claude-dev/, docs/, .claude/, CLAUDE.md)
    - Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
-6. **Merge to main**
+7. **Merge to main**
 
    ```bash
    git checkout main
@@ -65,14 +71,14 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
    git push origin main --tags
    ```
 
-7. **Clean up release branch**
+8. **Clean up release branch**
 
    ```bash
    git branch -d release-v<VERSION>
    git checkout claude-dev
    ```
 
-8. **Deploy website to gh-pages**
+9. **Deploy website to gh-pages**
 
    ```bash
    ./claude-dev/deploy-site.sh
