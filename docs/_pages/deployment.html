@@ -9,6 +9,15 @@ permalink: /deployment/
 <p>Deploying Sysmon in ICS/OT environments requires careful consideration of system performance, operational impact, and a phased approach. This page addresses the questions OT administrators commonly ask before deploying endpoint monitoring.</p>
 
 <section class="overview-section">
+  <h2>Recommended Viewing</h2>
+  <p>Before deploying Sysmon in an ICS/OT environment, these resources provide essential context:</p>
+  <ul>
+    <li><a href="https://www.youtube.com/watch?v=0qp6Svl_K4g" target="_blank" rel="noopener">Windows SYSMON - SANS ICS Concepts</a> - Discussion between Don C. Weber and Aaron Boyd covering Sysmon fundamentals for ICS/OT environments.</li>
+    <li><a href="https://www.youtube.com/watch?v=7B1cbfpNZok" target="_blank" rel="noopener">Gaining Endpoint Log Visibility in ICS Environments</a> - SANS ICS Security Summit 2019 presentation by <a href="https://www.sans.org/profiles/michael-hoffman" target="_blank" rel="noopener">Mike Hoffman</a>. Covers why endpoint log visibility matters in ICS, methods to achieve it, and architectures and technology constraints for centralizing logs to IT/OT SIEM from an oil and gas perspective. Essential viewing for understanding central event logging deployment and testing for network/system latency.</li>
+  </ul>
+</section>
+
+<section class="overview-section">
   <h2>Performance Impact</h2>
   <p>The most common concern from OT administrators is: <strong>"Will Sysmon slow down my systems or impact operations?"</strong></p>
   <p>Sysmon is designed to be lightweight. It runs as a kernel-level driver and Windows service with minimal overhead. However, the performance impact depends on:</p>
@@ -223,3 +232,4 @@ permalink: /deployment/
   </ul>
   <p>Sysmon installation and uninstallation do not require a system reboot.</p>
 </section>
+
