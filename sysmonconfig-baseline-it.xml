@@ -1,0 +1,376 @@
+<!--
+  ICS Watch Dog - IT Baseline Sysmon Configuration
+  Version:      v1.0
+  Author:       ICS Watch Dog Project (https://icswatchdog.com)
+  Project:      https://github.com/cutaway-security/ICSWatchDog
+  License:      Creative Commons Attribution 4.0
+
+  Minimum Sysmon:   v13+ (schema 4.50)
+  Target:           Enterprise Windows systems (IT baseline, general purpose)
+
+  SANS ICS 5 Critical Controls Supported:
+    #1 ICS Incident Response - Forensic evidence via process, file, registry, network logs
+    #4 Secure Remote Access - Detection of known remote access / RMM tools
+    #5 Vulnerability Management - Software execution and service change logging
+
+  DESCRIPTION:
+    This is the IT BASELINE configuration. It is the universal starting point for deploying
+    Sysmon on any Windows system. It does NOT include ICS/OT-specific rules. For OT
+    environments, use sysmonconfig-baseline-ot.xml which builds on this config.
+
+    This config monitors:
+    - Process creation and termination
+    - Network connections (including remote access tool detection)
+    - File creation in key locations
+    - Registry changes to autostart and critical keys
+    - Driver and image loading
+    - Named pipe creation (used by malware for IPC)
+    - DNS queries
+    - Remote thread creation (code injection detection)
+    - WMI persistence
+    - Process tampering (hollowing, herpaderp)
+
+    Remote access tool detection is ENABLED by default for all known RMM tools per
+    CISA/NSA advisory AA23-025A. Administrators MUST tune these rules for their
+    approved remote access tools.
+
+  TUNING:
+    Administrators MUST review and tune this configuration for their environment.
+    - Add exclusions for approved enterprise software that generates excessive noise
+    - Review remote access tool rules and exclude sanctioned tools as appropriate
+    - Test in a non-production environment before deploying to production systems
+
+  DISCLAIMER:
+    This configuration is provided as-is for educational and operational use.
+    It is NOT tested against all environments and may require tuning for your
+    specific systems. Cutaway Security, LLC and contributors assume no liability
+    for any impact resulting from the use of this configuration. Users are
+    responsible for testing in their own environments before production deployment.
+
+  REFERENCES:
+    - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
+    - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - LOLRMM Project: https://lolrmm.io/
+    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+-->
+
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation/>
+
+  <EventFiltering>
+
+    <!--
+    ================================================================
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    Default: Log all process creation, exclude known noisy system processes.
+    Approach: Exclude-based. Log everything except known benign noise.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Windows system noise -->
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <!-- Windows Defender noise -->
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- IMPORTANT: Add your enterprise software exclusions below this line -->
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Detects timestomping - attackers modify file timestamps to blend in.
+    MITRE ATT&CK: T1070.006 (Indicator Removal: Timestomp)
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
+        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+      </FileCreateTime>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    Monitors outbound/inbound network connections.
+    Includes detection of remote access tools on common ports.
+    ================================================================
+    -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <!-- Windows system noise -->
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- IMPORTANT: Add exclusions for approved enterprise network software here -->
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    Log all process termination. Useful for correlating with process creation.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Log all driver loads except known Microsoft-signed drivers.
+    Detects rootkits and vulnerable driver abuse (BYOVD).
+    ================================================================
+    -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    Disabled by default - generates very high volume.
+    Enable selectively if investigating DLL sideloading or injection.
+    ================================================================
+    -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    Detects code injection via remote thread creation.
+    MITRE ATT&CK: T1055 (Process Injection)
+    ================================================================
+    -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <!-- Legitimate system processes that create remote threads -->
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    Disabled by default - enable if investigating disk-level data exfiltration.
+    ================================================================
+    -->
+    <RuleGroup name="RawAccessRead" groupRelation="or">
+      <RawAccessRead onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    Detects credential dumping (lsass.exe access).
+    MITRE ATT&CK: T1003 (OS Credential Dumping)
+    Include only - monitors access to sensitive processes.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 11: FILE CREATED [FileCreate]
+    Monitors file creation in key locations.
+    Detects malware drops, persistence mechanisms, and suspicious file types.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <!-- Startup and persistence locations -->
+        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!-- Executable and script file types -->
+        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
+        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
+        <!-- User download/temp locations -->
+        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    Monitors registry changes to autostart locations and critical keys.
+    MITRE ATT&CK: T1547 (Boot or Logon Autostart Execution)
+    ================================================================
+    -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <!-- Autostart locations -->
+        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <!-- Services -->
+        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <!-- Scheduled tasks -->
+        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <!-- AppInit DLLs (DLL injection via registry) -->
+        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <!-- Image File Execution Options (debugger attachment for persistence) -->
+        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <!-- Winlogon -->
+        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    Detects alternate data streams (Mark of the Web, hidden data).
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    Detects named pipe creation - used by malware for C2 and IPC.
+    MITRE ATT&CK: T1570 (Lateral Tool Transfer), T1021 (Remote Services)
+    ================================================================
+    -->
+    <RuleGroup name="PipeCreated" groupRelation="or">
+      <PipeEvent onmatch="exclude">
+        <!-- Known Windows system pipes -->
+        <PipeName condition="is">\lsass</PipeName>
+        <PipeName condition="is">\wkssvc</PipeName>
+        <PipeName condition="is">\srvsvc</PipeName>
+        <PipeName condition="is">\winreg</PipeName>
+        <PipeName condition="is">\spoolss</PipeName>
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Detects WMI-based persistence and execution.
+    MITRE ATT&CK: T1546.003 (Event Triggered Execution: WMI)
+    ================================================================
+    -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Monitors DNS queries. Can be noisy - exclude system-level DNS noise.
+    Useful for detecting C2 beaconing and DNS tunneling.
+    ================================================================
+    -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+        <QueryName condition="end with">.bing.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
+    Disabled by default. Archives deleted files to C:\Sysmon.
+    WARNING: Can consume significant disk space. Enable selectively.
+    ================================================================
+    -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
+    Detects process hollowing and herpaderp techniques.
+    MITRE ATT&CK: T1055.012 (Process Hollowing)
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
+    Logs file deletions without archiving. Lower overhead than Event ID 23.
+    ================================================================
+    -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.sys</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

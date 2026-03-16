@@ -1,0 +1,41 @@
+<!--
+  ICS Watch Dog - OT Enhanced Sysmon Configuration
+  Version:      v1.0-stub
+  Author:       ICS Watch Dog Project (https://icswatchdog.com)
+  Project:      https://github.com/cutaway-security/ICSWatchDog
+  License:      Creative Commons Attribution 4.0
+
+  Minimum Sysmon:   TBD (may require v14+ for schema 4.82 features)
+  Target:           ICS/OT Windows systems with established monitoring programs
+
+  STATUS: IN DEVELOPMENT
+  This configuration is a stub. The full implementation will build on
+  sysmonconfig-baseline-ot.xml with the following additions:
+  - Network connection monitoring for industrial protocol ports
+    (Modbus TCP/502, EtherNet-IP/44818, OPC-UA/4840, DNP3/20000, S7comm/102)
+  - Expanded vendor software monitoring examples
+  - Additional event types from newer Sysmon schema versions
+  - More granular file and registry monitoring for OT environments
+
+  SANS ICS 5 Critical Controls Supported:
+    #1 ICS Incident Response
+    #2 Defensible Architecture
+    #3 ICS Network Visibility (enhanced with industrial port monitoring)
+    #4 Secure Remote Access
+    #5 Vulnerability Management
+
+  DISCLAIMER:
+    This configuration is provided as-is for educational and operational use.
+    It is NOT tested against all environments and may require tuning for your
+    specific systems. Cutaway Security, LLC and contributors assume no liability
+    for any impact resulting from the use of this configuration. Users are
+    responsible for testing in their own environments before production deployment.
+-->
+
+<!-- Stub: Full implementation pending. Use sysmonconfig-baseline-ot.xml until this is complete. -->
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation/>
+  <EventFiltering>
+  </EventFiltering>
+</Sysmon>

@@ -17,7 +17,7 @@
     <CheckRevocation/>
     <EventFiltering>
         <RuleGroup name="" groupRelation="or">
-            <FileCreate onmatch=""include>
+            <FileCreate onmatch="include">
                 <!--Dangerous Attachments: https://support.intermedia.com/app/articles/detail/a_id/12447/~/email-protection%3A-list-of-dangerous-attachments-->
                 <!--Microsoft Office Extensions: https://learn.microsoft.com/en-us/deployoffice/compat/office-file-format-reference-->
                 <!--Start IOCs tied to MITRE ATT&CK-->

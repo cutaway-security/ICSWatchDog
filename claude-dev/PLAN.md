@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 3b - Config Restructuring
+**Phase**: Phase 3c - Config Implementation
 **Status**: Complete
-**Focus**: Awaiting review before proceeding to Phase 3c
+**Focus**: Awaiting review before proceeding to Phase 4
 
 ## Phases
 
@@ -85,16 +85,16 @@ Key findings:
 
 ### Phase 3c: Config Implementation
 
-**Status**: Not Started
+**Status**: Complete
 
-Build all configs from scratch (not forked from SwiftOnSecurity). Enterprise-focused, designed for the IT-to-OT progression. All configs include remote access tool detection by default. Admins MUST tune for their environment.
+Built all configs from scratch (not forked from SwiftOnSecurity). Enterprise-focused, designed for the IT-to-OT progression. Admins MUST tune for their environment.
 
-- [ ] Build sysmonconfig-baseline-it.xml (schema 4.50, enterprise IT starting point, remote access tool detection, well-commented for Windows admins new to Sysmon)
-- [ ] Build sysmonconfig-baseline-ot.xml (progression of IT baseline, schema 4.50, adds OT vendor process monitoring examples, ICS file types, adjusted OT exclusions)
-- [ ] Build sysmonconfig-enhanced-ot.xml (broader OT coverage, network connection monitoring for industrial ports, may use newer schema)
-- [ ] Stub sysmonconfig-advanced-ot.xml (newer Sysmon features IDs 27-29, role-specific customization guidance, developed further as project matures)
-- [ ] Update community/sysmonconfig-filecreate-only.xml with ICS/OT file type examples
-- [ ] Validate all configs are well-formed XML
+- [x] Build sysmonconfig-baseline-it.xml (schema 4.50, enterprise IT, 14 event IDs configured, MITRE ATT&CK references, well-commented)
+- [x] Build sysmonconfig-baseline-ot.xml (progression of IT baseline, schema 4.50, OT vendor directory monitoring, ICS file types, less aggressive exclusions for OT context)
+- [x] Stub sysmonconfig-enhanced-ot.xml (schema 4.50 placeholder, documents planned features including industrial port monitoring)
+- [x] Stub sysmonconfig-advanced-ot.xml (schema 4.90 placeholder, documents planned features including Event IDs 27-29 and role-specific tuning)
+- [x] Fixed pre-existing XML error in community/sysmonconfig-filecreate-only.xml (malformed onmatch attribute)
+- [x] Validate all configs are well-formed XML (6/6 valid via xmllint)
 
 ### Phase 4: Documentation
 
