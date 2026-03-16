@@ -73,8 +73,8 @@ Before moving to the next phase:
 
 | Constraint | Value |
 |------------|-------|
-| Framework | Jekyll via Just the Docs theme |
-| Theme Method | remote_theme (no vendored theme files) |
+| Framework | Jekyll with custom CutSec design system |
+| Theme Method | Custom _layouts, _includes, css/, js/ (no theme gem) |
 | Hosting | GitHub Pages, served from gh-pages branch |
 | Source Location | docs/ directory on claude-dev branch |
 | Domain | icswatchdog.com (CNAME) |

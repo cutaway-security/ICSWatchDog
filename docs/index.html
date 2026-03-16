@@ -1,0 +1,68 @@
+---
+layout: default
+title: Home
+---
+
+<section class="hero">
+  <img src="{{ site.baseurl }}/img/icswatchdog_logo_0_250x250.png" alt="ICS Watch Dog" class="img-sm">
+  <h1>ICS Watch Dog</h1>
+  <p class="subtitle">Usable Sysmon configurations for ICS/OT environments. From starter to advanced, helping your team deploy endpoint monitoring.</p>
+  <p class="brand-mark">A Cutaway Security Project</p>
+</section>
+
+<section class="overview-section">
+  <h2>Why ICS Watch Dog?</h2>
+  <p><a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon" target="_blank" rel="noopener">Microsoft Sysinternals Sysmon</a> is one of the best tools for improving visibility into what happens on your Windows servers and workstations. But for many ICS/OT teams, Sysmon's configuration files are complex and intimidating -- especially for Windows administrators who haven't worked with them before.</p>
+  <ul>
+    <li><strong>Built for ICS/OT</strong> -- Configurations designed with industrial environments in mind, not just enterprise IT</li>
+    <li><strong>Tiered approach</strong> -- Start simple and advance at your own pace through increasingly detailed monitoring</li>
+    <li><strong>Legacy OS support</strong> -- Starter and baseline configs use Sysmon schema 4.50 for compatibility with older Windows versions common in OT environments</li>
+    <li><strong>No SIEM required</strong> -- Useful even if you only have Windows Event Viewer, though configs work with centralized logging and SIEMs too</li>
+  </ul>
+</section>
+
+<h2>Configuration Files</h2>
+<div class="config-grid">
+  <a href="{{ site.baseurl }}/configurations/#tier-1-starter" class="config-card">
+    <span class="card-label">Tier 1</span>
+    <h3>Starter</h3>
+    <p>Bare minimum to get Sysmon running and producing useful logs. Start here.</p>
+    <span class="badge">Sysmon v13+ | Schema 4.50</span>
+  </a>
+
+  <a href="{{ site.baseurl }}/configurations/#tier-2-baseline" class="config-card">
+    <span class="card-label">Tier 2</span>
+    <h3>Baseline</h3>
+    <p>Core ICS/OT-relevant monitoring for process, network, and file events.</p>
+    <span class="badge">In Development</span>
+  </a>
+
+  <a href="{{ site.baseurl }}/configurations/#tier-3-enhanced" class="config-card">
+    <span class="card-label">Tier 3</span>
+    <h3>Enhanced</h3>
+    <p>Broader coverage with ICS/OT-aware filtering and additional event types.</p>
+    <span class="badge">In Development</span>
+  </a>
+
+  <a href="{{ site.baseurl }}/configurations/#tier-4-advanced" class="config-card">
+    <span class="card-label">Tier 4</span>
+    <h3>Advanced</h3>
+    <p>Detailed monitoring leveraging the newest Sysmon features for specific roles.</p>
+    <span class="badge">Sysmon v13+ | Schema 4.50</span>
+  </a>
+</div>
+
+<div class="callout callout-info">
+  <p><strong>New to Sysmon?</strong> Read the <a href="{{ site.baseurl }}/getting-started/">Getting Started</a> guide for an overview of what Sysmon is, why it matters for ICS/OT, and step-by-step deployment instructions.</p>
+</div>
+
+<section class="read-section">
+  <h2>Project Sponsor</h2>
+  <p>This project was developed and is supported by <a href="https://www.cutawaysecurity.com/" target="_blank" rel="noopener">Cutaway Security, LLC.</a> in collaboration with each contributor.</p>
+  <h3>Contributors</h3>
+  <ul>
+    <li><a href="https://www.linkedin.com/in/cutaway/" target="_blank" rel="noopener">Don C. Weber (cutaway)</a></li>
+    <li><a href="https://www.linkedin.com/in/aaron-b-2b620531/" target="_blank" rel="noopener">Aaron Boyd (icsblitz)</a></li>
+    <li><a href="https://www.linkedin.com/in/gavin-dilworth/" target="_blank" rel="noopener">Gavin Dilworth (zDHD)</a></li>
+  </ul>
+</section>

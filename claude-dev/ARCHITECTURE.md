@@ -10,7 +10,7 @@ ICS Watch Dog consists of two components: (1) a set of tiered Sysmon XML configu
 |-----------|---------|------------|
 | Sysmon Configs | Tiered XML config files for endpoint monitoring | Sysmon XML schema 4.50+ |
 | Standalone Configs | Use-case-specific configs outside tier progression | Sysmon XML schema 4.50+ |
-| Website | Documentation, guides, config descriptions | Jekyll / Just the Docs theme |
+| Website | Documentation, guides, config descriptions | Jekyll with custom CutSec design system |
 | Branding | Logo, banner, background images | PNG assets |
 
 ## Branch Strategy
@@ -79,8 +79,12 @@ ICSWatchDog/
         GIT_RELEASE_STEPS.md
     docs/                                  # Jekyll website source (dev only)
         _config.yml
+        _layouts/default.html
+        _includes/nav.html, footer.html
         _pages/
-        assets/
+        css/style.css
+        js/main.js
+        img/
 ```
 
 ## Technology Stack
@@ -88,6 +92,6 @@ ICSWatchDog/
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Configs | Sysmon XML | Schema 4.50+ (tiered by OS compatibility) |
-| Website | Jekyll + Just the Docs | remote_theme, no vendored theme files |
+| Website | Jekyll + custom CutSec CSS/JS | No theme gem; custom _layouts, _includes, css/, js/ |
 | Hosting | GitHub Pages | Served from gh-pages branch |
 | Domain | icswatchdog.com | CNAME in gh-pages root |

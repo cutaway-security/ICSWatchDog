@@ -15,20 +15,18 @@
 - Created deploy-site.sh script for gh-pages deployment
 
 ### Phase 2: Website Build (Complete, pending review)
-- Initialized docs/ directory with Jekyll project structure
-- Configured Just the Docs theme (gem-based, dark color scheme, logo, favicon)
-- Migrated all branding assets (logo, banner, background, favicon) into docs/assets/images/
-- Created three pages:
-  - Landing page (index.md): project overview, value proposition, quick links
-  - Getting Started (getting-started.md): Sysmon overview, ICS/OT relevance, deployment steps
-  - Configuration Files (configurations.md): tier descriptions, standalone configs, reference configs, selection guide
-- All config download links point to main branch on GitHub
-- Clean URLs via permalinks (/getting-started/, /configurations/)
-- Updated README.md with config table, quick start, and link to project website
-- Set up CNAME for icswatchdog.com
-- Local Jekyll build successful
-- Renamed site/ to docs/ to enable GitHub Pages preview from claude-dev branch (GitHub Pages only supports / or /docs as source directories)
-- Updated all references in planning docs, deploy script, and CLAUDE.md from site/ to docs/
+- Initially built with Just the Docs theme; replaced with custom CutSec design system after review
+- Reviewed both CutSec workshop sites (industrial_ai_programming_workshop, ot-osint-program-workshop) for design patterns
+- Built hybrid approach: Jekyll templating (from OT OSINT) + Industrial AI design system (colors, dark mode, components)
+- Custom CSS with CutSec branding (warm slate #334155 + muted gold #d97706), dark/light theme toggle
+- Mobile hamburger nav (from OT OSINT pattern), dropdown menus for Configurations and Guides
+- No AI chat interface components (workshop-only feature)
+- Print styles included
+- Three responsive breakpoints (640px, 768px, 375px)
+- Copied CutSec logos and ICS Watch Dog images into docs/img/
+- Code standard (html-css-jekyll.md) available in claude-dev/
+- Jekyll build: 0.01s, zero warnings
+- All config download links verified pointing to main branch
 
 ## In Progress
 
@@ -40,33 +38,36 @@
 
 ## Next Steps
 
-1. Review docs/ rename and verify GitHub Pages preview from claude-dev branch
+1. Manual review of rebuilt site (preview via GitHub Pages from claude-dev /docs)
 2. Begin Phase 3a: Sysmon Research and Audit
 
 ## Open Questions
 
-- Should sysmonconfig-filecreate-only.xml keep its current name or be renamed? -- to be decided in Phase 3b
-- Just the Docs dark theme is set; any color customization desired?
+- Should sysmonconfig-filecreate-only.xml keep its current name or be renamed? -- Phase 3b
+- Any adjustments to site design after live preview?
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| CLAUDE.md | Updated from template; site/ references changed to docs/ |
+| CLAUDE.md | Updated: website framework changed to custom CutSec design system |
 | README.md | Rewritten with config table, quick start, website link |
-| claude-dev/ARCHITECTURE.md | Updated from template; site/ references changed to docs/ |
-| claude-dev/PLAN.md | Full roadmap; Phases 1-2 complete; site/ changed to docs/; new decision logged |
+| claude-dev/ARCHITECTURE.md | Updated: technology stack and file structure for custom site |
+| claude-dev/PLAN.md | Phase 2 tasks updated for rebuild; new decision logged |
 | claude-dev/RESUME.md | Updated with session activity |
 | claude-dev/GIT_RELEASE_STEPS.md | Added docs/ exclusion, gh-pages deploy step |
-| claude-dev/deploy-site.sh | Updated all site/ references to docs/ |
-| index.html | Removed from claude-dev branch |
-| site/ -> docs/ | Renamed directory for GitHub Pages compatibility |
-| docs/_config.yml | Jekyll config with Just the Docs theme |
-| docs/Gemfile | Jekyll and Just the Docs gem dependencies |
-| docs/CNAME | icswatchdog.com domain |
-| docs/.gitignore | Excludes vendor/, _site/, .jekyll-cache/ |
-| docs/index.md | Landing page |
-| docs/_pages/getting-started.md | Sysmon overview and deployment guide |
-| docs/_pages/configurations.md | Config listing with tier descriptions |
-| docs/_includes/head_custom.html | Custom favicon link |
-| docs/assets/images/ | Logo, banner, background, favicon |
+| claude-dev/deploy-site.sh | Deploy script for gh-pages |
+| claude-dev/html-css-jekyll.md | Code standard (copied by user) |
+| docs/_config.yml | Rebuilt: minimal Jekyll config, no theme gem |
+| docs/_layouts/default.html | Created: page template with nav/footer includes |
+| docs/_includes/nav.html | Created: header with dropdowns, mobile toggle, theme toggle |
+| docs/_includes/footer.html | Created: CutSec attribution, license, GitHub link |
+| docs/css/style.css | Created: CutSec design system (light/dark, responsive, print) |
+| docs/js/main.js | Created: theme toggle with localStorage |
+| docs/index.html | Created: landing page with hero, config cards, overview |
+| docs/_pages/configurations.html | Created: tier details, standalone, reference configs |
+| docs/_pages/getting-started.html | Created: Sysmon guide for ICS/OT |
+| docs/Gemfile | Created: Jekyll dependency only |
+| docs/CNAME | icswatchdog.com |
+| docs/.gitignore | Updated for Jekyll build artifacts |
+| docs/img/ | CutSec logos + ICS Watch Dog images copied |

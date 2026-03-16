@@ -1,0 +1,31 @@
+<header class="site-header">
+  <div class="nav-container">
+    <a href="{{ site.baseurl }}/" class="nav-brand">
+      <img src="{{ site.baseurl }}/img/cutsec-logo.png" alt="Cutaway Security">
+      <span>ICS Watch Dog</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle navigation" onclick="this.nextElementSibling.classList.toggle('open')">&#9776;</button>
+    <ul class="nav-links">
+      <li><a href="{{ site.baseurl }}/">Home</a></li>
+      <li class="nav-dropdown">
+        <a href="{{ site.baseurl }}/configurations/">Configurations</a>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ site.baseurl }}/configurations/">All Configurations</a></li>
+          <li><a href="{{ site.baseurl }}/configurations/#tier-1-starter">Tier 1: Starter</a></li>
+          <li><a href="{{ site.baseurl }}/configurations/#tier-2-baseline">Tier 2: Baseline</a></li>
+          <li><a href="{{ site.baseurl }}/configurations/#tier-3-enhanced">Tier 3: Enhanced</a></li>
+          <li><a href="{{ site.baseurl }}/configurations/#tier-4-advanced">Tier 4: Advanced</a></li>
+          <li><a href="{{ site.baseurl }}/configurations/#standalone-configurations">Standalone</a></li>
+        </ul>
+      </li>
+      <li class="nav-dropdown">
+        <a href="{{ site.baseurl }}/getting-started/">Guides</a>
+        <ul class="nav-dropdown-menu">
+          <li><a href="{{ site.baseurl }}/getting-started/">Getting Started</a></li>
+        </ul>
+      </li>
+      <li><a href="https://github.com/cutaway-security/ICSWatchDog" target="_blank" rel="noopener">GitHub</a></li>
+      <li><button class="theme-toggle" aria-label="Toggle dark mode"></button></li>
+    </ul>
+  </div>
+</header>

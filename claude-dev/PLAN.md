@@ -29,14 +29,19 @@ Provide a usable, tiered set of Sysmon configuration files for ICS/OT environmen
 **Status**: Complete (pending review, deploy deferred to Phase 5)
 
 - [x] Initialize docs/ directory with Jekyll project structure
-- [x] Configure Just the Docs theme (gem-based, dark color scheme)
-- [x] Migrate branding assets (logo, banner, background, favicon) into docs/assets/images/
-- [x] Create landing page (project overview, value proposition, quick links)
+- [x] Configure custom Jekyll site with CutSec design system (slate + gold, dark/light toggle)
+- [x] Copy CutSec branding assets (logos, favicon) into docs/img/
+- [x] Copy ICS Watch Dog project images into docs/img/
+- [x] Create layout template (_layouts/default.html) with nav and footer includes
+- [x] Create navigation include with dropdown menus (Configurations, Guides) and mobile hamburger toggle
+- [x] Create CSS based on CutSec workshop design system (no AI chat components)
+- [x] Create JS for dark/light theme toggle with localStorage persistence
+- [x] Create landing page with hero, config card grid, overview, and contributors
 - [x] Create config listing page (all tiers with descriptions and links to main branch)
-- [x] Create getting-started page (what is Sysmon, why use it in ICS/OT, deployment steps)
+- [x] Create getting-started page (Sysmon overview, ICS/OT relevance, deployment steps)
 - [x] Update README.md to be descriptive and helpful as the repo landing page for GitHub visitors
 - [x] Set up CNAME for icswatchdog.com in docs/
-- [x] Test local Jekyll build (successful, 0.339s)
+- [x] Test local Jekyll build (successful, 0.01s, no warnings)
 - [ ] Deploy to gh-pages and verify (deferred to Phase 5 release)
 
 ### Phase 3a: Sysmon Research and Audit
@@ -112,6 +117,7 @@ Each tier may have multiple config variants (e.g., a legacy-safe version using s
 | 2026-03-16 | Remove index.html, use README as repo landing page | Jekyll site serves as the public website; README serves GitHub visitors; index.html is redundant |
 | 2026-03-16 | Existing configs are starting points, not sacred | Updates and restructuring are expected as the project matures |
 | 2026-03-16 | Renamed site/ to docs/ | GitHub Pages only supports / or /docs as source directories; docs/ enables direct preview from claude-dev branch |
+| 2026-03-16 | Replaced Just the Docs with custom Jekyll + CutSec design system | Consistent branding across CutSec projects; full control over styling; matches workshop site design patterns |
 
 ## Out of Scope
 

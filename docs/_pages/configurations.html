@@ -1,0 +1,111 @@
+---
+layout: default
+title: Configuration Files
+permalink: /configurations/
+---
+
+<h1>Sysmon Configuration Files</h1>
+
+<p>ICS Watch Dog provides Sysmon configurations organized into tiers. Start with Tier 1 and advance as your monitoring program matures. All configuration files can be downloaded from the <a href="https://github.com/cutaway-security/ICSWatchDog" target="_blank" rel="noopener">ICS Watch Dog GitHub repository</a>.</p>
+
+<section class="overview-section">
+  <h2>Choosing a Configuration</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Situation</th>
+        <th>Recommended Config</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>First time deploying Sysmon</td>
+        <td>Tier 1: Starter</td>
+      </tr>
+      <tr>
+        <td>Legacy Windows (Server 2008/2012, Win 7)</td>
+        <td>Tier 1 or Tier 2 (schema 4.50 variants)</td>
+      </tr>
+      <tr>
+        <td>Established monitoring, want more coverage</td>
+        <td>Tier 3: Enhanced</td>
+      </tr>
+      <tr>
+        <td>Experienced team, specific system roles</td>
+        <td>Tier 4: Advanced</td>
+      </tr>
+      <tr>
+        <td>Only need file creation monitoring</td>
+        <td>Standalone: File Create Only</td>
+      </tr>
+      <tr>
+        <td>Learning Sysmon, want a reference</td>
+        <td>Reference: SwiftOnSecurity</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<h2 id="tiered-configurations">Tiered Configurations</h2>
+
+<section class="read-section" id="tier-1-starter">
+  <h3>Tier 1: Starter</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
+  <p>The bare minimum to get Sysmon running and producing useful logs. Designed for the broadest OS compatibility using Sysmon schema 4.50.</p>
+  <p><strong>Best for:</strong> Teams deploying Sysmon for the first time, legacy Windows environments.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmonconfig-minimal.xml" target="_blank" rel="noopener">sysmonconfig-minimal.xml</a></p>
+</section>
+
+<section class="read-section" id="tier-2-baseline">
+  <h3>Tier 2: Baseline</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
+  <p>Core ICS/OT-relevant monitoring covering process creation, network connections, and file creation events. Uses Sysmon schema 4.50 for legacy OS compatibility.</p>
+  <p><strong>Best for:</strong> Teams with basic Sysmon experience ready to expand coverage.</p>
+</section>
+
+<section class="read-section" id="tier-3-enhanced">
+  <h3>Tier 3: Enhanced</h3>
+  <p><strong>Status:</strong> In Development</p>
+  <p>Broader coverage with ICS/OT-aware filtering. May use newer Sysmon schema features depending on the variant.</p>
+  <p><strong>Best for:</strong> Teams with established monitoring looking to increase visibility.</p>
+</section>
+
+<section class="read-section" id="tier-4-advanced">
+  <h3>Tier 4: Advanced</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
+  <p>Detailed monitoring leveraging the newest Sysmon features. Intended as a starting point for customization based on specific system roles (HMI stations, engineering workstations, historians, etc.).</p>
+  <p><strong>Best for:</strong> Experienced teams ready for comprehensive endpoint monitoring.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmonconfig-adv-workstation.xml" target="_blank" rel="noopener">sysmonconfig-adv-workstation.xml</a> -- Advanced configuration for workstations</p>
+</section>
+
+<h2 id="standalone-configurations">Standalone Configurations</h2>
+
+<section class="read-section">
+  <h3>File Create Only</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Author:</strong> Aaron Boyd (icsblitz)<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
+  <p>Monitors file creation events, tracking dangerous attachment types, scripts, executables, and other files of interest. Useful for environments where file creation monitoring is the immediate priority.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmonconfig-filecreate-only.xml" target="_blank" rel="noopener">sysmonconfig-filecreate-only.xml</a></p>
+</section>
+
+<h2 id="reference-configurations">Reference Configurations</h2>
+
+<section class="read-section">
+  <h3>SwiftOnSecurity Sysmon Config</h3>
+  <p><strong>Source Version:</strong> 74 (2021-07-08)<br>
+  <strong>Source Project:</strong> <a href="https://github.com/SwiftOnSecurity/sysmon-config" target="_blank" rel="noopener">SwiftOnSecurity/sysmon-config</a></p>
+  <p>The original SwiftOnSecurity configuration that inspired many of the ICS Watch Dog configs. Retained as a reference for comparison and learning. This is an IT-focused general-purpose configuration.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmonconfig-export.xml" target="_blank" rel="noopener">sysmonconfig-export.xml</a></p>
+</section>
+
+<h2>Similar and Inspiring Projects</h2>
+<ul>
+  <li><a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon" target="_blank" rel="noopener">Microsoft Sysinternals Sysmon</a></li>
+  <li><a href="https://github.com/SwiftOnSecurity/sysmon-config" target="_blank" rel="noopener">SwiftOnSecurity Sysmon Config</a></li>
+  <li><a href="https://posts.specterops.io/working-with-sysmon-configurations-like-a-pro-through-better-tooling-be7ad7f99a47" target="_blank" rel="noopener">Working With Sysmon Configurations Like a Pro Through Better Tooling - Matt Graeber</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/archive/blogs/motiba/sysinternals-sysmon-suspicious-activity-guide" target="_blank" rel="noopener">Sysinternals Sysmon suspicious activity guide</a></li>
+</ul>
