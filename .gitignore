@@ -1,0 +1,13 @@
+# Jekyll build artifacts
+_site/
+.jekyll-cache/
+.bundle/
+vendor/
+Gemfile.lock
+
+# Claude Code
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db

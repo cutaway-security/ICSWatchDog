@@ -66,7 +66,6 @@ Confirm: `On branch release-v#`.
 ```bash
 git rm -r claude-dev/
 git rm -r docs/
-git rm -r .claude/
 git rm CLAUDE.md
 git status
 ```
@@ -150,4 +149,3 @@ The following files exist only on the `claude-dev` branch and are stripped befor
 | `claude-dev/deploy-site.sh` | Website deployment script |
 | `claude-dev/html-css-jekyll.md` | Code standard reference |
 | `docs/` | Jekyll website source (deployed separately to gh-pages) |
-| `.claude/` | Claude Code session data |
