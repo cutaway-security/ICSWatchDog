@@ -8,25 +8,30 @@
 
 ## What Was Accomplished
 
-- Reviewed entire project state (configs, website, branches, git history)
-- Analyzed branch strategy and user experience concerns (keeping website off main so users cloning for configs do not get website files)
-- Selected Just the Docs as website theme replacement for Minimal Mistakes
-- Defined tiered config structure (Starter, Baseline, Enhanced, Advanced) with legacy OS considerations for Tier 1/2
-- Each tier may have multiple variants (legacy-safe schema 4.50 and current schema) as determined by Phase 3a research
-- Identified standalone config category for use-case-specific files (e.g., file-create-only by Aaron Boyd)
-- Drafted and refined development plan across 5 phases (with 3a/3b/3c sub-phases) over multiple review rounds
-- Updated all development planning documents from templates to project-specific content:
-  - CLAUDE.md -- project overview, constraints, scope, standards
-  - claude-dev/ARCHITECTURE.md -- branch strategy, tier structure, file layout, technology stack
-  - claude-dev/PLAN.md -- full roadmap with Phase 3 broken into research/restructuring/implementation
-  - claude-dev/RESUME.md -- session tracking
-- Updated GIT_RELEASE_STEPS.md to include site/ exclusion in release process and gh-pages deploy step
-- Removed index.html from claude-dev branch (redundant with Jekyll site and README)
-- Created deploy-site.sh script for pushing site/ contents to gh-pages branch
+### Phase 1: Project Foundation (Complete)
+- Updated all planning documents from templates to project-specific content
+- Updated GIT_RELEASE_STEPS.md with site/ exclusion and gh-pages deploy step
+- Removed index.html from claude-dev branch
+- Created deploy-site.sh script for gh-pages deployment
+
+### Phase 2: Website Build (Complete, pending review)
+- Initialized site/ directory with Jekyll project structure
+- Configured Just the Docs theme (gem-based, dark color scheme, logo, favicon)
+- Migrated all branding assets (logo, banner, background, favicon) into site/assets/images/
+- Created three pages:
+  - Landing page (index.md): project overview, value proposition, quick links
+  - Getting Started (getting-started.md): Sysmon overview, ICS/OT relevance, deployment steps, centralized logging options
+  - Configuration Files (configurations.md): tier descriptions, standalone configs, reference configs, selection guide table
+- All config download links point to main branch on GitHub
+- Clean URLs via permalinks (/getting-started/, /configurations/)
+- Updated README.md with config table, quick start, and link to project website
+- Set up CNAME for icswatchdog.com
+- Local Jekyll build successful (0.339s, Sass deprecation warnings from theme only)
+- Updated Phase 3c in PLAN.md to include legacy/current variant pairs per tier
 
 ## In Progress
 
-- Phase 1 complete, awaiting review before proceeding to Phase 2
+- Phase 2 complete, awaiting review before proceeding to Phase 3a
 
 ## Blockers
 
@@ -34,22 +39,33 @@
 
 ## Next Steps
 
-1. Review Phase 1 deliverables (all planning docs, deploy script)
-2. Begin Phase 2: Website Build (initialize site/ directory with Jekyll and Just the Docs)
+1. Review Phase 2 deliverables (site pages, README, build output)
+2. Begin Phase 3a: Sysmon Research and Audit
 
 ## Open Questions
 
-- Should sysmonconfig-filecreate-only.xml keep its current name or be renamed to fit a standalone naming convention? -- to be decided in Phase 3b
-- Specific Just the Docs color scheme preference, or match existing dark theme? -- to be decided in Phase 2
+- Should sysmonconfig-filecreate-only.xml keep its current name or be renamed? -- to be decided in Phase 3b
+- Just the Docs dark theme is set; any color customization desired? -- can be adjusted in Phase 2 follow-up
+- Deploy to gh-pages deferred to Phase 5; should we do an early test deploy before then?
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
 | CLAUDE.md | Updated from template to project-specific content |
+| README.md | Rewritten with config table, quick start, website link |
 | claude-dev/ARCHITECTURE.md | Updated from template to project-specific content |
-| claude-dev/PLAN.md | Updated from template; Phase 3 broken into 3a/3b/3c; Phase 1 marked complete |
-| claude-dev/RESUME.md | Updated from template to project-specific content |
-| claude-dev/GIT_RELEASE_STEPS.md | Added site/ exclusion, gh-pages deploy step, post-release verification |
-| claude-dev/deploy-site.sh | Created -- script to deploy site/ to gh-pages branch |
+| claude-dev/PLAN.md | Full roadmap; Phase 1 complete, Phase 2 complete, Phase 3c updated with variants |
+| claude-dev/RESUME.md | Updated with session activity |
+| claude-dev/GIT_RELEASE_STEPS.md | Added site/ exclusion, gh-pages deploy step |
+| claude-dev/deploy-site.sh | Created -- deploy script for gh-pages |
 | index.html | Removed from claude-dev branch |
+| site/_config.yml | Created -- Jekyll config with Just the Docs theme |
+| site/Gemfile | Created -- Jekyll and Just the Docs gem dependencies |
+| site/CNAME | Created -- icswatchdog.com domain |
+| site/.gitignore | Created -- excludes vendor/, _site/, .jekyll-cache/ |
+| site/index.md | Created -- landing page |
+| site/_pages/getting-started.md | Created -- Sysmon overview and deployment guide |
+| site/_pages/configurations.md | Created -- config listing with tier descriptions |
+| site/_includes/head_custom.html | Created -- custom favicon link |
+| site/assets/images/ | Copied logo, banner, background, favicon from project images |

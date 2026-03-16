@@ -6,9 +6,9 @@ Provide a usable, tiered set of Sysmon configuration files for ICS/OT environmen
 
 ## Current Phase
 
-**Phase**: Phase 1 - Project Foundation
+**Phase**: Phase 2 - Website Build
 **Status**: Complete
-**Focus**: Awaiting review before proceeding to Phase 2
+**Focus**: Awaiting review before proceeding to Phase 3a
 
 ## Phases
 
@@ -26,18 +26,18 @@ Provide a usable, tiered set of Sysmon configuration files for ICS/OT environmen
 
 ### Phase 2: Website Build
 
-**Status**: Not Started
+**Status**: Complete (pending review, deploy deferred to Phase 5)
 
-- [ ] Initialize site/ directory with Jekyll project structure
-- [ ] Configure Just the Docs theme via remote_theme
-- [ ] Migrate branding assets (logo, banner, background) into site/assets/
-- [ ] Create landing page (project overview, value proposition)
-- [ ] Create config listing page (all tiers with descriptions and links to main branch)
-- [ ] Create getting-started page (what is Sysmon, why use it in ICS/OT)
-- [ ] Update README.md to be descriptive and helpful as the repo landing page for GitHub visitors
-- [ ] Set up CNAME for icswatchdog.com
-- [ ] Test local Jekyll build
-- [ ] Deploy to gh-pages and verify
+- [x] Initialize site/ directory with Jekyll project structure
+- [x] Configure Just the Docs theme (gem-based, dark color scheme)
+- [x] Migrate branding assets (logo, banner, background, favicon) into site/assets/images/
+- [x] Create landing page (project overview, value proposition, quick links)
+- [x] Create config listing page (all tiers with descriptions and links to main branch)
+- [x] Create getting-started page (what is Sysmon, why use it in ICS/OT, deployment steps)
+- [x] Update README.md to be descriptive and helpful as the repo landing page for GitHub visitors
+- [x] Set up CNAME for icswatchdog.com in site/
+- [x] Test local Jekyll build (successful, 0.339s)
+- [ ] Deploy to gh-pages and verify (deferred to Phase 5 release)
 
 ### Phase 3a: Sysmon Research and Audit
 

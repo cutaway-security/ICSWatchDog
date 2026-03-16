@@ -1,0 +1,47 @@
+# ICS Watch Dog - Jekyll Configuration
+# Theme: Just the Docs (https://just-the-docs.com)
+
+title: ICS Watch Dog
+description: >-
+  Usable Sysmon configurations for ICS/OT environments.
+  From starter to advanced, helping your team deploy endpoint monitoring.
+
+theme: just-the-docs
+
+url: "https://icswatchdog.com"
+baseurl: ""
+
+# Color scheme: dark to match existing branding
+color_scheme: dark
+
+# Logo in sidebar header
+logo: "/assets/images/icswatchdog_logo_1_circle_sm1.png"
+
+# Favicon
+favicon_ico: "/assets/images/icswatchdog_32x32.png"
+
+# GitHub link in top-right
+aux_links:
+  "GitHub":
+    - "https://github.com/cutaway-security/ICSWatchDog"
+aux_links_new_tab: true
+
+# Navigation settings
+nav_sort: case_insensitive
+
+# Footer
+footer_content: >-
+  Developed and supported by
+  <a href="https://www.cutawaysecurity.com/">Cutaway Security, LLC.</a>
+  Licensed under
+  <a href="https://choosealicense.com/licenses/cc-by-4.0/">CC BY 4.0</a>.
+
+# Include _pages directory
+include:
+  - _pages
+
+# Exclude development files from build
+exclude:
+  - Gemfile.lock
+  - README.md
+  - vendor
