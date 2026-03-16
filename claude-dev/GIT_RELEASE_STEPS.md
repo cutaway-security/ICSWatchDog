@@ -12,6 +12,7 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 - [ ] README.md is accurate for the public release
 - [ ] No sensitive data, credentials, or internal references in code or docs
 - [ ] All site links to configs and repo point to main branch
+- [ ] All changes committed on claude-dev
 
 ### Release Steps
 
@@ -33,16 +34,15 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
    ```bash
    rm -rf claude-dev/
    rm -rf docs/
+   rm -rf .claude/
    rm -f CLAUDE.md
-   rm -f index.html  # if still present
    ```
 
 4. **Verify the release branch**
 
-   - Confirm all user-facing files are present and correct (configs, README, License, images)
-   - Confirm no development files remain (claude-dev/, docs/, CLAUDE.md)
-   - Validate XML configs are well-formed
-   - Review README.md for accuracy
+   - Confirm user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
+   - Confirm no development files remain (claude-dev/, docs/, .claude/, CLAUDE.md)
+   - Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
 5. **Merge to main**
 
@@ -77,5 +77,3 @@ All development occurs on the `claude-dev` branch. When a version is ready for p
 
 - Update PLAN.md on claude-dev with next phase goals
 - Update RESUME.md with release summary
-- Verify icswatchdog.com is serving the updated site
-- Verify all config download links on the site point to main branch and work correctly
