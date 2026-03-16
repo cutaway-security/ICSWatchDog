@@ -1,90 +1,152 @@
 # GIT_RELEASE_STEPS.md
 
-## Release Process
+**Repository:** `https://github.com/cutaway-security/ICSWatchDog.git`
+**Live Site:** `https://icswatchdog.com`
 
-All development occurs on the `claude-dev` branch. When a version is ready for public release, follow these steps.
+## Overview
 
-### Tagging Convention
+All development occurs on the `claude-dev` branch. Releases strip development files and force-push to `main`. Main is a deployment target only -- no work is committed there directly. The website is deployed separately to the `gh-pages` branch via deploy-site.sh.
 
-- claude-dev tag: `release-v<VERSION>` (marks the development snapshot)
-- Release branch: `release-v<VERSION>` (used for stripping dev files before merge)
-- main tag: `v<VERSION>` (marks the public release)
+### Tag and Branch Naming
 
-### Pre-Release Checklist
+| Item | Format | Example | Purpose |
+|------|--------|---------|---------|
+| Dev snapshot tag | `release-v#` | `release-v3` | Marks the claude-dev state that produced a release |
+| Release branch | `release-v#` | `release-v3` | Temporary branch for stripping dev files |
+| Main release tag | `v#` | `v3` | Marks the public release on main; used for rollbacks |
 
-- [ ] All planned features for this release are complete and tested
+List existing tags before creating a new one:
+
+```bash
+git tag
+```
+
+## Pre-Release Checklist
+
+- [ ] All changes committed and pushed on `claude-dev`
 - [ ] PLAN.md reflects current completion status
 - [ ] RESUME.md is up to date
 - [ ] README.md is accurate for the public release
 - [ ] No sensitive data, credentials, or internal references in code or docs
+- [ ] No `[TBD]` or placeholder markers visible to end users
 - [ ] All site links to configs and repo point to main branch
-- [ ] All changes committed on claude-dev
+- [ ] All XML configs pass validation: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
-### Release Steps
+## Release Steps
 
-1. **Check current branch and switch to claude-dev if needed**
+### 1. Verify starting state
 
-   ```bash
-   git status
-   git checkout claude-dev  # if not already on claude-dev
-   ```
+Confirm you are on `claude-dev` with a clean working tree:
 
-2. **Check existing tags to determine next version**
+```bash
+git status
+```
 
-   ```bash
-   git tag
-   ```
+Expected: `On branch claude-dev` with `nothing to commit, working tree clean`. If there are uncommitted changes, commit or stash them before proceeding.
 
-3. **Tag the release on claude-dev**
+### 2. Tag the release on claude-dev
 
-   ```bash
-   git tag -a release-v<VERSION> -m "Release v<VERSION>: <brief description>"
-   ```
+```bash
+git tag -a release-v# -m "Release v#: <brief description>"
+git push origin --tags
+```
 
-4. **Create a release branch**
+### 3. Create a release branch
 
-   ```bash
-   git checkout -b release-v<VERSION>
-   ```
+```bash
+git checkout -b release-v#
+git status
+```
 
-5. **Remove development-only files and directories**
+Confirm: `On branch release-v#`.
 
-   ```bash
-   rm -rf claude-dev/
-   rm -rf docs/
-   rm -rf .claude/
-   rm -f CLAUDE.md
-   ```
+### 4. Remove development files
 
-6. **Verify the release branch**
+```bash
+git rm -r claude-dev/
+git rm -r docs/
+git rm -r .claude/
+git rm CLAUDE.md
+git status
+```
 
-   - Confirm user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
-   - Confirm no development files remain (claude-dev/, docs/, .claude/, CLAUDE.md)
-   - Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
+Confirm: only development file deletions are staged. No unexpected changes.
 
-7. **Merge to main**
+```bash
+git commit -m "Remove development files for release v#"
+```
 
-   ```bash
-   git checkout main
-   git merge release-v<VERSION>
-   git tag -a v<VERSION> -m "Release v<VERSION>"
-   git push origin main --tags
-   ```
+### 5. Verify the release branch
 
-8. **Clean up release branch**
+- [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
+- [ ] No development files remain (`ls claude-dev/` should fail, `ls docs/` should fail, `ls CLAUDE.md` should fail)
+- [ ] Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
-   ```bash
-   git branch -d release-v<VERSION>
-   git checkout claude-dev
-   ```
+### 6. Force-push to main
 
-9. **Deploy website to gh-pages**
+Main is a deployment target only. Force-push replaces it entirely with the clean release branch.
 
-   ```bash
-   ./claude-dev/deploy-site.sh
-   ```
+Confirm you are on the release branch before proceeding:
 
-### Post-Release
+```bash
+git status
+```
+
+Expected: `On branch release-v#` with `nothing to commit, working tree clean`.
+
+```bash
+git checkout main
+git reset --hard release-v#
+git push origin main --force
+```
+
+### 7. Tag the release on main
+
+```bash
+git tag -a v# -m "Release v#"
+git push origin --tags
+```
+
+### 8. Clean up
+
+```bash
+git checkout claude-dev
+git branch -d release-v#
+```
+
+### 9. Deploy website to gh-pages
+
+```bash
+./claude-dev/deploy-site.sh
+```
+
+## Post-Release
 
 - Update PLAN.md on claude-dev with next phase goals
 - Update RESUME.md with release summary
+
+## Rollback
+
+If a release needs to be reverted, reset main to the previous release tag:
+
+```bash
+git checkout main
+git reset --hard v<PREVIOUS#>
+git push origin main --force
+```
+
+## Files Removed During Release
+
+The following files exist only on the `claude-dev` branch and are stripped before pushing to `main`:
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Claude Code project configuration |
+| `claude-dev/PLAN.md` | Development plan and task tracking |
+| `claude-dev/RESUME.md` | Session history and context |
+| `claude-dev/ARCHITECTURE.md` | Technical architecture reference |
+| `claude-dev/GIT_RELEASE_STEPS.md` | This file |
+| `claude-dev/deploy-site.sh` | Website deployment script |
+| `claude-dev/html-css-jekyll.md` | Code standard reference |
+| `docs/` | Jekyll website source (deployed separately to gh-pages) |
+| `.claude/` | Claude Code session data |
