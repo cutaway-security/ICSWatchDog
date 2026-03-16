@@ -1,8 +1,15 @@
 <!--
   Version:	v0.1
   Author:	Aaron Boyd (icsblitz)
-  Project:	ICSWatchDog
+  Project:	ICSWatchDog (Community Contribution)
   License:	Creative Commons Attribution 4.0 | You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
+
+  DISCLAIMER: This configuration is provided as-is for educational and operational use.
+  It is NOT tested against all environments and may require tuning for your specific systems.
+  Cutaway Security, LLC and contributors assume no liability for any impact resulting from
+  the use of this configuration. Community-contributed configurations are not maintained or
+  tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and
+  testing before deploying in any environment.
 -->
 <Sysmon schemaversion="4.50">
     <!--SYSMON META CONFIG-->

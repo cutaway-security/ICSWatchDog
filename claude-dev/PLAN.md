@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 3a - Sysmon Research and Audit
+**Phase**: Phase 3b - Config Restructuring
 **Status**: Complete
-**Focus**: Updating planning documents with research findings and revised approach
+**Focus**: Awaiting review before proceeding to Phase 3c
 
 ## Phases
 
@@ -68,17 +68,20 @@ Key findings:
 
 ### Phase 3b: Config Restructuring
 
-**Status**: Not Started
+**Status**: Complete
 
-- [ ] Create community/ directory
-- [ ] Move sysmonconfig-filecreate-only.xml to community/ with attribution preserved
-- [ ] Create reference/ directory
-- [ ] Rename sysmonconfig-export.xml to sysmonconfig-swiftonsecurity-v74.xml and move to reference/
-- [ ] Remove sysmonconfig-adv-workstation.xml (identical to SwiftOnSecurity, replaced by new configs)
-- [ ] Remove sysmonconfig-minimal.xml (replaced by new baseline-it)
-- [ ] Add disclaimer to all retained config XML headers
-- [ ] Update README.md with new file structure and disclaimer section
-- [ ] Update site config listing page for new structure
+- [x] Create community/ directory
+- [x] Move sysmonconfig-filecreate-only.xml to community/ with attribution preserved
+- [x] Create reference/ directory
+- [x] Rename sysmonconfig-export.xml to sysmonconfig-swiftonsecurity-v74.xml and move to reference/
+- [x] Remove sysmonconfig-adv-workstation.xml (identical to SwiftOnSecurity, replaced by new configs)
+- [x] Remove sysmonconfig-minimal.xml (replaced by new baseline-it)
+- [x] Add disclaimer to all retained config XML headers (community and reference)
+- [x] Update README.md with new file structure, disclaimer, and contributing section
+- [x] Update site config listing page for new structure (SANS control mapping, tuning warning, updated links)
+- [x] Update site landing page config cards (IT/OT progression, SANS references)
+- [x] Update site navigation dropdown (IT Baseline, OT Baseline, OT Enhanced, OT Advanced, Community, Reference)
+- [x] Verify Jekyll build (0.012s, no errors)
 
 ### Phase 3c: Config Implementation
 

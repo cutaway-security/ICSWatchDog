@@ -9,36 +9,31 @@
 ## What Was Accomplished
 
 ### Phase 1: Project Foundation (Complete)
-- Updated all planning documents from templates to project-specific content
-- Updated GIT_RELEASE_STEPS.md, created deploy-site.sh, removed index.html
+- Updated all planning documents, created deploy script, removed index.html
 
 ### Phase 2: Website Build (Complete)
-- Custom Jekyll site with CutSec design system (slate + gold, dark/light toggle, mobile nav)
-- Three pages: landing, configurations, getting started
-- Approved after live preview via GitHub Pages
+- Custom Jekyll site with CutSec design system, three pages, approved after live preview
 
 ### Phase 3a: Sysmon Research and Audit (Complete)
-- Sysmon current: v15.14, schema 4.90; native Windows integration announced for 2026
-- Schema 4.82 adds IDs 27-28 (FileBlock*); schema 4.90 adds ID 29 (FileExecutableDetected)
-- SwiftOnSecurity config unchanged since v74 (2021-07-08), still schema 4.50
-- All four existing configs have zero ICS/OT-specific content
-- sysmonconfig-adv-workstation.xml identical to SwiftOnSecurity (header-only fork)
-- sysmonconfig-minimal.xml is SwiftOnSecurity + CutSec personal app exclusions (not enterprise)
-- Mapped SANS ICS 5 Critical Controls to Sysmon capabilities (Controls #1, #3, #4 key)
-- Identified remote access tool monitoring as critical capability (CISA/NSA advisories)
-- Identified OT vendor list: Siemens, Rockwell, Schneider, AVEVA/OSIsoft PI, Ignition, SEL
-- Revised config structure: IT Baseline -> OT Baseline -> OT Enhanced -> OT Advanced
-- Decision: build all configs from scratch (not SwiftOnSecurity forks)
-- Decision: enterprise-focused, no personal app exclusions
-- Decision: include-log all remote access tools by default
-- Decision: uniform disclaimer across all configs and site
-- Decision: community/ directory for contributed configs
-- Decision: performance/latency documentation critical for OT adoption
-- Updated all planning documents with revised approach
+- Researched Sysmon versions, SwiftOnSecurity status, SANS ICS 5 Controls, CISA/NSA RMM guidance
+- Audited all four existing configs (zero ICS/OT content, adv-workstation identical to SwiftOnSecurity)
+- Established revised config structure: IT Baseline -> OT Baseline -> OT Enhanced -> OT Advanced
+- All new configs to be built from scratch, enterprise-focused, with remote access tool detection
+
+### Phase 3b: Config Restructuring (Complete)
+- Created community/ directory, moved sysmonconfig-filecreate-only.xml with disclaimer added
+- Created reference/ directory, renamed sysmonconfig-export.xml to sysmonconfig-swiftonsecurity-v74.xml with ICS Watch Dog note and disclaimer added
+- Removed sysmonconfig-adv-workstation.xml (identical to SwiftOnSecurity)
+- Removed sysmonconfig-minimal.xml (contained personal app exclusions, not enterprise-appropriate)
+- Updated README.md: new file structure table, disclaimer section, contributing section, SANS controls mention
+- Updated site configurations page: SANS control mapping per config, tuning warning callout, updated links for community/ and reference/ paths
+- Updated site landing page: config cards now show IT/OT progression, SANS controls in overview, tuning warning callout
+- Updated site nav: dropdown reflects new config structure (IT Baseline, OT Baseline, OT Enhanced, OT Advanced, Community, Reference)
+- Jekyll build verified (0.012s, no errors)
 
 ## In Progress
 
-- Planning documents updated, ready for next development phase
+- Phase 3b complete, awaiting review before Phase 3c
 
 ## Blockers
 
@@ -46,9 +41,8 @@
 
 ## Next Steps
 
-1. Begin Phase 3b: Config Restructuring (directories, file moves/renames, disclaimers)
-2. Phase 3c: Build new configs from scratch
-3. Phase 4: Documentation expansion (SANS controls page, deployment considerations, community contributions)
+1. Review Phase 3b deliverables (file structure, README, site updates)
+2. Begin Phase 3c: Config Implementation (build new configs from scratch)
 
 ## Open Questions
 
@@ -58,6 +52,15 @@
 
 | File | Change |
 |------|--------|
-| claude-dev/PLAN.md | Comprehensive rewrite: new config structure, SANS controls, remote access, community, disclaimer, vendor list |
-| claude-dev/ARCHITECTURE.md | Comprehensive rewrite: progression model, SANS mapping, remote access monitoring, vendor table, updated file structure |
-| claude-dev/RESUME.md | Updated with Phase 3a findings and revised approach |
+| community/sysmonconfig-filecreate-only.xml | Moved from root, disclaimer added, project label updated to "Community Contribution" |
+| reference/sysmonconfig-swiftonsecurity-v74.xml | Moved and renamed from sysmonconfig-export.xml, ICS Watch Dog note and disclaimer added |
+| sysmonconfig-adv-workstation.xml | Removed (identical to SwiftOnSecurity) |
+| sysmonconfig-minimal.xml | Removed (replaced by new baseline-it) |
+| sysmonconfig-export.xml | Removed (moved to reference/) |
+| sysmonconfig-filecreate-only.xml | Removed (moved to community/) |
+| README.md | Rewritten: new config table, disclaimer, contributing section, SANS controls |
+| docs/_pages/configurations.html | Rewritten: SANS mapping, tuning warning, IT/OT progression, updated paths |
+| docs/index.html | Updated: config cards for IT/OT progression, SANS overview, tuning warning |
+| docs/_includes/nav.html | Updated: dropdown links match new config structure |
+| claude-dev/PLAN.md | Phase 3b marked complete |
+| claude-dev/RESUME.md | Updated with Phase 3b summary |

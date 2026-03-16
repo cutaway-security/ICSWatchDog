@@ -2,36 +2,62 @@
 
 <img align="left" width="100" height="100" src="images/icswatchdog_logo_1_circle_sm1.png">
 
-[Microsoft Sysinternals Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon) is one of the best tools for improving visibility into what happens on your Windows servers and workstations. The [ICS Watch Dog](https://icswatchdog.com) project provides ready-to-use Sysmon configurations designed for ICS/OT environments, helping your team deploy endpoint monitoring from the start of your program through its maturity.
+[Microsoft Sysinternals Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon) is one of the best tools for improving visibility into what happens on your Windows servers and workstations. The [ICS Watch Dog](https://icswatchdog.com) project provides ready-to-use Sysmon configurations designed for enterprise IT and ICS/OT environments, mapped to the [SANS ICS 5 Critical Controls](https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls). Start with the IT baseline and progress through OT-specific configs as your monitoring program matures.
 
 <br clear="left"/>
 
 ## Configuration Files
 
-ICS Watch Dog configurations are organized into tiers. Start simple and advance as your monitoring program matures.
+ICS Watch Dog configs follow a progressive structure from IT baseline through OT-specific advanced monitoring.
 
-| Tier | Config File | Description | Sysmon Version |
-|------|-------------|-------------|----------------|
-| Tier 1: Starter | [sysmonconfig-minimal.xml](sysmonconfig-minimal.xml) | Bare minimum to get Sysmon running | v13+ (schema 4.50) |
-| Tier 4: Advanced | [sysmonconfig-adv-workstation.xml](sysmonconfig-adv-workstation.xml) | Advanced workstation monitoring | v13+ (schema 4.50) |
-| Standalone | [sysmonconfig-filecreate-only.xml](sysmonconfig-filecreate-only.xml) | File creation monitoring only | v13+ (schema 4.50) |
-| Reference | [sysmonconfig-export.xml](sysmonconfig-export.xml) | SwiftOnSecurity original (v74, 2021-07-08) | v13+ (schema 4.50) |
+### Curated Configs
 
-Additional tier configs (Baseline, Enhanced) are in development. Visit [icswatchdog.com](https://icswatchdog.com) for documentation, deployment guides, and config selection guidance.
+| Config | Description | Sysmon Version |
+|--------|-------------|----------------|
+| sysmonconfig-baseline-it.xml | Enterprise IT starting point -- general Windows monitoring | v13+ (schema 4.50) |
+| sysmonconfig-baseline-ot.xml | OT baseline -- adds ICS/OT vendor and process monitoring | v13+ (schema 4.50) |
+| sysmonconfig-enhanced-ot.xml | Broader OT coverage -- industrial port awareness | In Development |
+| sysmonconfig-advanced-ot.xml | Advanced OT -- newer Sysmon features, role-specific | In Development |
+
+### Community Configs
+
+Community-contributed configurations for specific use cases. See [community/](community/) directory.
+
+| Config | Author | Description |
+|--------|--------|-------------|
+| [community/sysmonconfig-filecreate-only.xml](community/sysmonconfig-filecreate-only.xml) | Aaron Boyd (icsblitz) | File creation monitoring |
+
+### Reference Configs
+
+Third-party configs retained for learning and comparison. Not maintained by ICS Watch Dog.
+
+| Config | Source | Description |
+|--------|--------|-------------|
+| [reference/sysmonconfig-swiftonsecurity-v74.xml](reference/sysmonconfig-swiftonsecurity-v74.xml) | [SwiftOnSecurity](https://github.com/SwiftOnSecurity/sysmon-config) | Original SwiftOnSecurity v74 (2021-07-08) |
 
 ## Quick Start
 
 1. Download [Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon) from Microsoft
-2. Download a configuration file from this repository
+2. Download a configuration file from this repository (start with the IT baseline)
 3. Install from an elevated command prompt:
 
 ```
-sysmon.exe -accepteula -i sysmonconfig-minimal.xml
+sysmon.exe -accepteula -i sysmonconfig-baseline-it.xml
 ```
 
 4. Verify in Windows Event Viewer under: `Applications and Services Logs > Microsoft > Windows > Sysmon > Operational`
 
 For detailed instructions, see the [Getting Started](https://icswatchdog.com/getting-started/) guide on the project website.
+
+## Disclaimer
+
+These configurations are provided as-is for educational and operational use. They are NOT tested against all environments and may require tuning for your specific systems. Cutaway Security, LLC and contributors assume no liability for any impact resulting from the use of these configurations. Users are responsible for testing in their own environments before production deployment. This is especially critical in ICS/OT environments where system availability and safety are paramount.
+
+Community-contributed configurations are not maintained or tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and testing before deploying community configurations in any environment.
+
+## Contributing
+
+Contributions are welcome via pull requests or GitHub issues (feature enhancements). Community configs are placed in the `community/` directory with author attribution. See the [Community Contributions](https://icswatchdog.com/community/) page for guidelines.
 
 ## Similar Projects
 
