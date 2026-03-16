@@ -10,27 +10,35 @@
 
 ### Phase 1: Project Foundation (Complete)
 - Updated all planning documents from templates to project-specific content
-- Updated GIT_RELEASE_STEPS.md with docs/ exclusion and gh-pages deploy step
-- Removed index.html from claude-dev branch
-- Created deploy-site.sh script for gh-pages deployment
+- Updated GIT_RELEASE_STEPS.md, created deploy-site.sh, removed index.html
 
-### Phase 2: Website Build (Complete, pending review)
-- Initially built with Just the Docs theme; replaced with custom CutSec design system after review
-- Reviewed both CutSec workshop sites (industrial_ai_programming_workshop, ot-osint-program-workshop) for design patterns
-- Built hybrid approach: Jekyll templating (from OT OSINT) + Industrial AI design system (colors, dark mode, components)
-- Custom CSS with CutSec branding (warm slate #334155 + muted gold #d97706), dark/light theme toggle
-- Mobile hamburger nav (from OT OSINT pattern), dropdown menus for Configurations and Guides
-- No AI chat interface components (workshop-only feature)
-- Print styles included
-- Three responsive breakpoints (640px, 768px, 375px)
-- Copied CutSec logos and ICS Watch Dog images into docs/img/
-- Code standard (html-css-jekyll.md) available in claude-dev/
-- Jekyll build: 0.01s, zero warnings
-- All config download links verified pointing to main branch
+### Phase 2: Website Build (Complete)
+- Custom Jekyll site with CutSec design system (slate + gold, dark/light toggle, mobile nav)
+- Three pages: landing, configurations, getting started
+- Approved after live preview via GitHub Pages
+
+### Phase 3a: Sysmon Research and Audit (Complete)
+- Sysmon current: v15.14, schema 4.90; native Windows integration announced for 2026
+- Schema 4.82 adds IDs 27-28 (FileBlock*); schema 4.90 adds ID 29 (FileExecutableDetected)
+- SwiftOnSecurity config unchanged since v74 (2021-07-08), still schema 4.50
+- All four existing configs have zero ICS/OT-specific content
+- sysmonconfig-adv-workstation.xml identical to SwiftOnSecurity (header-only fork)
+- sysmonconfig-minimal.xml is SwiftOnSecurity + CutSec personal app exclusions (not enterprise)
+- Mapped SANS ICS 5 Critical Controls to Sysmon capabilities (Controls #1, #3, #4 key)
+- Identified remote access tool monitoring as critical capability (CISA/NSA advisories)
+- Identified OT vendor list: Siemens, Rockwell, Schneider, AVEVA/OSIsoft PI, Ignition, SEL
+- Revised config structure: IT Baseline -> OT Baseline -> OT Enhanced -> OT Advanced
+- Decision: build all configs from scratch (not SwiftOnSecurity forks)
+- Decision: enterprise-focused, no personal app exclusions
+- Decision: include-log all remote access tools by default
+- Decision: uniform disclaimer across all configs and site
+- Decision: community/ directory for contributed configs
+- Decision: performance/latency documentation critical for OT adoption
+- Updated all planning documents with revised approach
 
 ## In Progress
 
-- Phase 2 complete, awaiting manual review
+- Planning documents updated, ready for next development phase
 
 ## Blockers
 
@@ -38,36 +46,18 @@
 
 ## Next Steps
 
-1. Manual review of rebuilt site (preview via GitHub Pages from claude-dev /docs)
-2. Begin Phase 3a: Sysmon Research and Audit
+1. Begin Phase 3b: Config Restructuring (directories, file moves/renames, disclaimers)
+2. Phase 3c: Build new configs from scratch
+3. Phase 4: Documentation expansion (SANS controls page, deployment considerations, community contributions)
 
 ## Open Questions
 
-- Should sysmonconfig-filecreate-only.xml keep its current name or be renamed? -- Phase 3b
-- Any adjustments to site design after live preview?
+- None currently blocking
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| CLAUDE.md | Updated: website framework changed to custom CutSec design system |
-| README.md | Rewritten with config table, quick start, website link |
-| claude-dev/ARCHITECTURE.md | Updated: technology stack and file structure for custom site |
-| claude-dev/PLAN.md | Phase 2 tasks updated for rebuild; new decision logged |
-| claude-dev/RESUME.md | Updated with session activity |
-| claude-dev/GIT_RELEASE_STEPS.md | Added docs/ exclusion, gh-pages deploy step |
-| claude-dev/deploy-site.sh | Deploy script for gh-pages |
-| claude-dev/html-css-jekyll.md | Code standard (copied by user) |
-| docs/_config.yml | Rebuilt: minimal Jekyll config, no theme gem |
-| docs/_layouts/default.html | Created: page template with nav/footer includes |
-| docs/_includes/nav.html | Created: header with dropdowns, mobile toggle, theme toggle |
-| docs/_includes/footer.html | Created: CutSec attribution, license, GitHub link |
-| docs/css/style.css | Created: CutSec design system (light/dark, responsive, print) |
-| docs/js/main.js | Created: theme toggle with localStorage |
-| docs/index.html | Created: landing page with hero, config cards, overview |
-| docs/_pages/configurations.html | Created: tier details, standalone, reference configs |
-| docs/_pages/getting-started.html | Created: Sysmon guide for ICS/OT |
-| docs/Gemfile | Created: Jekyll dependency only |
-| docs/CNAME | icswatchdog.com |
-| docs/.gitignore | Updated for Jekyll build artifacts |
-| docs/img/ | CutSec logos + ICS Watch Dog images copied |
+| claude-dev/PLAN.md | Comprehensive rewrite: new config structure, SANS controls, remote access, community, disclaimer, vendor list |
+| claude-dev/ARCHITECTURE.md | Comprehensive rewrite: progression model, SANS mapping, remote access monitoring, vendor table, updated file structure |
+| claude-dev/RESUME.md | Updated with Phase 3a findings and revised approach |
