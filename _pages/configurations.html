@@ -1,0 +1,148 @@
+---
+layout: default
+title: Configuration Files
+permalink: /configurations/
+---
+
+<h1>Sysmon Configuration Files</h1>
+
+<p>ICS Watch Dog provides Sysmon configurations that progress from enterprise IT baseline through ICS/OT-specific monitoring. All configs are built from scratch and mapped to the <a href="https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls" target="_blank" rel="noopener">SANS ICS 5 Critical Controls</a>. Download from the <a href="https://github.com/cutaway-security/ICSWatchDog" target="_blank" rel="noopener">ICS Watch Dog GitHub repository</a>.</p>
+
+<section class="overview-section">
+  <h2>Choosing a Configuration</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Situation</th>
+        <th>Recommended Config</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>First time deploying Sysmon on any Windows system</td>
+        <td>IT Baseline</td>
+      </tr>
+      <tr>
+        <td>Legacy Windows in OT (Server 2008/2012, Win 7/10 LTSC)</td>
+        <td>IT Baseline or OT Baseline (both schema 4.50)</td>
+      </tr>
+      <tr>
+        <td>OT environment, ready for ICS-specific monitoring</td>
+        <td>OT Baseline</td>
+      </tr>
+      <tr>
+        <td>Established OT monitoring, want broader coverage</td>
+        <td>OT Enhanced</td>
+      </tr>
+      <tr>
+        <td>Jump host, bastion host, or kiosk system</td>
+        <td>Jump Host</td>
+      </tr>
+      <tr>
+        <td>Experienced team, role-specific tuning</td>
+        <td>OT Advanced</td>
+      </tr>
+      <tr>
+        <td>Only need file creation monitoring</td>
+        <td>Community: File Create Only</td>
+      </tr>
+      <tr>
+        <td>Learning Sysmon, want a well-known reference</td>
+        <td>Reference: SwiftOnSecurity</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="callout callout-warning">
+  <p><strong>Tuning required:</strong> All configurations are starting points. Administrators MUST tune these configs for their specific environments. Test in a non-production environment before deploying to production systems. See <a href="{{ site.baseurl }}/getting-started/">Getting Started</a> for deployment guidance.</p>
+</div>
+
+<h2 id="curated-configurations">Curated Configurations</h2>
+
+<p>These configs are maintained by the ICS Watch Dog project and follow a progressive structure. Each builds on the previous, adding capabilities as your monitoring program matures.</p>
+
+<section class="read-section" id="it-baseline">
+  <h3>IT Baseline</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)<br>
+  <strong>SANS Controls:</strong> #1 (Incident Response), #4 (Secure Remote Access), #5 (Vulnerability Management)</p>
+  <p>Enterprise IT starting point for any Windows system. General-purpose monitoring covering process creation, network connections, file creation, and registry changes. Includes detection of known remote access tools (TeamViewer, AnyDesk, VNC, ScreenConnect, and others) per CISA/NSA guidance. This is explicitly an IT-focused configuration -- it does not include OT-specific rules.</p>
+  <p><strong>Best for:</strong> Teams deploying Sysmon for the first time on any Windows system. Start here.</p>
+</section>
+
+<section class="read-section" id="ot-baseline">
+  <h3>OT Baseline</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)<br>
+  <strong>SANS Controls:</strong> #1, #2 (Defensible Architecture), #3 (Network Visibility), #4, #5</p>
+  <p>Builds on the IT Baseline with OT-specific additions. Adds monitoring examples for major ICS/OT vendor software (Siemens, Rockwell, Schneider Electric, AVEVA/OSIsoft PI, Ignition, SEL), ICS-relevant file type monitoring, and adjusted exclusions for OT environments. Vendor-specific rules are examples that must be validated against your actual installations.</p>
+  <p><strong>Best for:</strong> OT environments ready for ICS-specific endpoint monitoring.</p>
+</section>
+
+<section class="read-section" id="jumphost">
+  <h3>Jump Host / Bastion Host</h3>
+  <p><strong>Status:</strong> Available<br>
+  <strong>Minimum Sysmon:</strong> v15+ (schema 4.90)<br>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4 (PRIMARY FOCUS), #5</p>
+  <p>Comprehensive monitoring for jump hosts, bastion hosts, and kiosk systems used for OT remote access. These systems are the primary controlled entry point into OT networks and warrant the most thorough monitoring. Features include:</p>
+  <ul>
+    <li>Minimal process exclusions (jump hosts should have very predictable activity)</li>
+    <li>ALL network connections logged (every connection through the chokepoint matters)</li>
+    <li>Clipboard monitoring (Event ID 24) for detecting data transfer between networks</li>
+    <li>New executable detection (Event ID 29, schema 4.90)</li>
+    <li>AppLocker and RDP configuration change monitoring</li>
+    <li>DLL image loading enabled (disabled in baselines)</li>
+    <li>Recycle Bin and Group Policy monitoring</li>
+  </ul>
+  <p><strong>Best for:</strong> Jump hosts, bastion hosts, kiosk workstations providing controlled remote access to OT networks.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-jumphost.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-jumphost.xml</a></p>
+</section>
+
+<section class="read-section" id="ot-enhanced">
+  <h3>OT Enhanced</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4, #5</p>
+  <p>Broader OT coverage including network connection monitoring for industrial ports (Modbus TCP/502, EtherNet/IP/44818, OPC-UA/4840, DNP3/20000, S7comm/102). Detects which processes connect to these ports -- useful for identifying unauthorized access. May use newer Sysmon schema features.</p>
+  <p><strong>Best for:</strong> Teams with established monitoring looking to increase visibility into OT network activity.</p>
+</section>
+
+<section class="read-section" id="ot-advanced">
+  <h3>OT Advanced</h3>
+  <p><strong>Status:</strong> In Development<br>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4, #5</p>
+  <p>Advanced monitoring leveraging newer Sysmon features (FileBlockExecutable, FileExecutableDetected). Provides role-specific customization guidance for HMI stations, engineering workstations, historians, and other OT system roles. Developed further as the project matures.</p>
+  <p><strong>Best for:</strong> Experienced teams ready for comprehensive, role-specific endpoint monitoring.</p>
+</section>
+
+<h2 id="community-configurations">Community Configurations</h2>
+
+<p>Community-contributed configurations for specific use cases. These are not maintained or tested by Cutaway Security, LLC. Users must perform their own review and testing before deployment.</p>
+
+<section class="read-section">
+  <h3>File Create Only</h3>
+  <p><strong>Author:</strong> Aaron Boyd (icsblitz)<br>
+  <strong>Minimum Sysmon:</strong> v13+ (schema 4.50)</p>
+  <p>Monitors file creation events, tracking dangerous attachment types, scripts, executables, and other files of interest. Useful for environments where file creation monitoring is the immediate priority.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/community/sysmonconfig-filecreate-only.xml" target="_blank" rel="noopener">community/sysmonconfig-filecreate-only.xml</a></p>
+</section>
+
+<h2 id="reference-configurations">Reference Configurations</h2>
+
+<p>Third-party configs retained for learning and comparison. Not maintained by ICS Watch Dog. ICS Watch Dog curated configs are recommended for deployment.</p>
+
+<section class="read-section">
+  <h3>SwiftOnSecurity Sysmon Config</h3>
+  <p><strong>Source Version:</strong> 74 (2021-07-08)<br>
+  <strong>Source Project:</strong> <a href="https://github.com/SwiftOnSecurity/sysmon-config" target="_blank" rel="noopener">SwiftOnSecurity/sysmon-config</a></p>
+  <p>The well-known SwiftOnSecurity configuration. Retained as a reference for comparison and learning. This is an IT-focused general-purpose configuration with extensive inline documentation.</p>
+  <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml" target="_blank" rel="noopener">reference/sysmonconfig-swiftonsecurity-v74.xml</a></p>
+</section>
+
+<h2>Similar and Inspiring Projects</h2>
+<ul>
+  <li><a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon" target="_blank" rel="noopener">Microsoft Sysinternals Sysmon</a></li>
+  <li><a href="https://github.com/SwiftOnSecurity/sysmon-config" target="_blank" rel="noopener">SwiftOnSecurity Sysmon Config</a></li>
+  <li><a href="https://posts.specterops.io/working-with-sysmon-configurations-like-a-pro-through-better-tooling-be7ad7f99a47" target="_blank" rel="noopener">Working With Sysmon Configurations Like a Pro Through Better Tooling - Matt Graeber</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/archive/blogs/motiba/sysinternals-sysmon-suspicious-activity-guide" target="_blank" rel="noopener">Sysinternals Sysmon suspicious activity guide</a></li>
+</ul>

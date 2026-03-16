@@ -1,0 +1,78 @@
+---
+layout: default
+title: Community Contributions
+permalink: /community/
+---
+
+<h1>Community Contributions</h1>
+
+<p>ICS Watch Dog welcomes contributions from the ICS/OT cybersecurity community. Whether you have a Sysmon configuration for a specific use case, vendor-specific rules, or documentation improvements, your contributions help the community.</p>
+
+<section class="read-section">
+  <h2>How to Contribute</h2>
+
+  <h3>Option 1: Pull Request</h3>
+  <p>Fork the <a href="https://github.com/cutaway-security/ICSWatchDog" target="_blank" rel="noopener">ICS Watch Dog repository</a>, add your contribution, and submit a pull request. Community Sysmon configs should be placed in the <code>sysmon-configs/community/</code> directory.</p>
+
+  <h3>Option 2: GitHub Issue</h3>
+  <p>Open a <a href="https://github.com/cutaway-security/ICSWatchDog/issues" target="_blank" rel="noopener">GitHub issue</a> with the "feature enhancement" label. Describe your proposed config or improvement. The project team will review and may implement it or work with you to integrate it.</p>
+
+  <h3>What to Include</h3>
+  <p>When contributing a Sysmon configuration, please include:</p>
+  <ul>
+    <li><strong>XML header</strong> with version, author name/handle, license, and a description of what the config monitors</li>
+    <li><strong>Descriptive rule names</strong> using the Sysmon <code>name</code> attribute on each rule for log traceability</li>
+    <li><strong>Comments</strong> explaining the purpose of each rule group and any non-obvious rules</li>
+    <li><strong>Schema version</strong> and minimum Sysmon version required</li>
+    <li><strong>Testing notes</strong> describing what environment the config was tested in (if any)</li>
+  </ul>
+</section>
+
+<section class="read-section">
+  <h2>Naming Convention</h2>
+  <p>Community config files should follow the naming pattern:</p>
+  <pre><code>sysmonconfig-[description].xml</code></pre>
+  <p>Examples:</p>
+  <ul>
+    <li><code>sysmonconfig-filecreate-only.xml</code></li>
+    <li><code>sysmonconfig-dns-focused.xml</code></li>
+    <li><code>sysmonconfig-historian-server.xml</code></li>
+  </ul>
+  <p>Use lowercase with hyphens. No spaces or underscores in filenames.</p>
+</section>
+
+<section class="read-section">
+  <h2>Review Process</h2>
+  <p>All contributions are reviewed for:</p>
+  <ul>
+    <li><strong>Well-formed XML</strong> - The config must pass XML validation</li>
+    <li><strong>Descriptive comments</strong> - Rules should be documented so others can understand them</li>
+    <li><strong>No sensitive data</strong> - No internal hostnames, IP addresses, or credentials</li>
+    <li><strong>Attribution</strong> - Author information must be included in the XML header</li>
+  </ul>
+  <p>Community configs are accepted as-is after basic review. They are not modified by the project team beyond formatting adjustments.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Current Community Configs</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Config</th>
+        <th>Author</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/community/sysmonconfig-filecreate-only.xml" target="_blank" rel="noopener">sysmonconfig-filecreate-only.xml</a></td>
+        <td>Aaron Boyd (icsblitz)</td>
+        <td>Monitors file creation events for dangerous attachment types, scripts, executables, and archives</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="callout callout-warning">
+  <p><strong>Disclaimer:</strong> Community-contributed configurations are not maintained or tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and testing before deploying community configurations in any environment. All configurations are provided as-is and should be validated in a test environment before production use.</p>
+</div>
