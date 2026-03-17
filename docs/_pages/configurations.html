@@ -141,7 +141,8 @@ permalink: /configurations/
 <section class="read-section" id="ot-baseline">
   <h3>OT Baseline</h3>
   <p><strong>Minimum Sysmon:</strong> v13+ (schema 4.50)<br>
-  <strong>SANS Controls:</strong> #1, #2 (Defensible Architecture), #3 (Network Visibility), #4, #5</p>
+  <strong>SANS Controls:</strong> #1, #2 (Defensible Architecture), #3 (Network Visibility), #4, #5<br>
+  <strong>CIS Alignment:</strong> Complements CIS Windows 10/11 Enterprise Benchmark (OT systems may require CIS adaptation for legacy OS)</p>
   <p>Builds on the IT Workstation Baseline with OT-specific additions. Adds monitoring examples for major ICS/OT vendor software (Siemens, Rockwell, Schneider Electric, AVEVA/OSIsoft PI, Ignition, SEL), ICS-relevant file type monitoring, and adjusted exclusions for OT environments. Vendor-specific rules are examples that must be validated against your actual installations.</p>
   <p><strong>Best for:</strong> OT environments ready for ICS-specific endpoint monitoring.</p>
   <p><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-ot.xml" target="_blank" rel="noopener">sysmon-configs/sysmonconfig-baseline-ot.xml</a></p>
@@ -149,9 +150,9 @@ permalink: /configurations/
 
 <section class="read-section" id="jumphost">
   <h3>Jump Host / Bastion Host</h3>
-  <p><strong>Status:</strong> Available<br>
-  <strong>Minimum Sysmon:</strong> v15+ (schema 4.90)<br>
-  <strong>SANS Controls:</strong> #1, #2, #3, #4 (PRIMARY FOCUS), #5</p>
+  <p><strong>Minimum Sysmon:</strong> v15+ (schema 4.90)<br>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4 (PRIMARY FOCUS), #5<br>
+  <strong>CIS Alignment:</strong> Complements CIS Windows Server 2019/2022 Benchmark (L2 recommended for jump hosts)</p>
   <p>Comprehensive monitoring for jump hosts, bastion hosts, and kiosk systems used for OT remote access. These systems are the primary controlled entry point into OT networks and warrant the most thorough monitoring. Features include:</p>
   <ul>
     <li>Minimal process exclusions (jump hosts should have very predictable activity)</li>
@@ -169,7 +170,8 @@ permalink: /configurations/
 <section class="read-section" id="ot-enhanced">
   <h3>OT Enhanced</h3>
   <p><strong>Minimum Sysmon:</strong> v13+ (schema 4.50)<br>
-  <strong>SANS Controls:</strong> #1, #2, #3 (PRIMARY FOCUS), #4, #5</p>
+  <strong>SANS Controls:</strong> #1, #2, #3 (PRIMARY FOCUS), #4, #5<br>
+  <strong>CIS Alignment:</strong> Complements CIS Windows 10/11 Enterprise Benchmark (OT systems may require CIS adaptation for legacy OS)</p>
   <p>Builds on the OT Baseline with industrial protocol port monitoring. Logs which processes communicate on Modbus TCP (502), EtherNet/IP (44818), OPC-UA (4840), DNP3 (20000), S7comm (102), BACnet/IP (47808), IEC 60870-5-104 (2404), MQTT (1883/8883), Ignition Gateway (8088/8043), PI Data Archive (5450), GE SRTP (18245), and PROFINET ports. Also adds expanded vendor directory monitoring (GE, Honeywell, Emerson, ABB, Yokogawa), additional ICS file types (Rockwell .ACD/.L5K, Schneider .stu/.xef, SEL .rdb), and OPC/DCOM registry monitoring.</p>
   <p><strong>Note:</strong> Sysmon monitors which PROCESS connects to which PORT. It does NOT inspect protocol payloads. For protocol-level inspection, use dedicated ICS network monitoring tools.</p>
   <p><strong>Best for:</strong> Teams with established monitoring looking to increase visibility into OT network activity and vendor software changes.</p>
@@ -179,7 +181,8 @@ permalink: /configurations/
 <section class="read-section" id="ot-advanced">
   <h3>OT Advanced</h3>
   <p><strong>Minimum Sysmon:</strong> v15+ (schema 4.90)<br>
-  <strong>SANS Controls:</strong> #1, #2, #3, #4, #5</p>
+  <strong>SANS Controls:</strong> #1, #2, #3, #4, #5<br>
+  <strong>CIS Alignment:</strong> Complements CIS Windows 10/11 Enterprise Benchmark (OT systems may require CIS adaptation for legacy OS)</p>
   <p>Builds on the OT Enhanced config with Sysmon schema 4.90 features:</p>
   <ul>
     <li><strong>Event ID 27 (FileBlockExecutable)</strong>: Logs executable file creation in OT vendor directories and persistence locations</li>
