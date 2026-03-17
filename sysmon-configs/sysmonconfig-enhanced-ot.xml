@@ -1,28 +1,63 @@
 <!--
   ICS Watch Dog - OT Enhanced Sysmon Configuration
-  Version:      v1.0-stub
+  Version:      v2.0
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
-  Minimum Sysmon:   TBD (may require v14+ for schema 4.82 features)
+  Minimum Sysmon:   v13+ (schema 4.50)
   Target:           ICS/OT Windows systems with established monitoring programs
 
-  STATUS: IN DEVELOPMENT
-  This configuration is a stub. The full implementation will build on
-  sysmonconfig-baseline-ot.xml with the following additions:
-  - Network connection monitoring for industrial protocol ports
-    (Modbus TCP/502, EtherNet-IP/44818, OPC-UA/4840, DNP3/20000, S7comm/102)
-  - Expanded vendor software monitoring examples
-  - Additional event types from newer Sysmon schema versions
-  - More granular file and registry monitoring for OT environments
-
   SANS ICS 5 Critical Controls Supported:
-    #1 ICS Incident Response
-    #2 Defensible Architecture
-    #3 ICS Network Visibility (enhanced with industrial port monitoring)
-    #4 Secure Remote Access
-    #5 Vulnerability Management
+    #1 ICS Incident Response - Forensic evidence via process, file, registry, network logs
+    #2 Defensible Architecture - Detection of processes crossing network boundaries
+    #3 ICS Network Visibility - ENHANCED: industrial protocol port monitoring identifies
+        which processes communicate on Modbus, EtherNet/IP, OPC-UA, DNP3, S7comm, BACnet,
+        and other industrial ports (SANS Control #3 primary focus of this config)
+    #4 Secure Remote Access - Detection of known remote access / RMM tools
+    #5 Vulnerability Management - Software execution, driver loading, service change logging
+
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows 10/11 Enterprise Benchmark
+    Extends Section 17 (Advanced Audit Policy) with process-level telemetry
+    NOTE: Sysmon monitors process-to-port connections, NOT protocol payloads.
+    For protocol-level inspection, use dedicated ICS network monitoring tools.
+
+  DESCRIPTION:
+    This is the OT ENHANCED configuration. It builds on the OT Baseline
+    (sysmonconfig-baseline-ot.xml) with the following additions:
+
+    - INDUSTRIAL PORT MONITORING: NetworkConnect include rules that log which
+      processes communicate on industrial protocol ports. This is the primary
+      addition over the OT Baseline. If an unexpected process connects to
+      Modbus/TCP port 502, this config will log it with full process context.
+
+    - EXPANDED VENDOR SOFTWARE MONITORING: Additional OT vendor process names
+      and installation paths beyond the baseline examples.
+
+    - BROADER FILE MONITORING: Additional ICS-relevant file types and OT
+      software configuration file monitoring.
+
+    - EXPANDED REGISTRY MONITORING: OPC and DCOM configuration keys relevant
+      to OT communication infrastructure.
+
+    Industrial protocols monitored (via NetworkConnect port rules):
+      Modbus TCP (502), EtherNet/IP (44818, 2222), OPC-UA (4840),
+      OPC DA/DCOM (135 RPC), DNP3 (20000), S7comm (102),
+      BACnet/IP (47808), IEC 61850 MMS (102), IEC 60870-5-104 (2404),
+      MQTT (1883, 8883), Ignition Gateway (8088, 8043)
+
+    VENDOR SOFTWARE EXAMPLES: The vendor process rules are EXAMPLES. They MUST
+    be validated against your actual installations.
+
+  TUNING:
+    Administrators MUST review and tune this configuration for their environment.
+    - Validate vendor process names and paths against your actual installations
+    - Add your site-specific ICS/OT software following the examples provided
+    - Review industrial port rules and add ports specific to your environment
+    - Review remote access tool rules and exclude sanctioned tools
+    - Test in a non-production environment before deploying to production systems
+    - Consider system performance impact (see icswatchdog.com/deployment/)
 
   DISCLAIMER:
     This configuration is provided as-is for educational and operational use.
@@ -30,12 +65,519 @@
     specific systems. Cutaway Security, LLC and contributors assume no liability
     for any impact resulting from the use of this configuration. Users are
     responsible for testing in their own environments before production deployment.
+    This is especially critical in ICS/OT environments where system availability
+    and safety are paramount.
+
+  REFERENCES:
+    - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
+    - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - LOLRMM Project: https://lolrmm.io/
+    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
 -->
 
-<!-- Stub: Full implementation pending. Use sysmonconfig-baseline-ot.xml until this is complete. -->
 <Sysmon schemaversion="4.50">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
   <CheckRevocation/>
+
   <EventFiltering>
+
+    <!--
+    ================================================================
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    Same as OT Baseline: log all, exclude minimal system noise.
+    OT systems should have fewer running processes than IT workstations.
+    Be conservative with exclusions.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Windows system noise (same as OT Baseline) -->
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <!-- Windows Defender noise -->
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!--
+        NOTE: OT systems should have fewer running processes than IT workstations.
+        Be conservative with exclusions. If a process is unexpected on an OT system,
+        you WANT to see it in the logs.
+        Add your site-specific enterprise software exclusions below this line.
+        -->
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Detects timestomping (same as OT Baseline).
+    MITRE ATT&CK: T1070.006 (Indicator Removal: Timestomp)
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
+        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+      </FileCreateTime>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    ENHANCED: Two RuleGroups for NetworkConnect.
+
+    RuleGroup 1 (exclude-based): Log all connections except Defender noise.
+    Same as OT Baseline - less aggressive exclusions than IT. On OT systems,
+    network connections are significant and should be logged broadly.
+
+    RuleGroup 2 (include-based): INDUSTRIAL PROTOCOL PORT MONITORING.
+    Logs connections on industrial protocol ports with descriptive RuleNames.
+    This is the primary enhancement over the OT Baseline.
+
+    NOTE: Sysmon monitors WHICH PROCESS connects to WHICH PORT. It does NOT
+    inspect protocol payloads. For protocol-level monitoring, use dedicated
+    ICS network monitoring tools (e.g., Zeek, Claroty, Nozomi, Dragos).
+
+    NOTE: Both RuleGroups are evaluated. The exclude group filters noise;
+    the include group adds named rules for industrial ports. A connection
+    on port 502 will generate an event from both groups (one generic, one
+    named). If you want only named industrial port events, you can modify
+    the exclude group to be more aggressive.
+    ================================================================
+    -->
+    <RuleGroup name="NetworkConnect-General" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!--
+        NOTE: svchost.exe is NOT excluded in OT configs. On OT systems, svchost
+        network connections may be significant and worth reviewing.
+        -->
+      </NetworkConnect>
+    </RuleGroup>
+
+    <RuleGroup name="NetworkConnect-IndustrialPorts" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <!--
+        ================================================================
+        INDUSTRIAL PROTOCOL PORT MONITORING
+        SANS ICS 5 Critical Control #3: ICS Network Visibility
+
+        These rules log connections on known industrial protocol ports.
+        Each rule has a descriptive name for SIEM correlation and alerting.
+
+        IMPORTANT: These are DEFAULT ports. Your environment may use
+        non-standard ports. Add your site-specific ports below.
+        ================================================================
+        -->
+
+        <!-- Modbus TCP (SCADA/PLC communication) -->
+        <DestinationPort name="ICS: Modbus TCP" condition="is">502</DestinationPort>
+
+        <!-- EtherNet/IP (Rockwell/Allen-Bradley, common in manufacturing) -->
+        <DestinationPort name="ICS: EtherNet/IP" condition="is">44818</DestinationPort>
+        <DestinationPort name="ICS: EtherNet/IP implicit" condition="is">2222</DestinationPort>
+
+        <!-- OPC UA (modern OPC, cross-vendor interoperability) -->
+        <DestinationPort name="ICS: OPC-UA" condition="is">4840</DestinationPort>
+
+        <!-- OPC DA/DCOM (legacy OPC, uses RPC endpoint mapper) -->
+        <!-- NOTE: Port 135 (RPC) is also used by many Windows services.
+             On an OT system, unexpected RPC connections warrant review. -->
+        <DestinationPort name="ICS: OPC DA/DCOM (RPC)" condition="is">135</DestinationPort>
+
+        <!-- DNP3 (power/water/utilities SCADA) -->
+        <DestinationPort name="ICS: DNP3" condition="is">20000</DestinationPort>
+
+        <!-- Siemens S7comm (S7-300/400/1200/1500 PLCs) -->
+        <DestinationPort name="ICS: S7comm/ISO-TSAP" condition="is">102</DestinationPort>
+
+        <!-- BACnet/IP (building automation) -->
+        <DestinationPort name="ICS: BACnet/IP" condition="is">47808</DestinationPort>
+
+        <!-- IEC 60870-5-104 (power grid telecontrol) -->
+        <DestinationPort name="ICS: IEC 104" condition="is">2404</DestinationPort>
+
+        <!-- MQTT (IIoT messaging, Ignition MQTT modules) -->
+        <DestinationPort name="ICS: MQTT" condition="is">1883</DestinationPort>
+        <DestinationPort name="ICS: MQTT TLS" condition="is">8883</DestinationPort>
+
+        <!-- Ignition Gateway (Inductive Automation) -->
+        <DestinationPort name="ICS: Ignition Gateway HTTP" condition="is">8088</DestinationPort>
+        <DestinationPort name="ICS: Ignition Gateway HTTPS" condition="is">8043</DestinationPort>
+
+        <!-- OSIsoft PI (AVEVA PI Data Archive) -->
+        <DestinationPort name="ICS: PI Data Archive" condition="is">5450</DestinationPort>
+
+        <!-- GE SRTP (GE Fanuc PLCs) -->
+        <DestinationPort name="ICS: GE SRTP" condition="is">18245</DestinationPort>
+
+        <!-- PROFINET (Siemens, industrial ethernet) -->
+        <!-- NOTE: PROFINET DCP uses UDP broadcast, not typically TCP connections.
+             PROFINET RT/IRT operates at Layer 2 (not visible to Sysmon).
+             Port 34962-34964 used for PROFINET IO context management. -->
+        <DestinationPort name="ICS: PROFINET IO CM" condition="is">34962</DestinationPort>
+        <DestinationPort name="ICS: PROFINET IO alarm" condition="is">34963</DestinationPort>
+        <DestinationPort name="ICS: PROFINET IO data" condition="is">34964</DestinationPort>
+
+        <!--
+        Add your site-specific industrial protocol ports below this line.
+        Use descriptive name attributes for log traceability.
+        -->
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    Same as OT Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Same as OT Baseline. Log all non-Microsoft drivers.
+    OT NOTE: ICS/OT vendor drivers (PLC communication hardware,
+    serial adapters, USB-to-serial converters) will appear here.
+    This is expected and useful for asset inventory.
+    ================================================================
+    -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    Disabled by default (same as OT Baseline).
+    ================================================================
+    -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    Same as OT Baseline.
+    MITRE ATT&CK: T1055 (Process Injection)
+    ================================================================
+    -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    Disabled by default (same as OT Baseline).
+    ================================================================
+    -->
+    <RuleGroup name="RawAccessRead" groupRelation="or">
+      <RawAccessRead onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    Same as OT Baseline - monitor lsass.exe access.
+    MITRE ATT&CK: T1003 (OS Credential Dumping)
+    ================================================================
+    -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 11: FILE CREATED [FileCreate]
+    ENHANCED: Builds on OT Baseline with additional ICS file types,
+    expanded vendor directory monitoring, and OT configuration files.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <!-- === Startup and persistence locations (same as OT Baseline) === -->
+        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
+
+        <!-- === Executable and script file types (same as OT Baseline) === -->
+        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
+        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
+
+        <!-- === User download/temp locations (same as OT Baseline) === -->
+        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+
+        <!--
+        ================================================================
+        OT-SPECIFIC FILE TYPES (from OT Baseline)
+        ================================================================
+        -->
+
+        <!-- PLC programming project files -->
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap17</TargetFilename>
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap18</TargetFilename>
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap19</TargetFilename>
+        <TargetFilename name="ICS: Siemens STEP 7 project" condition="end with">.s7p</TargetFilename>
+        <TargetFilename name="ICS: CODESYS project" condition="end with">.project</TargetFilename>
+        <TargetFilename name="ICS: IEC 61131 structured text" condition="end with">.st</TargetFilename>
+
+        <!-- HMI/SCADA project files -->
+        <TargetFilename name="ICS: AVEVA InTouch app" condition="end with">.app</TargetFilename>
+
+        <!-- Firmware and binary files -->
+        <TargetFilename name="ICS: Firmware hex" condition="end with">.hex</TargetFilename>
+        <TargetFilename name="ICS: Firmware binary" condition="end with">.bin</TargetFilename>
+        <TargetFilename name="ICS: Firmware update" condition="end with">.fw</TargetFilename>
+
+        <!-- Configuration files -->
+        <TargetFilename name="ICS: OPC config" condition="end with">.opf</TargetFilename>
+
+        <!-- Archive files (common malware delivery in OT environments) -->
+        <TargetFilename name="Archive: ZIP" condition="end with">.zip</TargetFilename>
+        <TargetFilename name="Archive: RAR" condition="end with">.rar</TargetFilename>
+        <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
+        <TargetFilename name="Archive: ISO" condition="end with">.iso</TargetFilename>
+
+        <!--
+        ================================================================
+        ENHANCED: Additional ICS file types
+        ================================================================
+        -->
+
+        <!-- Rockwell/Allen-Bradley project files -->
+        <TargetFilename name="ICS: Rockwell Studio 5000 project" condition="end with">.ACD</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix project" condition="end with">.RSS</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix 5000 project" condition="end with">.L5K</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix 5000 export" condition="end with">.L5X</TargetFilename>
+
+        <!-- Schneider Electric project files -->
+        <TargetFilename name="ICS: Schneider Unity Pro project" condition="end with">.stu</TargetFilename>
+        <TargetFilename name="ICS: Schneider EcoStruxure project" condition="end with">.xef</TargetFilename>
+
+        <!-- SEL relay configuration -->
+        <TargetFilename name="ICS: SEL relay settings" condition="end with">.rdb</TargetFilename>
+        <TargetFilename name="ICS: SEL event report" condition="end with">.cev</TargetFilename>
+
+        <!-- GE/Emerson project files -->
+        <TargetFilename name="ICS: GE Proficy project" condition="end with">.cmp</TargetFilename>
+
+        <!-- OPC UA certificate files (certificate changes may indicate tampering) -->
+        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.der</TargetFilename>
+        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.pem</TargetFilename>
+
+        <!-- ICS configuration exports -->
+        <TargetFilename name="ICS: Config export CSV" condition="end with">.csv</TargetFilename>
+
+        <!-- Recycle Bin (malware staging/hiding) -->
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <!-- Group Policy changes -->
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+
+        <!--
+        ================================================================
+        VENDOR INSTALLATION DIRECTORIES (from OT Baseline + expanded)
+        Monitor changes to ICS/OT software installation directories.
+        ================================================================
+        -->
+        <TargetFilename name="ICS: Siemens directory" condition="contains">\Siemens\</TargetFilename>
+        <TargetFilename name="ICS: Rockwell directory" condition="contains">\Rockwell Software\</TargetFilename>
+        <TargetFilename name="ICS: Rockwell FactoryTalk" condition="contains">\FactoryTalk\</TargetFilename>
+        <TargetFilename name="ICS: Schneider directory" condition="contains">\Schneider Electric\</TargetFilename>
+        <TargetFilename name="ICS: Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
+        <TargetFilename name="ICS: ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
+        <TargetFilename name="ICS: OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
+        <TargetFilename name="ICS: Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
+        <TargetFilename name="ICS: Kepware directory" condition="contains">\Kepware\</TargetFilename>
+        <TargetFilename name="ICS: SEL directory" condition="contains">\SEL\</TargetFilename>
+        <TargetFilename name="ICS: CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
+        <!-- Enhanced: additional vendor directories -->
+        <TargetFilename name="ICS: GE directory" condition="contains">\GE Digital\</TargetFilename>
+        <TargetFilename name="ICS: GE iFIX directory" condition="contains">\GE\iFIX\</TargetFilename>
+        <TargetFilename name="ICS: Honeywell directory" condition="contains">\Honeywell\</TargetFilename>
+        <TargetFilename name="ICS: Emerson directory" condition="contains">\Emerson\</TargetFilename>
+        <TargetFilename name="ICS: ABB directory" condition="contains">\ABB\</TargetFilename>
+        <TargetFilename name="ICS: Yokogawa directory" condition="contains">\Yokogawa\</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    ENHANCED: Builds on OT Baseline with OPC/DCOM registry monitoring.
+    OPC DA uses DCOM, and changes to DCOM configuration can affect
+    or compromise OT communications.
+    MITRE ATT&CK: T1547 (Boot or Logon Autostart Execution)
+    ================================================================
+    -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <!-- Autostart locations (same as OT Baseline) -->
+        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!-- Enhanced: OPC/DCOM configuration (critical for OT communications) -->
+        <TargetObject name="ICS: DCOM config" condition="contains">\SOFTWARE\Microsoft\Ole</TargetObject>
+        <TargetObject name="ICS: OPC server registration" condition="contains">\OPC\</TargetObject>
+        <!-- Enhanced: Windows Firewall rules (changes may expose industrial ports) -->
+        <TargetObject name="Firewall rules" condition="contains">\Services\SharedAccess\Parameters\FirewallPolicy</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    Same as OT Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    Same as OT Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="PipeCreated" groupRelation="or">
+      <PipeEvent onmatch="exclude">
+        <PipeName condition="is">\lsass</PipeName>
+        <PipeName condition="is">\wkssvc</PipeName>
+        <PipeName condition="is">\srvsvc</PipeName>
+        <PipeName condition="is">\winreg</PipeName>
+        <PipeName condition="is">\spoolss</PipeName>
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Same as OT Baseline - log all WMI persistence.
+    MITRE ATT&CK: T1546.003 (Event Triggered Execution: WMI)
+    ================================================================
+    -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Same as OT Baseline - fewer exclusions than IT configs.
+    DNS queries from OT systems are more significant.
+    ================================================================
+    -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
+    Disabled by default (same as OT Baseline).
+    ================================================================
+    -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
+    Same as OT Baseline - log all process tampering.
+    MITRE ATT&CK: T1055.012 (Process Hollowing)
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
+    Same as OT Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.sys</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
   </EventFiltering>
 </Sysmon>

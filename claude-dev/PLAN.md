@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 4 - Documentation
-**Status**: Complete
-**Focus**: Awaiting review before proceeding to Phase 5
+**Phase**: Phase 6e - Documentation and Release
+**Status**: Not Started
+**Focus**: Phase 6d complete. Next: documentation updates, CIS labels, site updates, and release.
 
 ## Phases
 
@@ -124,17 +124,158 @@ Built all configs from scratch (not forked from SwiftOnSecurity). Enterprise-foc
 
 ### Phase 5: Release
 
-**Status**: Not Started
+**Status**: Complete
 
-- [ ] Final review of all configs and documentation
-- [ ] Merge configs (including community/ and reference/ directories), README, License, and images to main (exclude docs/ and claude-dev/)
-- [ ] Remove index.html from main during merge (if not already removed)
+- [x] Final review of all configs and documentation
+- [x] Merge configs (including community/ and reference/ directories), README, License, and images to main (exclude docs/ and claude-dev/)
+- [x] Remove index.html from main during merge (if not already removed)
+- [x] Deploy site to gh-pages
+- [x] Verify all site links point to main branch (20 links checked, all correct)
+- [x] Verify README.md on main is descriptive and current
+- [x] Verify disclaimer appears on site and in all config headers (all 7 configs)
+- [x] Tag release (v1 and release-v1)
+- [N/A] Create GitHub release (not needed)
+
+### Phase 6a: Config Expansion Research
+
+**Status**: Complete
+
+Research to inform config expansion. Findings drive config structure decisions below.
+
+- [x] Research workstation vs server baseline differentiation in Sysmon terms
+- [x] Review current sysmonconfig-baseline-it.xml for workstation vs server applicability
+- [x] Research CIS Benchmark alignment: map CIS controls to Sysmon event IDs
+- [x] Research CIS Benchmark tuning impact on Sysmon noise profiles
+- [x] Confirm CIS role-specific benchmarks align with planned config structure
+- [x] Research MITRE ATT&CK techniques specific to AD/DC attacks
+- [x] Research MITRE ATT&CK techniques specific to database server attacks (all engines)
+- [x] Research MITRE ATT&CK techniques specific to web server attacks (all engines)
+- [x] Research Sysmon rules specific to AD/DC monitoring
+- [x] Research Sysmon rules specific to database server monitoring (multi-engine)
+- [x] Research Sysmon rules specific to web server monitoring (multi-engine)
+- [x] Research non-MSSQL databases: PostgreSQL, MySQL/MariaDB, Oracle, MongoDB, InfluxDB
+- [x] Research non-IIS web servers: Apache httpd, Nginx, Apache Tomcat
+- [x] Evaluate sectioned config vs separate config files approach
+- [x] Evaluate combined database+web server config for colocated services
+- [x] Document findings and finalize config list, naming, and build order
+
+Key findings:
+
+Workstation vs Server:
+- Fundamentally different noise profiles. Single config on both causes either event flood or missed detections.
+- Current IT Baseline is workstation-biased (excludes desktop noise, does not address server service noise).
+- Split into workstation and server baselines is justified.
+
+CIS Benchmark:
+- CIS alignment is documentation/labeling, NOT separate config variants.
+- CIS L2 hardening modestly reduces Sysmon noise but does not warrant different configs.
+- CIS role-specific benchmarks (Workstation, Server DC/MS, IIS, SQL) confirm the project's config structure.
+- Sysmon extends beyond CIS native auditing in 15+ areas (hashes, parent process, network process attribution, DLL loading, named pipes, WMI, etc.).
+- Note HVCI/Device Guard compatibility in deployment docs (historical issue, resolved in Sysmon v15.x).
+
+AD/DC:
+- Separate config justified. Structural changes required: RawAccessRead must be enabled (disabled in baselines), NTDS.dit and SYSVOL path monitoring, LSASS ProcessAccess needs DC-specific exclusions, DC-specific registry keys.
+- Many AD attacks (DCSync, Golden Ticket, Kerberoasting) are NOT detectable by Sysmon -- require Windows Security Event Logs. Config header should document complementary audit requirements.
+- MITRE ATT&CK: T1003.003, T1003.006, T1207, T1484.001, T1558.001, T1558.003, T1087.002.
+
+Database servers:
+- Detection pattern is identical across all engines: database process spawning shell = malicious.
+- Covered engines: MSSQL (sqlservr.exe, sqlagent.exe), PostgreSQL (postgres.exe), MySQL/MariaDB (mysqld.exe, mariadbd.exe), Oracle (oracle.exe, extjob.exe, extproc.exe), MongoDB (mongod.exe), InfluxDB (influxd.exe).
+- Database file extensions to monitor: .bak, .mdf, .ldf, .ndf, .bacpac, .dacpac, .trn, .sql, .dump, .dbf, .dmp, .wt, .tsm.
+- OT relevance: Ignition uses MySQL, AVEVA Historian uses SQL Server, InfluxDB growing in IIoT.
+- MITRE ATT&CK: T1059, T1505.001, T1053.005, T1005, T1190.
+
+Web servers:
+- Strongest case for separate config. Enables Event ID 7 (ImageLoad) scoped to web worker processes -- structural change not possible in a general config.
+- Detection pattern is the same across all engines: web process spawns shell = webshell execution.
+- Covered engines: IIS (w3wp.exe), Apache (httpd.exe), Nginx (nginx.exe), Tomcat (java.exe, tomcat9.exe), plus interpreters (php-cgi.exe, php.exe).
+- Web script extensions to monitor: .aspx, .asp, .ashx, .asmx, .php, .jsp, .jspx, .cfm, .py, .cgi, web.config.
+- java.exe caveat: many OT apps run as java.exe (Ignition). May need path-based scoping or accepted tuning.
+- OT relevance: Ignition runs Tomcat/Jetty, AVEVA uses IIS, many HMI web interfaces use Apache.
+- MITRE ATT&CK: T1505.003, T1505.004, T1059.
+
+Combined database+web:
+- OT servers commonly colocate database and web services (Ignition = MySQL + Tomcat, AVEVA = SQL Server + IIS).
+- Sysmon loads ONE config file -- cannot layer/merge at runtime.
+- Rules for absent services have zero cost (never match, no noise, no performance impact).
+- Database and web server rules merged into single "server services" config.
+
+Config approach:
+- Separate complete files (not commented sections). Matches enterprise GPO deployment pattern.
+- Commented XML sections are error-prone, no major Sysmon project uses them for role blocks.
+- Each file is self-contained, valid, and deployable without editing.
+
+### Phase 6b: Baseline Restructuring
+
+**Status**: Complete
+
+Split the current IT Baseline into workstation and server variants.
+
+- [x] Rename sysmonconfig-baseline-it.xml to sysmonconfig-baseline-it-workstation.xml
+- [x] Create sysmonconfig-baseline-it-server.xml (server-appropriate exclusions, remote management tool monitoring, no desktop/browser noise exclusions)
+- [x] Validate both configs are well-formed XML (xmllint)
+- [x] Update README.md for new file names
+- [x] Update website config listing page
+- [x] Update website getting-started page references
+
+### Phase 6c: Complete OT Stubs
+
+**Status**: Complete
+
+- [x] Complete sysmonconfig-enhanced-ot.xml (industrial port monitoring via NetworkConnect, expanded vendor rules, OPC/DCOM registry monitoring, schema 4.50)
+- [x] Complete sysmonconfig-advanced-ot.xml (Event IDs 27-29 for executable detection and file shredding, role-specific tuning guidance, schema 4.90)
+- [x] Validate both configs are well-formed XML (xmllint)
+- [x] Update README.md to remove "In Development" labels
+- [x] Update website config listing page (descriptions, SANS controls, Sysmon version requirements)
+
+### Phase 6d: Server Role Configs
+
+**Status**: Complete
+
+Two role-specific server configs, each self-contained (includes server baseline rules plus role additions).
+
+- [x] Build sysmonconfig-server-ad.xml:
+  - Enables RawAccessRead (Event ID 9) -- disabled in baselines
+  - NTDS.dit and SYSVOL path monitoring (FileCreate)
+  - DC-specific ProcessCreate include rules (ntdsutil, vssadmin, esentutl, diskshadow, csvde, ldifde)
+  - DC-specific LSASS ProcessAccess exclusions (dns.exe, dfsr.exe, ntdsutil.exe)
+  - DC-specific registry keys (NTDS, Netlogon, DNS, DFSR, LSA services)
+  - DC-specific named pipes (drsuapi, samr, netlogon)
+  - Documents complementary Windows audit requirements (4662, 4769, 4742, 5136/5137) in header
+  - MITRE ATT&CK: T1003.003, T1003.006, T1207, T1484.001, T1087.002
+- [x] Build sysmonconfig-server-services.xml (combined database + web server):
+  - Database monitoring: ParentImage rules for all engines (sqlservr.exe, sqlagent.exe, postgres.exe, mysqld.exe, mariadbd.exe, oracle.exe, extjob.exe, mongod.exe, influxd.exe) spawning shell processes
+  - Database file extension monitoring (.bak, .mdf, .ldf, .ndf, .bacpac, .sql, .dump, .dbf, .dmp, .wt, .tsm)
+  - Database process NetworkConnect exclusions (labeled per engine for admin tuning)
+  - Database named pipe monitoring (SQL Server, Oracle pipes)
+  - Web server monitoring: ParentImage rules for all engines (w3wp.exe, httpd.exe, nginx.exe, java.exe, php-cgi.exe, php.exe, tomcat9.exe) spawning shell processes
+  - Enables ImageLoad (Event ID 7) scoped to web worker processes (w3wp.exe, httpd.exe, java.exe) for IIS module/webshell DLL detection
+  - Web script extension monitoring (.aspx, .asp, .ashx, .asmx, .php, .jsp, .jspx, .cfm, web.config) in web root paths
+  - Web server NetworkConnect exclusions for inbound port 80/443
+  - IIS registry key monitoring
+  - MITRE ATT&CK: T1059, T1505.001, T1505.003, T1505.004, T1053.005, T1005, T1190
+- [x] Validate both configs are well-formed XML (xmllint)
+- [x] Update README.md and website (config table, selection guide, full descriptions)
+
+### Phase 6e: Documentation and Release
+
+**Status**: In Progress (documentation complete, release pending)
+
+Update all documentation for expanded config set and release to main.
+
+- [x] Add CIS Benchmark alignment labels to all config headers (8/8 curated configs)
+- [x] Add MITRE ATT&CK references to all config headers where applicable (server-ad, server-services, advanced-ot, enhanced-ot, jumphost)
+- [x] CIS Benchmark alignment integrated into config headers and website config descriptions (dedicated page deferred; alignment info is in each config's section)
+- [x] Update website config listing with all new configs (server-ad, server-services sections added)
+- [x] Update website navigation for expanded config set (nav dropdown updated)
+- [x] Update landing page config cards (6 cards: IT Workstation, IT Server, Server Services, OT Baseline, OT Enhanced, Jump Host)
+- [x] Update deployment guide: performance table, criticality-based decisions table, phased deployment references
+- [x] Update README.md with final config table (done in Phase 6d)
+- [ ] Verify Jekyll build
+- [ ] Merge to main
 - [ ] Deploy site to gh-pages
-- [ ] Verify all site links point to main branch
-- [ ] Verify README.md on main is descriptive and current
-- [ ] Verify disclaimer appears on site and in all config headers
+- [ ] Verify all site links
 - [ ] Tag release
-- [ ] Create GitHub release
 
 ## Decision Log
 
@@ -158,6 +299,18 @@ Built all configs from scratch (not forked from SwiftOnSecurity). Enterprise-foc
 | 2026-03-16 | Uniform disclaimer across all configs and site | All configs are use-at-your-own-risk; community configs not maintained by CutSec |
 | 2026-03-16 | Enterprise-focused configs, no personal application exclusions | Configs for enterprise/industrial environments, not developer workstations |
 | 2026-03-16 | OT vendor examples: Siemens, Rockwell, Schneider, AVEVA/OSIsoft PI, Ignition, SEL | Major ICS/OT vendors; rules must be accurate; documented as examples to validate |
+| 2026-03-16 | Split IT Baseline into workstation and server variants | Workstations and servers have fundamentally different process noise, services, and monitoring needs |
+| 2026-03-16 | All configs schema 4.50 unless newer features required | OT environments run legacy OS; only jump host and advanced-ot use schema 4.90 |
+| 2026-03-16 | OT Baseline remains general-purpose (workstation-centric) | Serves as the universal OT starting point; admins add OT vendor specifics with guidance |
+| 2026-03-16 | Config tree model replaces linear progression | Configs branch by role (workstation/server) and environment (IT/OT) rather than a single linear chain |
+| 2026-03-16 | CIS Benchmark alignment is documentation only, not separate configs | CIS L2 hardening modestly reduces noise but does not warrant config variants; add labels and mapping to headers/docs |
+| 2026-03-16 | Complete OT stubs before new configs | Clear "In Development" debt on published configs before expanding the config set |
+| 2026-03-16 | AD/DC gets a separate config (structural differences) | RawAccessRead must be enabled, NTDS/SYSVOL paths, LSASS tuning -- cannot be tuning notes |
+| 2026-03-16 | Database and web server rules combined into single server-services config | OT servers commonly colocate database + web (Ignition = MySQL + Tomcat, AVEVA = SQL Server + IIS); rules for absent services have zero cost |
+| 2026-03-16 | Multi-engine coverage in server-services config | Database: MSSQL, PostgreSQL, MySQL/MariaDB, Oracle, MongoDB, InfluxDB. Web: IIS, Apache, Nginx, Tomcat. Detection pattern is identical across engines (process spawns shell). |
+| 2026-03-16 | No separate OT server baseline or OT historian configs | OT historians are specialized database/web servers; covered by server-services config + OT vendor tuning guidance in documentation |
+| 2026-03-16 | Separate complete files, not commented sections | Commented XML sections are error-prone; no major Sysmon project uses them for role blocks; matches enterprise GPO deployment pattern |
+| 2026-03-16 | Minimize config count to avoid overwhelming OT admins | Only create separate configs when structural Sysmon differences (enabling/disabling Event IDs, fundamentally different exclusion logic) justify it; tuning notes in documentation otherwise |
 
 ## Out of Scope
 

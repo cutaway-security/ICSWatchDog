@@ -81,24 +81,64 @@ Adopted updated CutSec base template standards across website components:
 
 ## In Progress
 
-- Frontend standards adopted, awaiting review
-- Phase 5 (Release) not started
+Phase 6e documentation complete. Remaining: Jekyll build verification, merge to main, deploy, tag release.
 
 ## Blockers
 
-- Jekyll not currently installed in development environment (bundle install fails due to permissions). Previous sessions had working builds. Does not block code changes.
+- Jekyll not currently installed in development environment (bundle install needs vendor/bundle path). Does not block config work.
+
+## Completed This Session
+
+- Verified Phase 5 release status: all items confirmed done
+- Updated PLAN.md Phase 5 to Complete
+- Planned Phase 6: Config Expansion
+- Conducted Phase 6a research (4 parallel research tracks):
+  1. Workstation vs server Sysmon differentiation (process noise, exclusions, monitoring targets)
+  2. CIS Benchmark alignment (control mapping, Sysmon-extends-CIS, hardening impact)
+  3. AD/DC-specific Sysmon monitoring (MITRE ATT&CK, structural config differences)
+  4. Database + web server monitoring (multi-engine coverage, combined config approach)
+- Additional research based on review feedback:
+  5. Non-MSSQL databases (PostgreSQL, MySQL/MariaDB, Oracle, MongoDB, InfluxDB)
+  6. Non-IIS web servers (Apache httpd, Nginx, Tomcat)
+  7. Sectioned config vs separate files (community practices, enterprise deployment patterns)
+  8. Combined database+web config for colocated services (common in OT: Ignition, AVEVA)
+- Key decisions from research:
+  - Workstation/server split: justified (fundamentally different noise profiles)
+  - CIS alignment: documentation/labels only, not separate config variants
+  - AD/DC: separate config (structural changes required)
+  - Database + web server: combined into single server-services config (all engines)
+  - No separate OT server baseline or historian configs (covered by server-services + guidance)
+  - Separate complete files, not commented sections (matches enterprise GPO practice)
+  - Total curated configs: 8 (4 new, 2 stubs to complete, 2 unchanged)
+- Updated PLAN.md with research findings, revised phases (6a-6e), new decisions
+- Updated ARCHITECTURE.md with revised config model, file organization, server services coverage tables
 
 ## Next Steps
 
-1. Review frontend standards adoption
-2. Install Jekyll for local build verification (may need sudo for gem permissions)
-3. Begin Phase 5: Release
+1. Verify Jekyll build locally (requires bundle install with vendor/bundle path)
+2. Merge to main (exclude docs/ and claude-dev/)
+3. Deploy site to gh-pages
+4. Verify all site links
+5. Tag release (v2)
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| docs/css/style.css | Updated - adopted CutSec base stylesheet standards |
-| docs/js/main.js | Updated - event delegation, copy/toggle/collapsible handlers |
-| docs/_includes/nav.html | Updated - removed inline onclick |
-| claude-dev/RESUME.md | Updated with frontend standards session |
+| claude-dev/PLAN.md | All phases 6a-6e tracked, decision log updated |
+| claude-dev/ARCHITECTURE.md | Config model revised, file organization updated, coverage tables added |
+| claude-dev/RESUME.md | Updated with session progress |
+| sysmon-configs/sysmonconfig-baseline-it.xml | Renamed to sysmonconfig-baseline-it-workstation.xml, header updated (CIS, version) |
+| sysmon-configs/sysmonconfig-baseline-it-server.xml | New: server baseline with server-specific exclusions |
+| sysmon-configs/sysmonconfig-baseline-ot.xml | Added CIS Benchmark alignment label and reference |
+| sysmon-configs/sysmonconfig-enhanced-ot.xml | Complete rewrite: industrial port monitoring, expanded vendor coverage |
+| sysmon-configs/sysmonconfig-advanced-ot.xml | Complete rewrite: Event IDs 27-29, MITRE ATT&CK, role-specific guidance |
+| sysmon-configs/sysmonconfig-jumphost.xml | Added CIS Benchmark alignment and MITRE ATT&CK labels |
+| sysmon-configs/sysmonconfig-server-ad.xml | New: AD/DC config with RawAccessRead, NTDS/SYSVOL, LSASS tuning |
+| sysmon-configs/sysmonconfig-server-services.xml | New: combined database + web server, all engines, ImageLoad for web |
+| README.md | Updated config table, Quick Start, removed "In Development" |
+| docs/_pages/configurations.html | Added server-ad and server-services sections, updated all descriptions |
+| docs/_pages/getting-started.html | Updated download links for workstation/server split |
+| docs/_includes/nav.html | Updated navigation dropdown for new config structure |
+| docs/index.html | Updated landing page config cards (6 cards) |
+| docs/_pages/deployment.html | Updated performance table, criticality-based decisions, phased deployment |

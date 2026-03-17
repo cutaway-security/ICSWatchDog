@@ -15,6 +15,18 @@
     #4 Secure Remote Access - PRIMARY FOCUS: detects all remote access tool usage, RDP sessions, clipboard activity
     #5 Vulnerability Management - Software execution and change tracking
 
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows Server 2019/2022 Benchmark (L2)
+    Jump hosts should be hardened to at least CIS L2 with additional restrictions.
+    Extends Section 17 (Advanced Audit Policy) with process-level telemetry.
+
+  MITRE ATT&CK Coverage:
+    T1021     - Remote Services (RDP, SSH, VNC monitoring)
+    T1219     - Remote Access Software (RMM tool detection)
+    T1115     - Clipboard Data (Event ID 24 clipboard monitoring)
+    T1055.012 - Process Hollowing (Event ID 25 process tampering)
+    T1547     - Boot or Logon Autostart Execution (registry monitoring)
+
   DESCRIPTION:
     Jump hosts and bastion hosts are the primary controlled entry point into OT networks.
     They are high-value targets for attackers and warrant the most comprehensive monitoring
@@ -50,6 +62,7 @@
     - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
     - CISA Secure Remote Access Guide: https://www.cisa.gov/sites/default/files/2023-06/Guide%20to%20Securing%20Remote%20Access%20Software_clean%20Final_508c.pdf
     - LOLRMM Project: https://lolrmm.io/
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
 -->
 
 <Sysmon schemaversion="4.90">

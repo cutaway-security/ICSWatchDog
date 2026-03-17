@@ -1,0 +1,515 @@
+<!--
+  ICS Watch Dog - Active Directory / Domain Controller Sysmon Configuration
+  Version:      v2.0
+  Author:       ICS Watch Dog Project (https://icswatchdog.com)
+  Project:      https://github.com/cutaway-security/ICSWatchDog
+  License:      Creative Commons Attribution 4.0
+
+  Minimum Sysmon:   v13+ (schema 4.50)
+  Target:           Windows Server Domain Controllers
+
+  SANS ICS 5 Critical Controls Supported:
+    #1 ICS Incident Response - Comprehensive DC forensic evidence (NTDS, SYSVOL, GPO changes)
+    #4 Secure Remote Access - Detection of known remote access / RMM tools
+    #5 Vulnerability Management - Software execution, driver loading, service change logging
+
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows Server 2019/2022 Benchmark (L1 Domain Controller)
+    Extends Section 17 (Advanced Audit Policy) with process-level telemetry
+    Extends Section 17.1 (Account Logon) - Sysmon adds LSASS process access monitoring
+    Extends Section 17.4 (DS Access) - Sysmon adds NTDS.dit file and SYSVOL monitoring
+
+  MITRE ATT&CK Coverage:
+    T1003.003 - NTDS.dit credential extraction (ntdsutil, vssadmin, esentutl, raw disk)
+    T1003.006 - DCSync (documented as complementary Windows Event Log detection)
+    T1207    - DCShadow / Rogue Domain Controller (network indicators)
+    T1484.001 - Group Policy Modification (SYSVOL file monitoring)
+    T1087.002 - Domain Account Discovery (csvde, ldifde data export)
+    T1558.001 - Golden Ticket (documented as Windows Event Log detection)
+    T1558.003 - Kerberoasting (documented as Windows Event Log detection)
+
+  DESCRIPTION:
+    This is the AD / DOMAIN CONTROLLER configuration. It is self-contained and
+    includes all server baseline rules plus DC-specific additions:
+
+    STRUCTURAL DIFFERENCES FROM SERVER BASELINE:
+    - Event ID 9 (RawAccessRead) is ENABLED. Raw disk reads on a DC are a strong
+      indicator of NTDS.dit credential extraction (Invoke-NinjaCopy). Very few
+      legitimate processes perform raw disk reads on a DC.
+    - Event ID 10 (ProcessAccess) has DC-specific LSASS exclusions. DCs have many
+      processes that legitimately access LSASS (dns.exe, dfsr.exe, AD admin tools).
+      Without these exclusions, LSASS monitoring generates excessive noise on DCs.
+
+    DC-SPECIFIC ADDITIONS:
+    - NTDS.dit and SYSVOL directory monitoring (FileCreate)
+    - ProcessCreate include rules for credential extraction tools
+    - DC-specific registry key monitoring (NTDS, Netlogon, DNS, DFSR, LSA)
+    - DC-specific named pipe monitoring (drsuapi, samr, netlogon)
+    - SAM/SYSTEM/SECURITY hive export detection
+
+    ATTACKS SYSMON CANNOT DETECT ON DCs (use Windows Security Event Logs):
+    - DCSync: Requires Event ID 4662 with DS-Replication-Get-Changes GUIDs
+    - Golden Ticket: Requires Event ID 4769 (anomalous TGS requests)
+    - Kerberoasting: Requires Event ID 4769 (RC4 encryption type 0x17)
+    - DCShadow: Requires Event IDs 4742, 5136, 5137 (AD object changes)
+    - Account creation/modification: Requires Event IDs 4720, 4738
+    Ensure Windows Advanced Audit Policy is configured per CIS recommendations.
+
+  TUNING:
+    Administrators MUST review and tune this configuration for their environment.
+    - Add exclusions for your AD management tools and monitoring agents
+    - Review LSASS ProcessAccess exclusions for your environment
+    - Review remote access tool rules and exclude sanctioned tools
+    - Test in a non-production lab DC before deploying to production DCs
+
+  DISCLAIMER:
+    This configuration is provided as-is for educational and operational use.
+    It is NOT tested against all environments and may require tuning for your
+    specific systems. Cutaway Security, LLC and contributors assume no liability
+    for any impact resulting from the use of this configuration. Users are
+    responsible for testing in their own environments before production deployment.
+
+  REFERENCES:
+    - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
+    - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - LOLRMM Project: https://lolrmm.io/
+    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    - Microsoft Securing DCs: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/securing-domain-controllers-against-attack
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
+-->
+
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation/>
+
+  <EventFiltering>
+
+    <!--
+    ================================================================
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    DC-specific: includes server baseline exclusions PLUS include rules
+    for AD credential extraction tools.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate-Exclude" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Server baseline exclusions (minimal, no desktop noise) -->
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <!-- Windows Defender noise -->
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- .NET compilation -->
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ngen.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\ngen.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    DC-SPECIFIC: ProcessCreate include rules for credential extraction
+    and AD reconnaissance tools. These generate named events for SIEM alerting.
+    MITRE ATT&CK: T1003.003 (NTDS), T1087.002 (Domain Account Discovery)
+    -->
+    <RuleGroup name="ProcessCreate-DC-Detection" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!-- NTDS.dit extraction tools (T1003.003) -->
+        <Image name="DC: ntdsutil execution" condition="end with">\ntdsutil.exe</Image>
+        <Image name="DC: vssadmin execution" condition="end with">\vssadmin.exe</Image>
+        <Image name="DC: esentutl execution" condition="end with">\esentutl.exe</Image>
+        <Image name="DC: diskshadow execution" condition="end with">\diskshadow.exe</Image>
+        <!-- Shadow copy via WMI (alternate NTDS extraction method) -->
+        <CommandLine name="DC: wmic shadowcopy" condition="contains">shadowcopy</CommandLine>
+        <!-- AD data export / reconnaissance (T1087.002) -->
+        <Image name="DC: csvde data export" condition="end with">\csvde.exe</Image>
+        <Image name="DC: ldifde data export" condition="end with">\ldifde.exe</Image>
+        <!-- DCSync tool indicators (detection on SOURCE machine, not DC) -->
+        <CommandLine name="DC: mimikatz lsadump" condition="contains">lsadump</CommandLine>
+        <CommandLine name="DC: secretsdump" condition="contains">secretsdump</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Same as server baseline (no browser exclusions).
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+      </FileCreateTime>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    Same as server baseline. DCs are noisy on network connections
+    (LDAP, Kerberos, DNS, replication) but svchost handles most of
+    this traffic and is excluded.
+    ================================================================
+    -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image condition="is">C:\Windows\System32\wsmprovhost.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <!-- DC-specific: DNS server generates high-volume connections -->
+        <Image condition="is">C:\Windows\System32\dns.exe</Image>
+        <!--
+        NOTE: lsass.exe is NOT excluded. On a DC, lsass handles Kerberos/LDAP
+        authentication and generates significant network traffic. However,
+        unexpected lsass connections may indicate DCSync or replication abuse.
+        If lsass NetworkConnect volume is too high, consider excluding it and
+        relying on Windows Event ID 4662 for DCSync detection instead.
+        -->
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    Disabled by default.
+    ================================================================
+    -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    DC-SPECIFIC: ENABLED. This is disabled in all baseline configs.
+
+    Raw disk reads on a Domain Controller are a strong indicator of
+    NTDS.dit credential extraction via tools like Invoke-NinjaCopy
+    that bypass file locks by reading directly from disk.
+
+    Very few legitimate processes perform raw disk reads on a DC.
+    The signal-to-noise ratio is excellent.
+    MITRE ATT&CK: T1003.003 (NTDS)
+    ================================================================
+    -->
+    <RuleGroup name="RawAccessRead" groupRelation="or">
+      <RawAccessRead onmatch="exclude">
+        <!-- Exclude known system processes that perform legitimate raw reads -->
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\vds.exe</Image>
+        <Image condition="is">C:\Windows\System32\vssvc.exe</Image>
+      </RawAccessRead>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    DC-SPECIFIC: LSASS monitoring with DC-appropriate exclusions.
+
+    On a workstation, few processes legitimately access LSASS.
+    On a DC, LSASS is the core of all authentication and many DC
+    processes access it constantly. Without these exclusions, LSASS
+    monitoring generates so much noise that admins disable it entirely
+    (losing credential dumping detection).
+
+    MITRE ATT&CK: T1003 (OS Credential Dumping)
+    ================================================================
+    -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <RuleGroup name="ProcessAccess-DC-Exclude" groupRelation="or">
+      <ProcessAccess onmatch="exclude">
+        <!-- DC processes that legitimately access LSASS constantly -->
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <!-- DC-specific processes -->
+        <SourceImage condition="is">C:\Windows\System32\dns.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\dfsr.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\ntfrs.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\ismserv.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\ADWS\Microsoft.ActiveDirectory.WebServices.exe</SourceImage>
+        <!-- Windows Defender -->
+        <SourceImage condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</SourceImage>
+        <SourceImage condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</SourceImage>
+        <!--
+        IMPORTANT: Add your AD management and monitoring tool exclusions here.
+        Common additions: SCCM/MECM client, monitoring agents, backup agents.
+        -->
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 11: FILE CREATED [FileCreate]
+    DC-SPECIFIC: Server baseline paths PLUS NTDS.dit, SYSVOL,
+    and credential hive monitoring.
+    MITRE ATT&CK: T1003.003 (NTDS), T1484.001 (Group Policy Modification)
+    ================================================================
+    -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <!-- Startup and persistence locations (server baseline) -->
+        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!-- Executable and script file types (server baseline) -->
+        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
+        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
+        <!-- Temp and staging locations (server baseline) -->
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+        <TargetFilename name="Windows Temp" condition="contains">\Windows\Temp\</TargetFilename>
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+
+        <!--
+        ================================================================
+        DC-SPECIFIC: NTDS.dit and credential extraction paths
+        MITRE ATT&CK: T1003.003
+        ================================================================
+        -->
+        <!-- NTDS database directory (any file creation here is significant) -->
+        <TargetFilename name="DC: NTDS directory" condition="contains">\Windows\NTDS\</TargetFilename>
+        <!-- NTDS.dit copies anywhere on the system -->
+        <TargetFilename name="DC: NTDS.dit copy" condition="end with">.dit</TargetFilename>
+        <!-- Registry hive exports (SAM/SYSTEM/SECURITY for credential extraction) -->
+        <TargetFilename name="DC: Registry hive export" condition="end with">.hive</TargetFilename>
+        <!-- SAM/SYSTEM/SECURITY hive copies from System32\config -->
+        <TargetFilename name="DC: System config" condition="contains">\Windows\System32\config\SAM</TargetFilename>
+        <TargetFilename name="DC: System config" condition="contains">\Windows\System32\config\SYSTEM</TargetFilename>
+        <TargetFilename name="DC: System config" condition="contains">\Windows\System32\config\SECURITY</TargetFilename>
+
+        <!--
+        ================================================================
+        DC-SPECIFIC: SYSVOL / Group Policy paths
+        MITRE ATT&CK: T1484.001 (Group Policy Modification)
+        ================================================================
+        -->
+        <TargetFilename name="DC: SYSVOL" condition="contains">\Windows\SYSVOL\</TargetFilename>
+        <!-- GPO scheduled tasks (common attack vector) -->
+        <TargetFilename name="DC: GPO ScheduledTasks" condition="end with">ScheduledTasks.xml</TargetFilename>
+        <!-- GPO security template -->
+        <TargetFilename name="DC: GPO security template" condition="end with">GptTmpl.inf</TargetFilename>
+        <!-- GPO registry policy -->
+        <TargetFilename name="DC: GPO registry.pol" condition="end with">registry.pol</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    DC-SPECIFIC: Server baseline keys PLUS AD service configuration,
+    Netlogon, DNS, DFSR, and LSA keys.
+    ================================================================
+    -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <!-- Autostart locations (server baseline) -->
+        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!-- Server baseline additions -->
+        <TargetObject name="LSA config" condition="contains">\CurrentControlSet\Control\Lsa</TargetObject>
+        <TargetObject name="Security providers" condition="contains">\Control\SecurityProviders</TargetObject>
+        <TargetObject name="LanmanServer" condition="contains">\Services\LanmanServer</TargetObject>
+
+        <!-- DC-specific: AD service configuration -->
+        <TargetObject name="DC: NTDS service" condition="contains">\Services\NTDS\</TargetObject>
+        <TargetObject name="DC: Netlogon service" condition="contains">\Services\Netlogon\</TargetObject>
+        <TargetObject name="DC: DNS service" condition="contains">\Services\DNS\</TargetObject>
+        <TargetObject name="DC: DFSR service" condition="contains">\Services\DFSR\</TargetObject>
+        <TargetObject name="DC: NTFRS service" condition="contains">\Services\NtFrs\</TargetObject>
+        <!-- DC-specific: Kerberos configuration -->
+        <TargetObject name="DC: Kerberos config" condition="contains">\Control\Lsa\Kerberos</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    DC-SPECIFIC: Server baseline exclusions PLUS monitoring for
+    AD-related pipes that are targets for attack tools.
+    ================================================================
+    -->
+    <RuleGroup name="PipeCreated" groupRelation="or">
+      <PipeEvent onmatch="exclude">
+        <!-- Known Windows system pipes (server baseline) -->
+        <PipeName condition="is">\lsass</PipeName>
+        <PipeName condition="is">\wkssvc</PipeName>
+        <PipeName condition="is">\srvsvc</PipeName>
+        <PipeName condition="is">\winreg</PipeName>
+        <PipeName condition="is">\spoolss</PipeName>
+        <!--
+        NOTE: The following AD pipes are NOT excluded because they are
+        targets for attack tools:
+        \samr     - SAM Remote interface (user enumeration, T1087)
+        \drsuapi  - Directory Replication Service (DCSync-related)
+        \netlogon - Netlogon service (Zerologon context)
+        \epmapper - RPC endpoint mapper
+        These will generate events. If the volume is too high, you can
+        exclude them, but review the connections first.
+        -->
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Same as server baseline (minimal exclusions).
+    ================================================================
+    -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
+    Disabled by default.
+    ================================================================
+    -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
+    DC-specific: server baseline types PLUS NTDS and hive files.
+    ================================================================
+    -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.sys</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <!-- DC-specific: detect deletion of credential artifacts -->
+        <TargetFilename name="DC: NTDS.dit deletion" condition="end with">.dit</TargetFilename>
+        <TargetFilename name="DC: Hive file deletion" condition="end with">.hive</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

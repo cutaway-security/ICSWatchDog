@@ -1,0 +1,612 @@
+<!--
+  ICS Watch Dog - Server Services Sysmon Configuration (Database + Web Server)
+  Version:      v2.0
+  Author:       ICS Watch Dog Project (https://icswatchdog.com)
+  Project:      https://github.com/cutaway-security/ICSWatchDog
+  License:      Creative Commons Attribution 4.0
+
+  Minimum Sysmon:   v13+ (schema 4.50)
+  Target:           Windows servers running database and/or web server services
+
+  SANS ICS 5 Critical Controls Supported:
+    #1 ICS Incident Response - Forensic evidence for database and web server attacks
+    #4 Secure Remote Access - Detection of known remote access / RMM tools
+    #5 Vulnerability Management - Software execution and service change logging
+
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows Server 2019/2022 Benchmark (L1 Member Server)
+    Complements CIS Microsoft IIS Benchmark
+    Complements CIS Microsoft SQL Server Benchmark
+    Extends Section 17 (Advanced Audit Policy) with process-level telemetry
+
+  MITRE ATT&CK Coverage:
+    T1059       - Command execution via database engine (xp_cmdshell, COPY PROGRAM, UDF)
+    T1505.001   - SQL Stored Procedures abuse
+    T1505.003   - Webshell deployment and execution
+    T1505.004   - IIS native module backdoors
+    T1053.005   - SQL Agent job abuse
+    T1005       - Database backup exfiltration
+    T1190       - Exploit public-facing application (SQL injection, web exploitation)
+
+  DESCRIPTION:
+    This is the SERVER SERVICES configuration for servers running database engines,
+    web servers, or both. It is self-contained (includes server baseline rules)
+    and covers ALL common database and web server engines in a single file.
+
+    Rules for services that are not installed have zero cost (they never match,
+    generate no noise, and have no performance impact). This means you can deploy
+    this config on a server running only MySQL, and the SQL Server / PostgreSQL /
+    Oracle / IIS / Apache rules simply do nothing.
+
+    DATABASE ENGINES COVERED:
+      Microsoft SQL Server (sqlservr.exe, sqlagent.exe)
+      PostgreSQL (postgres.exe)
+      MySQL / MariaDB (mysqld.exe, mariadbd.exe)
+      Oracle Database (oracle.exe, extjob.exe, extproc.exe)
+      MongoDB (mongod.exe)
+      InfluxDB (influxd.exe)
+
+    WEB SERVER ENGINES COVERED:
+      IIS (w3wp.exe)
+      Apache httpd (httpd.exe)
+      Nginx (nginx.exe)
+      Apache Tomcat / Java (java.exe, tomcat9.exe, tomcat10.exe)
+      PHP interpreter (php-cgi.exe, php.exe)
+
+    STRUCTURAL DIFFERENCES FROM SERVER BASELINE:
+    - Event ID 7 (ImageLoad) is ENABLED scoped to web worker processes.
+      This detects malicious DLLs/modules loaded into IIS (T1505.004) and
+      is the only way to detect IIS native module backdoors via Sysmon.
+    - Event ID 1 (ProcessCreate) has include rules for database/web process
+      parent-child detection (database or web server spawning cmd.exe).
+
+    OT RELEVANCE:
+    OT servers commonly colocate database and web services:
+    - Ignition Gateway = MySQL + Tomcat (java.exe)
+    - AVEVA Historian = SQL Server + IIS
+    - Many SCADA dashboards = PostgreSQL/MySQL + Apache/Nginx
+    This config covers all combinations without modification.
+    For OT vendor directory monitoring, add rules from the OT configs or
+    see tuning guidance at icswatchdog.com.
+
+  TUNING:
+    Administrators MUST review and tune this configuration for their environment.
+    - Uncomment the NetworkConnect exclusion for your specific database process
+      (see Event ID 3 section for labeled exclusion entries)
+    - Add your web root directory path if it differs from the defaults
+    - Add exclusions for your server management and monitoring software
+    - Review remote access tool rules and exclude sanctioned tools
+    - Test in a non-production environment before deploying to production
+
+  DISCLAIMER:
+    This configuration is provided as-is for educational and operational use.
+    It is NOT tested against all environments and may require tuning for your
+    specific systems. Cutaway Security, LLC and contributors assume no liability
+    for any impact resulting from the use of this configuration. Users are
+    responsible for testing in their own environments before production deployment.
+
+  REFERENCES:
+    - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
+    - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - NSA/CISA Web Shell Mitigation: https://media.defense.gov/2020/Jun/09/2002313081/-1/-1/0/CSI-DETECT-AND-PREVENT-WEB-SHELL-MALWARE-20200422.PDF
+    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
+-->
+
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation/>
+
+  <EventFiltering>
+
+    <!--
+    ================================================================
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    Server baseline exclusions PLUS include rules for database engine
+    and web server parent-child process detection.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate-Exclude" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Server baseline exclusions -->
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <!-- Windows Defender noise -->
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- .NET compilation -->
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ngen.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\ngen.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    DATABASE + WEB SERVER: Parent-child process detection.
+    If a database engine or web server process spawns a command shell,
+    it almost always indicates compromise (xp_cmdshell, webshell, etc.).
+    The detection pattern is identical across all engines.
+    -->
+    <RuleGroup name="ProcessCreate-ServiceDetection" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!--
+        ================================================================
+        DATABASE ENGINE SPAWNING SHELL (T1059, T1505.001)
+        Any database process spawning cmd/powershell = suspicious
+        ================================================================
+        -->
+        <!-- Microsoft SQL Server -->
+        <ParentImage name="DB: SQL Server spawned process" condition="end with">\sqlservr.exe</ParentImage>
+        <ParentImage name="DB: SQL Agent spawned process" condition="end with">\sqlagent.exe</ParentImage>
+        <!-- PostgreSQL -->
+        <ParentImage name="DB: PostgreSQL spawned process" condition="end with">\postgres.exe</ParentImage>
+        <!-- MySQL / MariaDB -->
+        <ParentImage name="DB: MySQL spawned process" condition="end with">\mysqld.exe</ParentImage>
+        <ParentImage name="DB: MariaDB spawned process" condition="end with">\mariadbd.exe</ParentImage>
+        <!-- Oracle Database -->
+        <ParentImage name="DB: Oracle spawned process" condition="end with">\oracle.exe</ParentImage>
+        <ParentImage name="DB: Oracle extjob spawned process" condition="end with">\extjob.exe</ParentImage>
+        <ParentImage name="DB: Oracle extproc spawned process" condition="end with">\extproc.exe</ParentImage>
+        <!-- MongoDB (should never spawn shells) -->
+        <ParentImage name="DB: MongoDB spawned process" condition="end with">\mongod.exe</ParentImage>
+        <!-- InfluxDB (should never spawn shells) -->
+        <ParentImage name="DB: InfluxDB spawned process" condition="end with">\influxd.exe</ParentImage>
+
+        <!--
+        ================================================================
+        WEB SERVER SPAWNING SHELL (T1505.003, T1059)
+        Any web server or interpreter spawning cmd/powershell = webshell
+        ================================================================
+        -->
+        <!-- IIS -->
+        <ParentImage name="Web: IIS worker spawned process" condition="end with">\w3wp.exe</ParentImage>
+        <!-- Apache httpd -->
+        <ParentImage name="Web: Apache spawned process" condition="end with">\httpd.exe</ParentImage>
+        <!-- Nginx -->
+        <ParentImage name="Web: Nginx spawned process" condition="end with">\nginx.exe</ParentImage>
+        <!-- Apache Tomcat / Java web apps -->
+        <ParentImage name="Web: Tomcat spawned process" condition="end with">\tomcat9.exe</ParentImage>
+        <ParentImage name="Web: Tomcat spawned process" condition="end with">\tomcat10.exe</ParentImage>
+        <!--
+        NOTE: java.exe is intentionally NOT included as a ParentImage here because
+        many legitimate applications (including OT software like Ignition) run as
+        java.exe and may spawn subprocesses. If you want to monitor java.exe
+        parent-child relationships, add a rule scoped by the java.exe path:
+        <ParentImage name="Web: Java spawned process" condition="is">
+          C:\Program Files\Apache Software Foundation\Tomcat 9.0\bin\java.exe
+        </ParentImage>
+        -->
+        <!-- PHP interpreter (used by Apache and Nginx for PHP webshells) -->
+        <ParentImage name="Web: PHP spawned process" condition="end with">\php-cgi.exe</ParentImage>
+        <ParentImage name="Web: PHP spawned process" condition="end with">\php.exe</ParentImage>
+        <!-- Node.js (bonus coverage for Node web apps) -->
+        <ParentImage name="Web: Node.js spawned process" condition="end with">\node.exe</ParentImage>
+
+        <!--
+        ================================================================
+        IIS ADMINISTRATION TOOL (T1505.004)
+        appcmd.exe is used to install IIS modules. Unexpected execution
+        may indicate IIS module backdoor installation.
+        ================================================================
+        -->
+        <Image name="Web: IIS appcmd execution" condition="end with">\inetsrv\appcmd.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+      </FileCreateTime>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    Server baseline PLUS database/web service exclusions.
+
+    IMPORTANT: Database and web server processes generate HIGH VOLUME
+    network events. Without exclusions, a busy SQL Server or IIS
+    instance can generate millions of events per day.
+
+    The exclusions below are organized by service. Only the services
+    running on your server will generate events, so all exclusions
+    can remain active.
+    ================================================================
+    -->
+    <RuleGroup name="NetworkConnect" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <!-- Server baseline exclusions -->
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image condition="is">C:\Windows\System32\wsmprovhost.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+
+        <!--
+        ================================================================
+        DATABASE SERVICE EXCLUSIONS
+        Exclude your database engine to reduce network event noise.
+        These are safe to leave active even if the service is not running.
+        ================================================================
+        -->
+        <!-- Microsoft SQL Server (client connections on 1433) -->
+        <Image condition="end with">\sqlservr.exe</Image>
+        <!-- PostgreSQL (client connections on 5432) -->
+        <Image condition="end with">\postgres.exe</Image>
+        <!-- MySQL / MariaDB (client connections on 3306) -->
+        <Image condition="end with">\mysqld.exe</Image>
+        <Image condition="end with">\mariadbd.exe</Image>
+        <!-- Oracle Database (client connections on 1521) -->
+        <Image condition="end with">\oracle.exe</Image>
+        <Image condition="end with">\TNSLSNR.exe</Image>
+        <!-- MongoDB (client connections on 27017) -->
+        <Image condition="end with">\mongod.exe</Image>
+        <!-- InfluxDB (HTTP API on 8086) -->
+        <Image condition="end with">\influxd.exe</Image>
+
+        <!--
+        ================================================================
+        WEB SERVER EXCLUSIONS
+        Exclude inbound HTTP/HTTPS connections from web worker processes.
+        ================================================================
+        -->
+        <!-- IIS worker process -->
+        <Image condition="end with">\w3wp.exe</Image>
+        <!-- Apache httpd -->
+        <Image condition="end with">\httpd.exe</Image>
+        <!-- Nginx -->
+        <Image condition="end with">\nginx.exe</Image>
+        <!--
+        NOTE: java.exe (Tomcat) and php-cgi.exe are NOT excluded from
+        NetworkConnect because their outbound connections may indicate
+        webshell C2 callbacks. If inbound volume is too high, add:
+        <Image condition="end with">\java.exe</Image>
+        -->
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    SERVICE-SPECIFIC: ENABLED scoped to web worker processes.
+
+    This is a STRUCTURAL CHANGE from the baseline (where ImageLoad
+    is disabled). It detects malicious DLLs/modules loaded into web
+    server processes (IIS native module backdoors, T1505.004).
+
+    Known system DLL paths are excluded to manage volume. Only
+    unsigned or out-of-path DLLs generate events.
+    ================================================================
+    -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include">
+        <!-- Monitor DLL loading in IIS worker processes -->
+        <Image name="Web: IIS DLL load" condition="end with">\w3wp.exe</Image>
+        <!-- Monitor DLL loading in Apache -->
+        <Image name="Web: Apache DLL load" condition="end with">\httpd.exe</Image>
+      </ImageLoad>
+    </RuleGroup>
+
+    <RuleGroup name="ImageLoad-Exclude" groupRelation="or">
+      <ImageLoad onmatch="exclude">
+        <!-- Exclude known system DLL paths to reduce volume -->
+        <ImageLoaded condition="begin with">C:\Windows\System32\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\SysWOW64\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\WinSxS\</ImageLoaded>
+        <ImageLoaded condition="begin with">C:\Windows\Microsoft.NET\</ImageLoaded>
+        <!-- IIS known DLL paths -->
+        <ImageLoaded condition="begin with">C:\Windows\System32\inetsrv\</ImageLoaded>
+      </ImageLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    Disabled by default (same as server baseline).
+    ================================================================
+    -->
+    <RuleGroup name="RawAccessRead" groupRelation="or">
+      <RawAccessRead onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 11: FILE CREATED [FileCreate]
+    Server baseline PLUS database file monitoring and webshell
+    detection (web script file creation in web root directories).
+    ================================================================
+    -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <!-- Startup and persistence locations (server baseline) -->
+        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!-- Executable and script file types (server baseline) -->
+        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
+        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
+        <!-- Temp and staging locations (server baseline) -->
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+        <TargetFilename name="Windows Temp" condition="contains">\Windows\Temp\</TargetFilename>
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+
+        <!--
+        ================================================================
+        DATABASE FILE MONITORING (T1005)
+        Monitor creation of database backup and data files outside
+        normal data directories. May indicate data exfiltration.
+        ================================================================
+        -->
+        <!-- SQL Server -->
+        <TargetFilename name="DB: SQL Server backup" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="DB: SQL Server data" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="DB: SQL Server log" condition="end with">.ldf</TargetFilename>
+        <TargetFilename name="DB: SQL Server secondary" condition="end with">.ndf</TargetFilename>
+        <TargetFilename name="DB: SQL Server bacpac" condition="end with">.bacpac</TargetFilename>
+        <TargetFilename name="DB: SQL Server dacpac" condition="end with">.dacpac</TargetFilename>
+        <TargetFilename name="DB: Transaction log backup" condition="end with">.trn</TargetFilename>
+        <!-- PostgreSQL -->
+        <TargetFilename name="DB: PostgreSQL dump" condition="end with">.dump</TargetFilename>
+        <!-- Oracle -->
+        <TargetFilename name="DB: Oracle data file" condition="end with">.dbf</TargetFilename>
+        <TargetFilename name="DB: Oracle Data Pump" condition="end with">.dmp</TargetFilename>
+        <!-- General SQL dumps -->
+        <TargetFilename name="DB: SQL dump" condition="end with">.sql</TargetFilename>
+
+        <!--
+        ================================================================
+        WEB SHELL DETECTION (T1505.003)
+        Monitor creation of web script files. These file types should
+        only be created during planned deployments, not at runtime.
+        ================================================================
+        -->
+        <!-- ASP.NET / IIS script types -->
+        <TargetFilename name="Web: ASPX file" condition="end with">.aspx</TargetFilename>
+        <TargetFilename name="Web: ASP file" condition="end with">.asp</TargetFilename>
+        <TargetFilename name="Web: ASHX handler" condition="end with">.ashx</TargetFilename>
+        <TargetFilename name="Web: ASMX service" condition="end with">.asmx</TargetFilename>
+        <!-- PHP -->
+        <TargetFilename name="Web: PHP file" condition="end with">.php</TargetFilename>
+        <!-- Java / Tomcat -->
+        <TargetFilename name="Web: JSP file" condition="end with">.jsp</TargetFilename>
+        <TargetFilename name="Web: JSPX file" condition="end with">.jspx</TargetFilename>
+        <TargetFilename name="Web: WAR file" condition="end with">.war</TargetFilename>
+        <!-- ColdFusion -->
+        <TargetFilename name="Web: CFM file" condition="end with">.cfm</TargetFilename>
+        <!-- CGI scripts -->
+        <TargetFilename name="Web: CGI script" condition="end with">.cgi</TargetFilename>
+        <!-- Web configuration files -->
+        <TargetFilename name="Web: web.config" condition="end with">web.config</TargetFilename>
+        <TargetFilename name="Web: .htaccess" condition="end with">.htaccess</TargetFilename>
+
+        <!-- Web root directories (any file creation here is notable) -->
+        <TargetFilename name="Web: IIS web root" condition="contains">\inetpub\wwwroot\</TargetFilename>
+        <!-- ASP.NET temp compilation (webshell compilation artifacts) -->
+        <TargetFilename name="Web: ASP.NET temp" condition="contains">\Temporary ASP.NET Files\</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    Server baseline PLUS IIS and database service registry monitoring.
+    ================================================================
+    -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <!-- Autostart locations (server baseline) -->
+        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!-- Server baseline additions -->
+        <TargetObject name="LSA config" condition="contains">\CurrentControlSet\Control\Lsa</TargetObject>
+        <TargetObject name="Security providers" condition="contains">\Control\SecurityProviders</TargetObject>
+        <TargetObject name="LanmanServer" condition="contains">\Services\LanmanServer</TargetObject>
+
+        <!-- Service-specific: IIS configuration (T1505.004) -->
+        <TargetObject name="Web: IIS extensions" condition="contains">\Microsoft\IIS Extensions\</TargetObject>
+        <TargetObject name="Web: W3SVC service" condition="contains">\Services\W3SVC\</TargetObject>
+        <TargetObject name="Web: WAS service" condition="contains">\Services\WAS\</TargetObject>
+        <!-- Service-specific: SQL Server configuration -->
+        <TargetObject name="DB: SQL Server config" condition="contains">\Microsoft\Microsoft SQL Server\</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    Server baseline PLUS SQL Server named pipe monitoring.
+    ================================================================
+    -->
+    <RuleGroup name="PipeCreated" groupRelation="or">
+      <PipeEvent onmatch="exclude">
+        <!-- Known Windows system pipes -->
+        <PipeName condition="is">\lsass</PipeName>
+        <PipeName condition="is">\wkssvc</PipeName>
+        <PipeName condition="is">\srvsvc</PipeName>
+        <PipeName condition="is">\winreg</PipeName>
+        <PipeName condition="is">\spoolss</PipeName>
+        <!-- SQL Server named pipes (high volume on busy servers) -->
+        <PipeName condition="begin with">\sql\query</PipeName>
+        <PipeName condition="begin with">\SQLLocal\</PipeName>
+        <PipeName condition="begin with">\MSSQL$</PipeName>
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Same as server baseline (minimal exclusions).
+    ================================================================
+    -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
+    Disabled by default.
+    ================================================================
+    -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
+    Same as server baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
+    Server baseline PLUS database file deletion monitoring.
+    ================================================================
+    -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.sys</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <!-- Database backup deletion (evidence of exfiltration cleanup) -->
+        <TargetFilename name="DB: Backup file deletion" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="DB: Dump file deletion" condition="end with">.dmp</TargetFilename>
+        <!-- Web script deletion (webshell cleanup) -->
+        <TargetFilename name="Web: ASPX deletion" condition="end with">.aspx</TargetFilename>
+        <TargetFilename name="Web: PHP deletion" condition="end with">.php</TargetFilename>
+        <TargetFilename name="Web: JSP deletion" condition="end with">.jsp</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
+  </EventFiltering>
+</Sysmon>

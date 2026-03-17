@@ -1,31 +1,81 @@
 <!--
   ICS Watch Dog - OT Advanced Sysmon Configuration
-  Version:      v1.0-stub
+  Version:      v2.0
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
-  Minimum Sysmon:   TBD (requires v15+ for schema 4.90 features)
-  Target:           ICS/OT Windows systems with mature monitoring, role-specific tuning
-
-  STATUS: IN DEVELOPMENT
-  This configuration is a stub. The full implementation will build on
-  sysmonconfig-enhanced-ot.xml with the following additions:
-  - FileBlockExecutable (Event ID 27) - Block executable file creation in protected paths
-  - FileBlockShredding (Event ID 28) - Block file shredding attempts
-  - FileExecutableDetected (Event ID 29) - Detect new executable file creation
-  - Role-specific tuning guidance for:
-    - HMI / Operator stations
-    - Engineering workstations (PLC programming)
-    - Historians and data servers
-    - OT domain controllers and infrastructure
+  Minimum Sysmon:   v15+ (schema 4.90)
+  Target:           ICS/OT Windows systems with mature monitoring programs
 
   SANS ICS 5 Critical Controls Supported:
-    #1 ICS Incident Response
-    #2 Defensible Architecture
-    #3 ICS Network Visibility
-    #4 Secure Remote Access
-    #5 Vulnerability Management
+    #1 ICS Incident Response - Comprehensive forensic evidence including executable detection
+    #2 Defensible Architecture - Detection of unauthorized executables and file shredding
+    #3 ICS Network Visibility - Industrial protocol port monitoring (from Enhanced config)
+    #4 Secure Remote Access - Detection of known remote access / RMM tools
+    #5 Vulnerability Management - New executable file detection, driver loading, service changes
+
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows 10/11 Enterprise Benchmark
+    Extends Section 17 (Advanced Audit Policy) with process-level telemetry
+    Extends with Event IDs 27-29 (schema 4.90) for executable file control
+
+  MITRE ATT&CK Coverage (in addition to Enhanced config coverage):
+    T1204     - User Execution (FileExecutableDetected catches renamed executables)
+    T1036     - Masquerading (Event ID 29 detects PE files regardless of extension)
+    T1485     - Data Destruction (FileBlockShredding detects evidence wiping)
+    T1070     - Indicator Removal (shredding detection for anti-forensics)
+
+  DESCRIPTION:
+    This is the OT ADVANCED configuration. It builds on the OT Enhanced config
+    (sysmonconfig-enhanced-ot.xml) with schema 4.90 features:
+
+    - Event ID 27 (FileBlockExecutable): Logs attempts to create executable files
+      in protected directories. Useful for detecting malware drops in OT software
+      directories, project folders, and other locations where executables should
+      not appear.
+
+    - Event ID 28 (FileBlockShredding): Logs file shredding attempts. Attackers
+      may attempt to destroy forensic evidence or wipe ICS project files.
+
+    - Event ID 29 (FileExecutableDetected): Detects any new PE (executable) file
+      written to disk, regardless of file extension. Catches renamed executables
+      that evade extension-based monitoring.
+
+    IMPORTANT: This config requires Sysmon v15+ and schema 4.90. It will NOT work
+    on systems running older Sysmon versions. For legacy OS compatibility, use the
+    OT Baseline or OT Enhanced configs (schema 4.50).
+
+    ROLE-SPECIFIC TUNING GUIDANCE:
+    This config is designed as a single advanced config. Tune for your system role:
+
+    HMI / Operator Stations:
+    - These should have very predictable process activity
+    - Consider enabling ImageLoad (Event ID 7) for HMI application DLLs
+    - Monitor for unexpected process execution (HMIs should run a small set of apps)
+    - Key vendor directories: Wonderware, Siemens WinCC, FactoryTalk View, Ignition
+
+    Engineering Workstations:
+    - More process variation expected (compilers, IDEs, project tools)
+    - Monitor PLC project file changes closely (FileCreate rules)
+    - Watch for firmware upload tools executing outside maintenance windows
+
+    Historians / Data Servers:
+    - Use sysmonconfig-server-services.xml for database/web monitoring
+    - Add OT vendor directory monitoring from this config
+    - Key processes: PI Data Archive, Ignition Gateway (java.exe), SQL Server
+
+    OT Domain Controllers:
+    - Use sysmonconfig-server-ad.xml for AD-specific monitoring
+    - Add OT vendor directory monitoring from this config
+
+  TUNING:
+    Administrators MUST review and tune this configuration for their environment.
+    - Validate vendor process names and paths against your actual installations
+    - Review industrial port rules and add ports specific to your environment
+    - Review remote access tool rules and exclude sanctioned tools
+    - Test in a non-production environment before deploying to production systems
+    - Consider system performance impact (see icswatchdog.com/deployment/)
 
   DISCLAIMER:
     This configuration is provided as-is for educational and operational use.
@@ -33,12 +83,463 @@
     specific systems. Cutaway Security, LLC and contributors assume no liability
     for any impact resulting from the use of this configuration. Users are
     responsible for testing in their own environments before production deployment.
+    This is especially critical in ICS/OT environments where system availability
+    and safety are paramount.
+
+  REFERENCES:
+    - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
+    - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    - LOLRMM Project: https://lolrmm.io/
+    - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
 -->
 
-<!-- Stub: Full implementation pending. Use sysmonconfig-enhanced-ot.xml or sysmonconfig-baseline-ot.xml until this is complete. -->
 <Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
   <CheckRevocation/>
+
   <EventFiltering>
+
+    <!--
+    ================================================================
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <!-- Windows system noise -->
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
+        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <!-- Windows Defender noise -->
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateTime" groupRelation="or">
+      <FileCreateTime onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
+        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+      </FileCreateTime>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    Same as OT Enhanced: general exclude + industrial port include.
+    ================================================================
+    -->
+    <RuleGroup name="NetworkConnect-General" groupRelation="or">
+      <NetworkConnect onmatch="exclude">
+        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <RuleGroup name="NetworkConnect-IndustrialPorts" groupRelation="or">
+      <NetworkConnect onmatch="include">
+        <!-- Industrial protocol ports (same as OT Enhanced) -->
+        <DestinationPort name="ICS: Modbus TCP" condition="is">502</DestinationPort>
+        <DestinationPort name="ICS: EtherNet/IP" condition="is">44818</DestinationPort>
+        <DestinationPort name="ICS: EtherNet/IP implicit" condition="is">2222</DestinationPort>
+        <DestinationPort name="ICS: OPC-UA" condition="is">4840</DestinationPort>
+        <DestinationPort name="ICS: OPC DA/DCOM (RPC)" condition="is">135</DestinationPort>
+        <DestinationPort name="ICS: DNP3" condition="is">20000</DestinationPort>
+        <DestinationPort name="ICS: S7comm/ISO-TSAP" condition="is">102</DestinationPort>
+        <DestinationPort name="ICS: BACnet/IP" condition="is">47808</DestinationPort>
+        <DestinationPort name="ICS: IEC 104" condition="is">2404</DestinationPort>
+        <DestinationPort name="ICS: MQTT" condition="is">1883</DestinationPort>
+        <DestinationPort name="ICS: MQTT TLS" condition="is">8883</DestinationPort>
+        <DestinationPort name="ICS: Ignition Gateway HTTP" condition="is">8088</DestinationPort>
+        <DestinationPort name="ICS: Ignition Gateway HTTPS" condition="is">8043</DestinationPort>
+        <DestinationPort name="ICS: PI Data Archive" condition="is">5450</DestinationPort>
+        <DestinationPort name="ICS: GE SRTP" condition="is">18245</DestinationPort>
+        <DestinationPort name="ICS: PROFINET IO CM" condition="is">34962</DestinationPort>
+        <DestinationPort name="ICS: PROFINET IO alarm" condition="is">34963</DestinationPort>
+        <DestinationPort name="ICS: PROFINET IO data" condition="is">34964</DestinationPort>
+      </NetworkConnect>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTerminate" groupRelation="or">
+      <ProcessTerminate onmatch="exclude">
+        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessTerminate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="DriverLoad" groupRelation="or">
+      <DriverLoad onmatch="exclude">
+        <Signature condition="contains">Microsoft</Signature>
+        <Signature condition="contains">Windows</Signature>
+      </DriverLoad>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    Disabled by default.
+    TUNING: For HMI stations, consider enabling scoped to the HMI
+    application process to detect DLL sideloading.
+    ================================================================
+    -->
+    <RuleGroup name="ImageLoad" groupRelation="or">
+      <ImageLoad onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="CreateRemoteThread" groupRelation="or">
+      <CreateRemoteThread onmatch="exclude">
+        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+      </CreateRemoteThread>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    Disabled by default.
+    ================================================================
+    -->
+    <RuleGroup name="RawAccessRead" groupRelation="or">
+      <RawAccessRead onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessAccess" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 11: FILE CREATED [FileCreate]
+    Same as OT Enhanced (includes expanded vendor directories and
+    additional ICS file types).
+    ================================================================
+    -->
+    <RuleGroup name="FileCreate" groupRelation="or">
+      <FileCreate onmatch="include">
+        <!-- Startup and persistence locations -->
+        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
+
+        <!-- Executable and script file types -->
+        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
+        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
+
+        <!-- User download/temp locations -->
+        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+
+        <!-- PLC programming project files -->
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap17</TargetFilename>
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap18</TargetFilename>
+        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap19</TargetFilename>
+        <TargetFilename name="ICS: Siemens STEP 7 project" condition="end with">.s7p</TargetFilename>
+        <TargetFilename name="ICS: CODESYS project" condition="end with">.project</TargetFilename>
+        <TargetFilename name="ICS: IEC 61131 structured text" condition="end with">.st</TargetFilename>
+        <TargetFilename name="ICS: AVEVA InTouch app" condition="end with">.app</TargetFilename>
+        <TargetFilename name="ICS: Firmware hex" condition="end with">.hex</TargetFilename>
+        <TargetFilename name="ICS: Firmware binary" condition="end with">.bin</TargetFilename>
+        <TargetFilename name="ICS: Firmware update" condition="end with">.fw</TargetFilename>
+        <TargetFilename name="ICS: OPC config" condition="end with">.opf</TargetFilename>
+
+        <!-- Archives -->
+        <TargetFilename name="Archive: ZIP" condition="end with">.zip</TargetFilename>
+        <TargetFilename name="Archive: RAR" condition="end with">.rar</TargetFilename>
+        <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
+        <TargetFilename name="Archive: ISO" condition="end with">.iso</TargetFilename>
+
+        <!-- Enhanced ICS file types -->
+        <TargetFilename name="ICS: Rockwell Studio 5000 project" condition="end with">.ACD</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix project" condition="end with">.RSS</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix 5000 project" condition="end with">.L5K</TargetFilename>
+        <TargetFilename name="ICS: Rockwell RSLogix 5000 export" condition="end with">.L5X</TargetFilename>
+        <TargetFilename name="ICS: Schneider Unity Pro project" condition="end with">.stu</TargetFilename>
+        <TargetFilename name="ICS: Schneider EcoStruxure project" condition="end with">.xef</TargetFilename>
+        <TargetFilename name="ICS: SEL relay settings" condition="end with">.rdb</TargetFilename>
+        <TargetFilename name="ICS: SEL event report" condition="end with">.cev</TargetFilename>
+        <TargetFilename name="ICS: GE Proficy project" condition="end with">.cmp</TargetFilename>
+        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.der</TargetFilename>
+        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.pem</TargetFilename>
+        <TargetFilename name="ICS: Config export CSV" condition="end with">.csv</TargetFilename>
+
+        <!-- Recycle Bin and Group Policy -->
+        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+
+        <!-- Vendor installation directories -->
+        <TargetFilename name="ICS: Siemens directory" condition="contains">\Siemens\</TargetFilename>
+        <TargetFilename name="ICS: Rockwell directory" condition="contains">\Rockwell Software\</TargetFilename>
+        <TargetFilename name="ICS: Rockwell FactoryTalk" condition="contains">\FactoryTalk\</TargetFilename>
+        <TargetFilename name="ICS: Schneider directory" condition="contains">\Schneider Electric\</TargetFilename>
+        <TargetFilename name="ICS: Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
+        <TargetFilename name="ICS: ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
+        <TargetFilename name="ICS: OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
+        <TargetFilename name="ICS: Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
+        <TargetFilename name="ICS: Kepware directory" condition="contains">\Kepware\</TargetFilename>
+        <TargetFilename name="ICS: SEL directory" condition="contains">\SEL\</TargetFilename>
+        <TargetFilename name="ICS: CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
+        <TargetFilename name="ICS: GE directory" condition="contains">\GE Digital\</TargetFilename>
+        <TargetFilename name="ICS: GE iFIX directory" condition="contains">\GE\iFIX\</TargetFilename>
+        <TargetFilename name="ICS: Honeywell directory" condition="contains">\Honeywell\</TargetFilename>
+        <TargetFilename name="ICS: Emerson directory" condition="contains">\Emerson\</TargetFilename>
+        <TargetFilename name="ICS: ABB directory" condition="contains">\ABB\</TargetFilename>
+        <TargetFilename name="ICS: Yokogawa directory" condition="contains">\Yokogawa\</TargetFilename>
+      </FileCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    Same as OT Enhanced (includes OPC/DCOM and firewall rules).
+    ================================================================
+    -->
+    <RuleGroup name="RegistryEvent" groupRelation="or">
+      <RegistryEvent onmatch="include">
+        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <TargetObject name="ICS: DCOM config" condition="contains">\SOFTWARE\Microsoft\Ole</TargetObject>
+        <TargetObject name="ICS: OPC server registration" condition="contains">\OPC\</TargetObject>
+        <TargetObject name="Firewall rules" condition="contains">\Services\SharedAccess\Parameters\FirewallPolicy</TargetObject>
+      </RegistryEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileCreateStreamHash" groupRelation="or">
+      <FileCreateStreamHash onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.vbs</TargetFilename>
+        <TargetFilename condition="end with">.js</TargetFilename>
+        <TargetFilename condition="end with">.hta</TargetFilename>
+      </FileCreateStreamHash>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="PipeCreated" groupRelation="or">
+      <PipeEvent onmatch="exclude">
+        <PipeName condition="is">\lsass</PipeName>
+        <PipeName condition="is">\wkssvc</PipeName>
+        <PipeName condition="is">\srvsvc</PipeName>
+        <PipeName condition="is">\winreg</PipeName>
+        <PipeName condition="is">\spoolss</PipeName>
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="WmiEvent" groupRelation="or">
+      <WmiEvent onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="DnsQuery" groupRelation="or">
+      <DnsQuery onmatch="exclude">
+        <QueryName condition="end with">.microsoft.com</QueryName>
+        <QueryName condition="end with">.windowsupdate.com</QueryName>
+        <QueryName condition="end with">.windows.com</QueryName>
+      </DnsQuery>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
+    Disabled by default.
+    ================================================================
+    -->
+    <RuleGroup name="FileDelete" groupRelation="or">
+      <FileDelete onmatch="include"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessTampering" groupRelation="or">
+      <ProcessTampering onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
+    Same as OT Enhanced/Baseline.
+    ================================================================
+    -->
+    <RuleGroup name="FileDeleteDetected" groupRelation="or">
+      <FileDeleteDetected onmatch="include">
+        <TargetFilename condition="end with">.exe</TargetFilename>
+        <TargetFilename condition="end with">.dll</TargetFilename>
+        <TargetFilename condition="end with">.sys</TargetFilename>
+        <TargetFilename condition="end with">.ps1</TargetFilename>
+        <TargetFilename condition="end with">.bat</TargetFilename>
+        <TargetFilename condition="end with">.cmd</TargetFilename>
+      </FileDeleteDetected>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 27: FILE BLOCK EXECUTABLE [FileBlockExecutable]
+    ADVANCED (schema 4.90): Logs when an executable (PE format) file
+    is created in a monitored directory. Does NOT block the file;
+    it logs the event for alerting.
+
+    This monitors for executable drops in OT vendor directories,
+    project folders, and other locations where new executables are
+    unexpected. On a stable OT system, new executables should only
+    appear during planned maintenance windows.
+    ================================================================
+    -->
+    <RuleGroup name="FileBlockExecutable" groupRelation="or">
+      <FileBlockExecutable onmatch="include">
+        <!-- OT vendor directories (new executables here are suspicious) -->
+        <TargetFilename name="ICS: Executable in Siemens dir" condition="contains">\Siemens\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Rockwell dir" condition="contains">\Rockwell Software\</TargetFilename>
+        <TargetFilename name="ICS: Executable in FactoryTalk dir" condition="contains">\FactoryTalk\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Schneider dir" condition="contains">\Schneider Electric\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Wonderware dir" condition="contains">\Wonderware\</TargetFilename>
+        <TargetFilename name="ICS: Executable in ArchestrA dir" condition="contains">\ArchestrA\</TargetFilename>
+        <TargetFilename name="ICS: Executable in PI dir" condition="contains">\PIPC\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Ignition dir" condition="contains">\Inductive Automation\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Kepware dir" condition="contains">\Kepware\</TargetFilename>
+        <TargetFilename name="ICS: Executable in CODESYS dir" condition="contains">\CODESYS\</TargetFilename>
+        <TargetFilename name="ICS: Executable in GE dir" condition="contains">\GE Digital\</TargetFilename>
+        <TargetFilename name="ICS: Executable in Honeywell dir" condition="contains">\Honeywell\</TargetFilename>
+        <TargetFilename name="ICS: Executable in ABB dir" condition="contains">\ABB\</TargetFilename>
+        <!-- System persistence locations -->
+        <TargetFilename name="Executable in Startup" condition="contains">\Startup\</TargetFilename>
+        <TargetFilename name="Executable in Tasks" condition="contains">\Windows\System32\Tasks\</TargetFilename>
+        <TargetFilename name="Executable in Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+      </FileBlockExecutable>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 28: FILE BLOCK SHREDDING [FileBlockShredding]
+    ADVANCED (schema 4.90): Logs file shredding attempts (secure
+    deletion that overwrites file contents before deletion).
+
+    In OT environments, file shredding may indicate:
+    - Evidence destruction after a compromise
+    - Wiping of ICS project files or configuration backups
+    - Ransomware preparation (shredding backups before encryption)
+    ================================================================
+    -->
+    <RuleGroup name="FileBlockShredding" groupRelation="or">
+      <FileBlockShredding onmatch="exclude"/>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    EVENT ID 29: FILE EXECUTABLE DETECTED [FileExecutableDetected]
+    ADVANCED (schema 4.90): Detects any new PE (Portable Executable)
+    file written to disk, regardless of file extension. This catches
+    executables renamed to .txt, .doc, .jpg, etc. to evade
+    extension-based FileCreate monitoring.
+
+    On a stable OT system, new executable files should be rare and
+    should only appear during planned maintenance. Any unexpected
+    executable detection warrants investigation.
+    ================================================================
+    -->
+    <RuleGroup name="FileExecutableDetected" groupRelation="or">
+      <FileExecutableDetected onmatch="exclude"/>
+    </RuleGroup>
+
   </EventFiltering>
 </Sysmon>

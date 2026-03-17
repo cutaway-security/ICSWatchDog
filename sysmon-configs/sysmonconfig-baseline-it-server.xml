@@ -1,57 +1,61 @@
 <!--
-  ICS Watch Dog - OT Baseline Sysmon Configuration
-  Version:      v1.0
+  ICS Watch Dog - IT Server Baseline Sysmon Configuration
+  Version:      v2.0
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
   Minimum Sysmon:   v13+ (schema 4.50)
-  Target:           ICS/OT Windows systems (HMI, engineering workstations, historians, OT infrastructure)
+  Target:           Enterprise Windows servers (general server baseline)
 
   SANS ICS 5 Critical Controls Supported:
     #1 ICS Incident Response - Forensic evidence via process, file, registry, network logs
-    #2 Defensible Architecture - Detection of processes crossing network boundaries
-    #3 ICS Network Visibility - Host-side complement to network monitoring (process-to-connection correlation)
     #4 Secure Remote Access - Detection of known remote access / RMM tools
-    #5 Vulnerability Management - Software execution, driver loading, and service change logging
+    #5 Vulnerability Management - Software execution and service change logging
 
   CIS Benchmark Alignment:
-    Complements CIS Microsoft Windows 10/11 Enterprise Benchmark
-    Extends Section 17 (Advanced Audit Policy) with process-level telemetry
-    NOTE: OT systems frequently run legacy Windows; CIS benchmarks may need
-    adaptation for legacy OS versions common in ICS/OT environments.
+    Complements CIS Microsoft Windows Server 2019/2022 Benchmark (L1 Member Server)
+    Extends Section 17 (Advanced Audit Policy) - Sysmon provides process hashes, parent
+      process chains, and command line detail beyond native audit policy (Event 4688)
+    Extends Section 9 (Windows Firewall) - Sysmon Event ID 3 logs process-to-connection
+      mapping not available from firewall logs alone
 
   DESCRIPTION:
-    This is the OT BASELINE configuration. It builds on the IT Workstation Baseline
-    (sysmonconfig-baseline-it-workstation.xml) with ICS/OT-specific additions:
-    - Monitoring for ICS/OT vendor software processes (as examples)
-    - ICS-relevant file type monitoring (PLC projects, HMI configs, firmware)
-    - Remote access tool detection (same as IT Baseline)
-    - Adjusted exclusions appropriate for OT environments
+    This is the IT SERVER BASELINE configuration. It is the starting point for deploying
+    Sysmon on Windows servers. Unlike the workstation baseline, this config:
+    - Does NOT exclude desktop/interactive processes (they are unexpected on servers)
+    - Excludes server-specific noise (WinRM, .NET compilation, server management)
+    - Monitors scheduled task directories (common server persistence vector)
+    - Has fewer DNS query exclusions (servers make fewer DNS queries, each is more significant)
 
-    VENDOR SOFTWARE EXAMPLES: The ICS/OT vendor process rules below are EXAMPLES based on
-    default installation paths and process names from vendor documentation. These MUST be
-    validated against your actual installations. Process names, paths, and service names
-    vary by product version, edition, and installation choices.
+    For WORKSTATIONS, use sysmonconfig-baseline-it-workstation.xml instead.
+    For DOMAIN CONTROLLERS, use sysmonconfig-server-ad.xml (additional AD-specific rules).
+    For DATABASE or WEB SERVERS, use sysmonconfig-server-services.xml (additional service rules).
+    For OT environments, use sysmonconfig-baseline-ot.xml (workstation) or apply OT vendor
+      tuning guidance from icswatchdog.com to this server config.
 
-    Vendors included as examples:
-    - Siemens (TIA Portal, WinCC)
-    - Rockwell / Allen-Bradley (Studio 5000, RSLogix, FactoryTalk, RSLinx)
-    - Schneider Electric (EcoStruxure Control Expert, Citect SCADA)
-    - AVEVA / Wonderware (InTouch, System Platform / ArchestrA)
-    - AVEVA / OSIsoft (PI Data Archive subsystems)
-    - Inductive Automation (Ignition Gateway)
-    - SEL / Schweitzer (ACSELERATOR QuickSet, Compass)
-    - CODESYS (IDE and runtime)
-    - Kepware / KEPServerEX (OPC server)
+    This config monitors:
+    - Process creation and termination (server noise excluded, desktop processes logged)
+    - Network connections (server service noise excluded)
+    - File creation in key locations (Startup, Tasks, Temp, ProgramData)
+    - Registry changes to autostart and critical keys
+    - Driver and image loading
+    - Named pipe creation (used by lateral movement tools)
+    - DNS queries (minimal exclusions -server DNS activity is more meaningful)
+    - Remote thread creation (code injection detection)
+    - WMI persistence
+    - Process tampering (hollowing, herpaderp)
+
+    Remote access tool detection is ENABLED by default for all known RMM tools per
+    CISA/NSA advisory AA23-025A. Administrators MUST tune these rules for their
+    approved remote access tools.
 
   TUNING:
     Administrators MUST review and tune this configuration for their environment.
-    - Validate vendor process names and paths against your actual installations
-    - Add your site-specific ICS/OT software following the examples provided
+    - Add exclusions for approved server management and monitoring software
     - Review remote access tool rules and exclude sanctioned tools as appropriate
+    - If this server runs database or web services, consider sysmonconfig-server-services.xml
     - Test in a non-production environment before deploying to production systems
-    - Consider system performance impact - see deployment documentation at icswatchdog.com
 
   DISCLAIMER:
     This configuration is provided as-is for educational and operational use.
@@ -59,15 +63,13 @@
     specific systems. Cutaway Security, LLC and contributors assume no liability
     for any impact resulting from the use of this configuration. Users are
     responsible for testing in their own environments before production deployment.
-    This is especially critical in ICS/OT environments where system availability
-    and safety are paramount.
 
   REFERENCES:
     - SANS ICS 5 Critical Controls: https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls
     - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
     - LOLRMM Project: https://lolrmm.io/
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
-    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
 -->
 
 <Sysmon schemaversion="4.50">
@@ -79,22 +81,16 @@
     <!--
     ================================================================
     EVENT ID 1: PROCESS CREATION [ProcessCreate]
-    Default: Log all process creation, exclude known noisy system processes.
-    OT Addition: No additional exclusions - OT systems should have minimal
-    process noise compared to IT workstations. Log broadly.
+    Server-specific: fewer exclusions than workstation baseline.
+    Desktop processes (RuntimeBroker, audiodg, SearchProtocolHost) are NOT
+    excluded -they are unexpected on servers and worth investigating.
+    Server-specific noise (WinRM hosts, .NET compilation) is excluded.
     ================================================================
     -->
     <RuleGroup name="ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="exclude">
-        <!-- Windows system noise (same as IT Baseline) -->
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <!-- Windows core noise (minimal -servers should have predictable processes) -->
         <Image condition="is">C:\Windows\System32\conhost.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
         <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
         <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
         <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
@@ -105,11 +101,17 @@
         <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
         <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
         <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- .NET compilation (triggered by server app deployments and updates) -->
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ngen.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorsvw.exe</Image>
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\ngen.exe</Image>
         <!--
-        NOTE: OT systems should have fewer running processes than IT workstations.
-        Be conservative with exclusions. If a process is unexpected on an OT system,
-        you WANT to see it in the logs.
-        Add your site-specific enterprise software exclusions below this line.
+        NOTE: Desktop processes (RuntimeBroker, backgroundTaskHost, audiodg,
+        SearchProtocolHost, SearchFilterHost) are intentionally NOT excluded.
+        If these appear on a server, it may indicate unnecessary features are enabled
+        or the system is being used interactively when it should not be.
+        Add your server management software exclusions below this line.
         -->
       </ProcessCreate>
     </RuleGroup>
@@ -117,35 +119,42 @@
     <!--
     ================================================================
     EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
-    Detects timestomping (same as IT Baseline).
+    Detects timestomping - attackers modify file timestamps to blend in.
+    MITRE ATT&CK: T1070.006 (Indicator Removal: Timestomp)
+    Server: no browser exclusions (browsers should not be active on servers).
     ================================================================
     -->
     <RuleGroup name="FileCreateTime" groupRelation="or">
       <FileCreateTime onmatch="exclude">
         <Image condition="is">C:\Windows\System32\svchost.exe</Image>
         <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
-        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
-        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
       </FileCreateTime>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
-    OT Addition: Less aggressive exclusions than IT Baseline.
-    On OT systems, network connections are more significant and should be
-    logged broadly. Unexpected outbound connections from an HMI or
-    engineering workstation warrant investigation.
+    Server-specific: excludes server management noise instead of desktop noise.
+    svchost.exe is excluded (handles Windows Update, BITS, and many server services).
+    WinRM/PowerShell remoting host is excluded (common for server management).
+    No browser or Office app exclusions (these should not be running on servers).
     ================================================================
     -->
     <RuleGroup name="NetworkConnect" groupRelation="or">
       <NetworkConnect onmatch="exclude">
+        <!-- Windows system services -->
+        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+        <!-- Windows Defender -->
         <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
         <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <!-- WinRM / PowerShell remoting (common server management) -->
+        <Image condition="is">C:\Windows\System32\wsmprovhost.exe</Image>
+        <!-- .NET compilation network calls during updates -->
+        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
         <!--
-        NOTE: svchost.exe is NOT excluded in the OT config. On OT systems, svchost
-        network connections may be significant and worth reviewing. If this generates
-        too much noise, add svchost.exe exclusion after reviewing your baseline.
+        IMPORTANT: Add exclusions for your server management and monitoring tools here.
+        Common additions: SCCM/MECM client, monitoring agents (Zabbix, PRTG, Nagios),
+        backup agents (Veeam, Commvault), and enterprise AV products.
         -->
       </NetworkConnect>
     </RuleGroup>
@@ -153,13 +162,11 @@
     <!--
     ================================================================
     EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
-    Same as IT Baseline.
+    Log all process termination. Minimal exclusions on servers.
     ================================================================
     -->
     <RuleGroup name="ProcessTerminate" groupRelation="or">
       <ProcessTerminate onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
         <Image condition="is">C:\Windows\System32\conhost.exe</Image>
       </ProcessTerminate>
     </RuleGroup>
@@ -167,10 +174,8 @@
     <!--
     ================================================================
     EVENT ID 6: DRIVER LOADED [DriverLoad]
-    Same as IT Baseline. Log all non-Microsoft drivers.
-    OT NOTE: ICS/OT vendor drivers (e.g., for PLC communications hardware,
-    serial adapters, USB-to-serial converters) will appear here. This is
-    expected and useful for asset inventory.
+    Log all driver loads except known Microsoft-signed drivers.
+    Detects rootkits and vulnerable driver abuse (BYOVD).
     ================================================================
     -->
     <RuleGroup name="DriverLoad" groupRelation="or">
@@ -183,7 +188,10 @@
     <!--
     ================================================================
     EVENT ID 7: IMAGE LOADED [ImageLoad]
-    Disabled by default (same as IT Baseline).
+    Disabled by default - generates very high volume.
+    Enable selectively if investigating DLL sideloading or injection.
+    NOTE: sysmonconfig-server-services.xml enables this scoped to web
+    worker processes for webshell/IIS module detection.
     ================================================================
     -->
     <RuleGroup name="ImageLoad" groupRelation="or">
@@ -193,11 +201,13 @@
     <!--
     ================================================================
     EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
-    Same as IT Baseline.
+    Detects code injection via remote thread creation.
+    MITRE ATT&CK: T1055 (Process Injection)
     ================================================================
     -->
     <RuleGroup name="CreateRemoteThread" groupRelation="or">
       <CreateRemoteThread onmatch="exclude">
+        <!-- Legitimate system processes that create remote threads -->
         <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
         <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
         <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
@@ -210,7 +220,9 @@
     <!--
     ================================================================
     EVENT ID 9: RAW ACCESS READ [RawAccessRead]
-    Disabled by default (same as IT Baseline).
+    Disabled by default on general servers.
+    NOTE: sysmonconfig-server-ad.xml ENABLES this for Domain Controllers
+    where raw disk reads indicate NTDS.dit credential extraction.
     ================================================================
     -->
     <RuleGroup name="RawAccessRead" groupRelation="or">
@@ -220,7 +232,9 @@
     <!--
     ================================================================
     EVENT ID 10: PROCESS ACCESS [ProcessAccess]
-    Same as IT Baseline - monitor lsass.exe access.
+    Detects credential dumping (lsass.exe access).
+    MITRE ATT&CK: T1003 (OS Credential Dumping)
+    Include only - monitors access to sensitive processes.
     ================================================================
     -->
     <RuleGroup name="ProcessAccess" groupRelation="or">
@@ -232,18 +246,19 @@
     <!--
     ================================================================
     EVENT ID 11: FILE CREATED [FileCreate]
-    OT Addition: Adds ICS/OT-specific file types and vendor project files.
-    These are EXAMPLES - add your site-specific file types.
+    Monitors file creation in key locations.
+    Server-specific: includes scheduled task XML monitoring, no user
+    download/desktop paths (servers should not have interactive users
+    browsing and downloading files).
     ================================================================
     -->
     <RuleGroup name="FileCreate" groupRelation="or">
       <FileCreate onmatch="include">
-        <!-- === Startup and persistence locations (same as IT Baseline) === -->
+        <!-- Startup and persistence locations -->
         <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
         <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
         <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
-
-        <!-- === Executable and script file types (same as IT Baseline) === -->
+        <!-- Executable and script file types -->
         <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
         <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
         <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
@@ -256,93 +271,65 @@
         <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
         <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
         <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
-
-        <!-- === User download/temp locations (same as IT Baseline) === -->
-        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <!-- Temp and staging locations -->
         <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
         <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
-
-        <!--
-        ================================================================
-        OT-SPECIFIC FILE TYPES
-        These are EXAMPLES of ICS/OT-relevant file types.
-        Add your site-specific file types following this pattern.
-        ================================================================
-        -->
-
-        <!-- PLC programming project files -->
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap17</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap18</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap19</TargetFilename>
-        <TargetFilename name="ICS: Siemens STEP 7 project" condition="end with">.s7p</TargetFilename>
-        <TargetFilename name="ICS: CODESYS project" condition="end with">.project</TargetFilename>
-        <TargetFilename name="ICS: IEC 61131 structured text" condition="end with">.st</TargetFilename>
-
-        <!-- HMI/SCADA project files -->
-        <TargetFilename name="ICS: AVEVA InTouch app" condition="end with">.app</TargetFilename>
-
-        <!-- Firmware and binary files relevant to OT -->
-        <TargetFilename name="ICS: Firmware hex" condition="end with">.hex</TargetFilename>
-        <TargetFilename name="ICS: Firmware binary" condition="end with">.bin</TargetFilename>
-        <TargetFilename name="ICS: Firmware update" condition="end with">.fw</TargetFilename>
-
-        <!-- Configuration files -->
-        <TargetFilename name="ICS: OPC config" condition="end with">.opf</TargetFilename>
-
-        <!-- Archive files (common malware delivery in OT environments) -->
-        <TargetFilename name="Archive: ZIP" condition="end with">.zip</TargetFilename>
-        <TargetFilename name="Archive: RAR" condition="end with">.rar</TargetFilename>
-        <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
-        <TargetFilename name="Archive: ISO" condition="end with">.iso</TargetFilename>
-
-        <!-- Recycle Bin - executables, scripts, and archives (malware staging/hiding) -->
+        <TargetFilename name="Windows Temp" condition="contains">\Windows\Temp\</TargetFilename>
+        <!-- Recycle Bin (malware staging/hiding) -->
         <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
         <!-- Group Policy changes (includes AppLocker policy updates) -->
         <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
-
-        <!-- Vendor installation directories (monitor changes to ICS software) -->
-        <TargetFilename name="ICS: Siemens directory" condition="contains">\Siemens\</TargetFilename>
-        <TargetFilename name="ICS: Rockwell directory" condition="contains">\Rockwell Software\</TargetFilename>
-        <TargetFilename name="ICS: Schneider directory" condition="contains">\Schneider Electric\</TargetFilename>
-        <TargetFilename name="ICS: Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
-        <TargetFilename name="ICS: ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
-        <TargetFilename name="ICS: OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
-        <TargetFilename name="ICS: Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
-        <TargetFilename name="ICS: Kepware directory" condition="contains">\Kepware\</TargetFilename>
-        <TargetFilename name="ICS: SEL directory" condition="contains">\SEL\</TargetFilename>
-        <TargetFilename name="ICS: CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
+        <!--
+        NOTE: User download/desktop paths are not monitored here because servers
+        should not have interactive users browsing and downloading files. If users
+        do log in interactively, consider adding \Downloads\ and \Desktop\ paths.
+        For database/web server file monitoring, use sysmonconfig-server-services.xml.
+        -->
       </FileCreate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
-    Same as IT Baseline - autostart and critical registry locations.
-    OT NOTE: ICS vendor software may register services and autostart entries.
-    These are expected and useful for tracking software changes on OT systems.
+    Monitors registry changes to autostart locations and critical keys.
+    Server-specific: includes LSA security settings and security provider
+    changes (important for server-side credential protection).
+    MITRE ATT&CK: T1547 (Boot or Logon Autostart Execution)
     ================================================================
     -->
     <RuleGroup name="RegistryEvent" groupRelation="or">
       <RegistryEvent onmatch="include">
+        <!-- Autostart locations -->
         <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
         <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
         <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
         <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <!-- Services -->
         <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <!-- Scheduled tasks -->
         <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
+        <!-- AppInit DLLs (DLL injection via registry) -->
         <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <!-- Image File Execution Options (debugger attachment for persistence) -->
         <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <!-- Winlogon -->
         <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
         <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
         <!-- AppLocker policy changes (application whitelisting) -->
         <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!-- LSA security settings (credential protection, authentication packages) -->
+        <TargetObject name="LSA config" condition="contains">\CurrentControlSet\Control\Lsa</TargetObject>
+        <!-- Security provider changes -->
+        <TargetObject name="Security providers" condition="contains">\Control\SecurityProviders</TargetObject>
+        <!-- Server service configuration -->
+        <TargetObject name="LanmanServer" condition="contains">\Services\LanmanServer</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
-    Same as IT Baseline.
+    Detects alternate data streams (Mark of the Web, hidden data).
     ================================================================
     -->
     <RuleGroup name="FileCreateStreamHash" groupRelation="or">
@@ -361,11 +348,14 @@
     <!--
     ================================================================
     EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
-    Same as IT Baseline.
+    Detects named pipe creation - used by lateral movement tools
+    (PsExec, Cobalt Strike, etc.).
+    MITRE ATT&CK: T1570 (Lateral Tool Transfer), T1021 (Remote Services)
     ================================================================
     -->
     <RuleGroup name="PipeCreated" groupRelation="or">
       <PipeEvent onmatch="exclude">
+        <!-- Known Windows system pipes -->
         <PipeName condition="is">\lsass</PipeName>
         <PipeName condition="is">\wkssvc</PipeName>
         <PipeName condition="is">\srvsvc</PipeName>
@@ -377,7 +367,8 @@
     <!--
     ================================================================
     EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
-    Same as IT Baseline - log all WMI persistence.
+    Detects WMI-based persistence and execution.
+    MITRE ATT&CK: T1546.003 (Event Triggered Execution: WMI)
     ================================================================
     -->
     <RuleGroup name="WmiEvent" groupRelation="or">
@@ -387,12 +378,9 @@
     <!--
     ================================================================
     EVENT ID 22: DNS QUERY [DnsQuery]
-    OT Addition: Less aggressive exclusions than IT Baseline.
-    DNS queries from OT systems are more significant. Many OT systems
-    should have minimal DNS activity. Unexpected DNS queries from an HMI
-    or engineering workstation warrant investigation.
-    NOTE: If the OT system is air-gapped, this event type will generate
-    minimal noise and provides value if the gap is ever bridged.
+    Server-specific: fewer exclusions than workstation baseline.
+    Servers make fewer DNS queries than workstations. Each query is more
+    significant and worth reviewing. No svchost.exe or Bing exclusions.
     ================================================================
     -->
     <RuleGroup name="DnsQuery" groupRelation="or">
@@ -400,13 +388,20 @@
         <QueryName condition="end with">.microsoft.com</QueryName>
         <QueryName condition="end with">.windowsupdate.com</QueryName>
         <QueryName condition="end with">.windows.com</QueryName>
+        <!--
+        NOTE: svchost.exe DNS queries are NOT excluded on servers.
+        Many server services run under svchost.exe, and their DNS queries
+        may be forensically valuable. If this generates excessive noise,
+        add svchost.exe exclusion after reviewing your baseline traffic.
+        -->
       </DnsQuery>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
-    Disabled by default (same as IT Baseline).
+    Disabled by default. Archives deleted files to C:\Sysmon.
+    WARNING: Can consume significant disk space. Enable selectively.
     ================================================================
     -->
     <RuleGroup name="FileDelete" groupRelation="or">
@@ -416,7 +411,8 @@
     <!--
     ================================================================
     EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
-    Same as IT Baseline - log all process tampering.
+    Detects process hollowing and herpaderp techniques.
+    MITRE ATT&CK: T1055.012 (Process Hollowing)
     ================================================================
     -->
     <RuleGroup name="ProcessTampering" groupRelation="or">
@@ -426,7 +422,7 @@
     <!--
     ================================================================
     EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
-    Same as IT Baseline.
+    Logs file deletions without archiving. Lower overhead than Event ID 23.
     ================================================================
     -->
     <RuleGroup name="FileDeleteDetected" groupRelation="or">

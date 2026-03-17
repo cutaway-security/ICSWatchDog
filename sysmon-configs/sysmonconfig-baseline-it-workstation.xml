@@ -1,31 +1,42 @@
 <!--
-  ICS Watch Dog - IT Baseline Sysmon Configuration
-  Version:      v1.0
+  ICS Watch Dog - IT Workstation Baseline Sysmon Configuration
+  Version:      v2.0
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
   Minimum Sysmon:   v13+ (schema 4.50)
-  Target:           Enterprise Windows systems (IT baseline, general purpose)
+  Target:           Enterprise Windows workstations (desktops, laptops, user endpoints)
 
   SANS ICS 5 Critical Controls Supported:
     #1 ICS Incident Response - Forensic evidence via process, file, registry, network logs
     #4 Secure Remote Access - Detection of known remote access / RMM tools
     #5 Vulnerability Management - Software execution and service change logging
 
+  CIS Benchmark Alignment:
+    Complements CIS Microsoft Windows 10/11 Enterprise Benchmark
+    Extends Section 17 (Advanced Audit Policy) - Sysmon provides process hashes, parent
+      process chains, and command line detail beyond native audit policy (Event 4688)
+    Extends Section 9 (Windows Firewall) - Sysmon Event ID 3 logs process-to-connection
+      mapping not available from firewall logs alone
+
   DESCRIPTION:
-    This is the IT BASELINE configuration. It is the universal starting point for deploying
-    Sysmon on any Windows system. It does NOT include ICS/OT-specific rules. For OT
-    environments, use sysmonconfig-baseline-ot.xml which builds on this config.
+    This is the IT WORKSTATION BASELINE configuration. It is the starting point for deploying
+    Sysmon on Windows workstations, desktops, and laptops. It excludes common desktop noise
+    (shell, search, audio, UWP processes) while monitoring security-relevant events.
+
+    For SERVERS, use sysmonconfig-baseline-it-server.xml instead. Servers have fundamentally
+    different process noise and monitoring needs.
+    For OT environments, use sysmonconfig-baseline-ot.xml which builds on this config.
 
     This config monitors:
-    - Process creation and termination
+    - Process creation and termination (desktop noise excluded)
     - Network connections (including remote access tool detection)
-    - File creation in key locations
+    - File creation in key locations (Downloads, Temp, Startup, ProgramData)
     - Registry changes to autostart and critical keys
     - Driver and image loading
     - Named pipe creation (used by malware for IPC)
-    - DNS queries
+    - DNS queries (with browser/system noise exclusions)
     - Remote thread creation (code injection detection)
     - WMI persistence
     - Process tampering (hollowing, herpaderp)
@@ -52,6 +63,7 @@
     - CISA RMM Guidance: https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
     - LOLRMM Project: https://lolrmm.io/
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+    - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
 -->
 
 <Sysmon schemaversion="4.50">

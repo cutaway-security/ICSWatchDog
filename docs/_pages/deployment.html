@@ -39,19 +39,29 @@ permalink: /deployment/
     </thead>
     <tbody>
       <tr>
-        <td>IT Baseline</td>
+        <td>IT Workstation Baseline</td>
         <td>Low</td>
         <td>Conservative exclude-based rules, disabled high-volume events (ImageLoad, RawAccessRead)</td>
       </tr>
       <tr>
-        <td>OT Baseline</td>
+        <td>IT Server Baseline</td>
         <td>Low</td>
-        <td>Same base as IT with OT file type additions; OT systems typically have less process activity than IT</td>
+        <td>Server-appropriate exclusions, fewer processes to exclude than workstations</td>
       </tr>
       <tr>
-        <td>Jump Host</td>
-        <td>Moderate</td>
-        <td>More events enabled (ImageLoad, ClipboardChange, all network); acceptable for chokepoint systems</td>
+        <td>Server: AD/DC</td>
+        <td>Low-Moderate</td>
+        <td>Enables RawAccessRead; LSASS monitoring tuned for DC noise. DCs are high-value and warrant the overhead.</td>
+      </tr>
+      <tr>
+        <td>Server: Services</td>
+        <td>Low-Moderate</td>
+        <td>Enables ImageLoad for web workers; database/web process noise excluded. Rules for absent services have zero cost.</td>
+      </tr>
+      <tr>
+        <td>OT Baseline</td>
+        <td>Low</td>
+        <td>Same base as IT Workstation with OT file type additions; OT systems typically have less process activity</td>
       </tr>
       <tr>
         <td>OT Enhanced</td>
@@ -61,7 +71,12 @@ permalink: /deployment/
       <tr>
         <td>OT Advanced</td>
         <td>Moderate</td>
-        <td>More event types enabled; designed for systems that can handle the additional load</td>
+        <td>Adds Event IDs 27-29 (schema 4.90); designed for systems running current Sysmon versions</td>
+      </tr>
+      <tr>
+        <td>Jump Host</td>
+        <td>Moderate</td>
+        <td>More events enabled (ImageLoad, ClipboardChange, all network); acceptable for chokepoint systems</td>
       </tr>
     </tbody>
   </table>
@@ -120,7 +135,7 @@ permalink: /deployment/
   <h3>Phase 4: Operational Systems</h3>
   <ul>
     <li>Deploy to HMI stations, historian servers, and other operational systems</li>
-    <li>Start with the IT Baseline or OT Baseline (lowest impact)</li>
+    <li>Start with the IT Workstation Baseline, OT Baseline, or Server: Services as appropriate (lowest impact)</li>
     <li>Monitor closely during the first week for any performance impact</li>
     <li>Have a rollback plan ready (Sysmon uninstall: <code>sysmon.exe -u</code>)</li>
   </ul>
@@ -148,29 +163,44 @@ permalink: /deployment/
         <td>High - deploy first</td>
       </tr>
       <tr>
+        <td>Domain controllers (IT or OT)</td>
+        <td>Server: AD/DC</td>
+        <td>High - authentication infrastructure, highest-value target</td>
+      </tr>
+      <tr>
         <td>Engineering workstations</td>
-        <td>OT Baseline</td>
+        <td>OT Baseline or OT Enhanced</td>
         <td>High - common attack target</td>
       </tr>
       <tr>
-        <td>OT domain controllers</td>
-        <td>IT Baseline or OT Baseline</td>
-        <td>High - authentication infrastructure</td>
+        <td>Database / web servers</td>
+        <td>Server: Services</td>
+        <td>High - covers SQL injection, webshells, xp_cmdshell</td>
       </tr>
       <tr>
-        <td>Historians (OSIsoft PI, etc.)</td>
-        <td>OT Baseline</td>
-        <td>Medium - data integrity matters</td>
+        <td>Historians (PI, Ignition, AVEVA)</td>
+        <td>Server: Services (covers database + web engines used by historians)</td>
+        <td>Medium - add OT vendor directory rules from OT configs</td>
       </tr>
       <tr>
         <td>HMI / operator stations</td>
-        <td>IT Baseline or OT Baseline</td>
+        <td>OT Baseline</td>
         <td>Medium - balance monitoring vs. performance</td>
       </tr>
       <tr>
         <td>SCADA servers</td>
-        <td>OT Baseline</td>
+        <td>Server: Services + OT vendor tuning</td>
         <td>Medium - after testing in lab</td>
+      </tr>
+      <tr>
+        <td>IT workstations</td>
+        <td>IT Workstation Baseline</td>
+        <td>Medium - standard endpoint monitoring</td>
+      </tr>
+      <tr>
+        <td>General file/print servers</td>
+        <td>IT Server Baseline</td>
+        <td>Medium - standard server monitoring</td>
       </tr>
       <tr>
         <td>Safety-critical controllers</td>

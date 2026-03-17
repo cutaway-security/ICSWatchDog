@@ -32,27 +32,88 @@ Key rules:
 
 ## Config Structure
 
-### Progression Model
+### Config Model
+
+Configs branch by role (workstation/server) and environment (IT/OT). Each config is self-contained and deployable without editing. Only separate configs exist where structural Sysmon differences justify them (enabling/disabling Event IDs, fundamentally different exclusion logic). OT-specific tuning is handled through documentation guidance rather than a proliferation of config files.
 
 ```
-IT Baseline  -->  OT Baseline  -->  OT Enhanced  -->  OT Advanced
-(general IT)     (IT + OT basics)  (broader OT)     (role-specific)
+IT Baseline Workstation ---- OT Baseline (general-purpose, workstation-centric)
+  (enterprise workstation)      |-- OT Enhanced (broader OT, industrial ports)
+                                |-- OT Advanced (newer Sysmon features, schema 4.90)
+
+IT Baseline Server
+  (enterprise server)
+  |-- Server: AD / DC (structural: enables RawAccessRead, NTDS/SYSVOL paths, LSASS tuning)
+  |-- Server: Services (combined database + web server monitoring, all engines)
+  |     Covers: MSSQL, PostgreSQL, MySQL/MariaDB, Oracle, MongoDB, InfluxDB
+  |     Covers: IIS, Apache httpd, Nginx, Tomcat/Java
+  |     Structural: enables ImageLoad scoped to web worker processes
+
+Jump Host (standalone, comprehensive monitoring, schema 4.90)
 ```
 
-The IT Baseline is the universal starting point for any Windows system. Each subsequent config builds on the previous, adding OT-specific rules. This is explicitly documented so admins understand the progression.
+All configs use schema 4.50 for legacy OS compatibility unless newer Sysmon features are required (jump host and advanced-ot use schema 4.90). Config headers include SANS ICS 5 Critical Controls mapping, MITRE ATT&CK references, and CIS Benchmark alignment labels.
+
+**Design principles:**
+- Configs for roles, not for vendors or individual software products
+- Rules for absent services have zero cost (never match, no noise, no performance impact)
+- OT historians (PI, Ignition, AVEVA) are database+web servers -- use server-services config + OT vendor guidance
+- Admins MUST tune for their environment; configs are starting points, not final deployments
 
 ### File Organization
 
 ```
-sysmonconfig-baseline-it.xml          # IT baseline, enterprise Windows, schema 4.50
-sysmonconfig-baseline-ot.xml          # OT baseline, adds ICS/OT rules, schema 4.50
-sysmonconfig-enhanced-ot.xml          # Broader OT coverage, may use newer schema
-sysmonconfig-advanced-ot.xml          # Advanced, newer Sysmon features, role-specific guidance
-community/                            # Community-contributed configs (use at your own risk)
-    sysmonconfig-filecreate-only.xml  # Aaron Boyd (icsblitz) - file creation monitoring
-reference/                            # Reference configs for learning (not maintained)
+# IT Baselines
+sysmonconfig-baseline-it-workstation.xml  # IT workstation baseline, schema 4.50
+sysmonconfig-baseline-it-server.xml       # IT server baseline, schema 4.50
+
+# Server Role Configs (self-contained, include server baseline rules)
+sysmonconfig-server-ad.xml                # Active Directory / Domain Controller, schema 4.50
+sysmonconfig-server-services.xml          # Database + web server (all engines), schema 4.50
+
+# OT Configs (workstation-centric, build on IT workstation baseline)
+sysmonconfig-baseline-ot.xml              # OT baseline (general-purpose), schema 4.50
+sysmonconfig-enhanced-ot.xml              # Broader OT coverage, industrial ports, schema 4.50
+sysmonconfig-advanced-ot.xml              # Advanced OT, newer features, schema 4.90
+
+# Specialized
+sysmonconfig-jumphost.xml                 # Jump host / bastion host, schema 4.90
+
+# Community and Reference
+community/                                # Community-contributed configs (use at your own risk)
+    sysmonconfig-filecreate-only.xml      # Aaron Boyd (icsblitz) - file creation monitoring
+reference/                                # Reference configs for learning (not maintained)
     sysmonconfig-swiftonsecurity-v74.xml  # SwiftOnSecurity original, schema 4.50
 ```
+
+### Server Services Config Coverage
+
+The server-services config covers all common database and web server engines in a single file. Rules for absent services never match and have zero cost.
+
+**Database engines:**
+
+| Engine | Process | Default Port | OT Relevance |
+|--------|---------|-------------|--------------|
+| Microsoft SQL Server | sqlservr.exe, sqlagent.exe | 1433 | AVEVA Historian, Wonderware |
+| PostgreSQL | postgres.exe | 5432 | Ignition (supported), Timescale |
+| MySQL / MariaDB | mysqld.exe, mariadbd.exe | 3306 | Ignition (default backend) |
+| Oracle | oracle.exe, extjob.exe, extproc.exe | 1521 | Honeywell, some MES platforms |
+| MongoDB | mongod.exe | 27017 | IIoT edge, metadata stores |
+| InfluxDB | influxd.exe | 8086 | IIoT time-series, Telegraf+Grafana |
+
+**Web server engines:**
+
+| Engine | Process | OT Relevance |
+|--------|---------|--------------|
+| IIS | w3wp.exe | AVEVA System Platform, OT DMZ |
+| Apache httpd | httpd.exe | HMI web interfaces, OPC UA gateways |
+| Nginx | nginx.exe | Reverse proxy for OT web apps |
+| Apache Tomcat | java.exe, tomcat9.exe | Ignition Gateway, GE iFIX |
+
+**Common detection pattern across all engines:**
+- Database/web process spawning cmd.exe, powershell.exe, or other shell = malicious
+- Same Sysmon rule structure (ParentImage conditions), different process name lists
+- Web script file creation in web roots (.aspx, .asp, .php, .jsp, .cfm, web.config)
 
 ### SANS ICS 5 Critical Controls Mapping
 
@@ -110,26 +171,31 @@ Each config XML follows:
 
 ```
 ICSWatchDog/
-    CLAUDE.md                              # Project rules (dev only)
-    README.md                              # Public-facing project description
-    License                                # CC BY 4.0
-    CNAME                                  # icswatchdog.com
-    images/                                # Branding assets
-    sysmonconfig-baseline-it.xml           # IT baseline config
-    sysmonconfig-baseline-ot.xml           # OT baseline config
-    sysmonconfig-enhanced-ot.xml           # OT enhanced config
-    sysmonconfig-advanced-ot.xml           # OT advanced config
-    community/                             # Community-contributed configs
-        sysmonconfig-filecreate-only.xml
-    reference/                             # Reference configs for learning
-        sysmonconfig-swiftonsecurity-v74.xml
-    claude-dev/                            # Development planning (dev only)
-        ARCHITECTURE.md                    # This file
+    CLAUDE.md                                      # Project rules (dev only)
+    README.md                                      # Public-facing project description
+    License                                        # CC BY 4.0
+    CNAME                                          # icswatchdog.com
+    images/                                        # Branding assets
+    sysmon-configs/                                # All Sysmon configuration files
+        sysmonconfig-baseline-it-workstation.xml   # IT workstation baseline
+        sysmonconfig-baseline-it-server.xml        # IT server baseline
+        sysmonconfig-server-ad.xml                 # AD / Domain Controller
+        sysmonconfig-server-services.xml           # Database + web server (all engines)
+        sysmonconfig-baseline-ot.xml               # OT baseline (general-purpose)
+        sysmonconfig-enhanced-ot.xml               # OT enhanced
+        sysmonconfig-advanced-ot.xml               # OT advanced
+        sysmonconfig-jumphost.xml                  # Jump host / bastion host
+        community/                                 # Community-contributed configs
+            sysmonconfig-filecreate-only.xml
+        reference/                                 # Reference configs for learning
+            sysmonconfig-swiftonsecurity-v74.xml
+    claude-dev/                                    # Development planning (dev only)
+        ARCHITECTURE.md                            # This file
         PLAN.md
         RESUME.md
         GIT_RELEASE_STEPS.md
-        html-css-jekyll.md                 # Code standard
-    docs/                                  # Jekyll website source (dev only)
+        html-css-jekyll.md                         # Code standard
+    docs/                                          # Jekyll website source (dev only)
         _config.yml
         _layouts/default.html
         _includes/nav.html, footer.html

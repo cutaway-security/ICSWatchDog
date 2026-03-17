@@ -14,11 +14,14 @@ All configs are in the [`sysmon-configs/`](sysmon-configs/) directory.
 
 | Config | Description | Sysmon Version |
 |--------|-------------|----------------|
-| [sysmonconfig-baseline-it.xml](sysmon-configs/sysmonconfig-baseline-it.xml) | Enterprise IT starting point - general Windows monitoring, remote access tool detection | v13+ (schema 4.50) |
+| [sysmonconfig-baseline-it-workstation.xml](sysmon-configs/sysmonconfig-baseline-it-workstation.xml) | IT workstation baseline - desktop/laptop monitoring, remote access tool detection | v13+ (schema 4.50) |
+| [sysmonconfig-baseline-it-server.xml](sysmon-configs/sysmonconfig-baseline-it-server.xml) | IT server baseline - server-appropriate exclusions, minimal desktop noise | v13+ (schema 4.50) |
+| [sysmonconfig-server-ad.xml](sysmon-configs/sysmonconfig-server-ad.xml) | Active Directory / Domain Controller - NTDS.dit monitoring, credential extraction detection, raw disk read enabled | v13+ (schema 4.50) |
+| [sysmonconfig-server-services.xml](sysmon-configs/sysmonconfig-server-services.xml) | Database + web server - covers MSSQL, PostgreSQL, MySQL, Oracle, MongoDB, InfluxDB, IIS, Apache, Nginx, Tomcat | v13+ (schema 4.50) |
 | [sysmonconfig-baseline-ot.xml](sysmon-configs/sysmonconfig-baseline-ot.xml) | OT baseline - adds ICS/OT vendor monitoring, ICS file types, adjusted OT exclusions | v13+ (schema 4.50) |
 | [sysmonconfig-jumphost.xml](sysmon-configs/sysmonconfig-jumphost.xml) | Jump host / bastion host - comprehensive monitoring, clipboard tracking, minimal exclusions | v15+ (schema 4.90) |
-| [sysmonconfig-enhanced-ot.xml](sysmon-configs/sysmonconfig-enhanced-ot.xml) | Broader OT coverage - industrial port awareness | In Development |
-| [sysmonconfig-advanced-ot.xml](sysmon-configs/sysmonconfig-advanced-ot.xml) | Advanced OT - newer Sysmon features, role-specific | In Development |
+| [sysmonconfig-enhanced-ot.xml](sysmon-configs/sysmonconfig-enhanced-ot.xml) | OT enhanced - industrial protocol port monitoring, expanded vendor coverage | v13+ (schema 4.50) |
+| [sysmonconfig-advanced-ot.xml](sysmon-configs/sysmonconfig-advanced-ot.xml) | OT advanced - executable detection (Event IDs 27-29), file shredding detection | v15+ (schema 4.90) |
 
 ### Community Configs
 
@@ -39,11 +42,13 @@ Third-party configs retained for learning and comparison. Not maintained by ICS 
 ## Quick Start
 
 1. Download [Sysmon](https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon) from Microsoft
-2. Download a configuration file from the `sysmon-configs/` directory (start with the IT baseline)
+2. Download a configuration file from the `sysmon-configs/` directory:
+   - **Workstations**: start with `sysmonconfig-baseline-it-workstation.xml`
+   - **Servers**: start with `sysmonconfig-baseline-it-server.xml`
 3. Install from an elevated command prompt:
 
 ```
-sysmon.exe -accepteula -i sysmonconfig-baseline-it.xml
+sysmon.exe -accepteula -i sysmonconfig-baseline-it-workstation.xml
 ```
 
 4. Verify in Windows Event Viewer under: `Applications and Services Logs > Microsoft > Windows > Sysmon > Operational`
