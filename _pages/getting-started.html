@@ -47,13 +47,13 @@ permalink: /getting-started/
   <p>Extract the archive to a location on the target system (e.g., <code>C:\Tools\Sysmon\</code>).</p>
 
   <h3>2. Choose a Configuration File</h3>
-  <p>Visit the <a href="{{ site.baseurl }}/configurations/">Configuration Files</a> page and select the config that matches your environment. For first-time deployments, start with the <a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-it.xml" target="_blank" rel="noopener"><strong>IT Baseline</strong></a>.</p>
-  <p>Download the XML configuration file to the same directory as Sysmon (e.g., <code>C:\Tools\Sysmon\sysmonconfig-baseline-it.xml</code>).</p>
+  <p>Visit the <a href="{{ site.baseurl }}/configurations/">Configuration Files</a> page and select the config that matches your environment. For first-time deployments, start with the <a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-it-workstation.xml" target="_blank" rel="noopener"><strong>IT Workstation Baseline</strong></a> for desktops/laptops or the <a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/sysmon-configs/sysmonconfig-baseline-it-server.xml" target="_blank" rel="noopener"><strong>IT Server Baseline</strong></a> for servers.</p>
+  <p>Download the XML configuration file to the same directory as Sysmon (e.g., <code>C:\Tools\Sysmon\sysmonconfig-baseline-it-workstation.xml</code>).</p>
 
   <h3>3. Install Sysmon</h3>
   <p>Open an elevated (Administrator) command prompt and run:</p>
-  <pre><code>sysmon.exe -accepteula -i sysmonconfig-baseline-it.xml</code></pre>
-  <p>Replace <code>sysmonconfig-baseline-it.xml</code> with the name of your chosen configuration file.</p>
+  <pre><code>sysmon.exe -accepteula -i sysmonconfig-baseline-it-workstation.xml</code></pre>
+  <p>Replace <code>sysmonconfig-baseline-it-workstation.xml</code> with the name of your chosen configuration file.</p>
 
   <h3>4. Verify Installation</h3>
   <p>Open <strong>Windows Event Viewer</strong> and navigate to:</p>

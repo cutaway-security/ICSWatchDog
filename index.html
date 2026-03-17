@@ -24,10 +24,24 @@ title: Home
 
 <h2>Configuration Files</h2>
 <div class="config-grid">
-  <a href="{{ site.baseurl }}/configurations/#it-baseline" class="config-card">
-    <span class="card-label">IT Baseline</span>
-    <h3>Enterprise IT</h3>
-    <p>General Windows monitoring with remote access tool detection. Start here.</p>
+  <a href="{{ site.baseurl }}/configurations/#it-workstation-baseline" class="config-card">
+    <span class="card-label">IT Workstation</span>
+    <h3>Desktops and Laptops</h3>
+    <p>Enterprise workstation monitoring with remote access tool detection. Start here for endpoints.</p>
+    <span class="badge">Sysmon v13+ | Schema 4.50</span>
+  </a>
+
+  <a href="{{ site.baseurl }}/configurations/#it-server-baseline" class="config-card">
+    <span class="card-label">IT Server</span>
+    <h3>General Servers</h3>
+    <p>Server-appropriate exclusions, minimal desktop noise. Start here for servers.</p>
+    <span class="badge">Sysmon v13+ | Schema 4.50</span>
+  </a>
+
+  <a href="{{ site.baseurl }}/configurations/#server-services" class="config-card">
+    <span class="card-label">Server Services</span>
+    <h3>Database + Web Server</h3>
+    <p>Covers all common database and web engines. Webshell detection, xp_cmdshell, backup monitoring.</p>
     <span class="badge">Sysmon v13+ | Schema 4.50</span>
   </a>
 
@@ -38,18 +52,18 @@ title: Home
     <span class="badge">Sysmon v13+ | Schema 4.50</span>
   </a>
 
+  <a href="{{ site.baseurl }}/configurations/#ot-enhanced" class="config-card">
+    <span class="card-label">OT Enhanced</span>
+    <h3>Industrial Ports</h3>
+    <p>Modbus, EtherNet/IP, OPC-UA, DNP3, S7comm, and more. Process-to-port visibility.</p>
+    <span class="badge">Sysmon v13+ | Schema 4.50</span>
+  </a>
+
   <a href="{{ site.baseurl }}/configurations/#jumphost" class="config-card">
     <span class="card-label">Jump Host</span>
     <h3>Bastion / Kiosk</h3>
     <p>Comprehensive monitoring for OT remote access chokepoints. Clipboard tracking, minimal exclusions.</p>
     <span class="badge">Sysmon v15+ | Schema 4.90</span>
-  </a>
-
-  <a href="{{ site.baseurl }}/configurations/#ot-enhanced" class="config-card">
-    <span class="card-label">OT Enhanced</span>
-    <h3>Broader OT Coverage</h3>
-    <p>Industrial port monitoring and expanded OT visibility.</p>
-    <span class="badge">In Development</span>
   </a>
 </div>
 
