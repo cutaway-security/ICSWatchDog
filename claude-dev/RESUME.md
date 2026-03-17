@@ -81,11 +81,11 @@ Adopted updated CutSec base template standards across website components:
 
 ## In Progress
 
-Phase 6e documentation complete. Remaining: Jekyll build verification, merge to main, deploy, tag release.
+None. All phases complete. v2 released.
 
 ## Blockers
 
-- Jekyll not currently installed in development environment (bundle install needs vendor/bundle path). Does not block config work.
+None.
 
 ## Completed This Session
 

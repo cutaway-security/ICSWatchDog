@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 6e - Documentation and Release
-**Status**: Not Started
-**Focus**: Phase 6d complete. Next: documentation updates, CIS labels, site updates, and release.
+**Phase**: All phases complete.
+**Status**: Complete
+**Focus**: v2 released with expanded config set.
 
 ## Phases
 
@@ -259,23 +259,21 @@ Two role-specific server configs, each self-contained (includes server baseline 
 
 ### Phase 6e: Documentation and Release
 
-**Status**: In Progress (documentation complete, release pending)
-
-Update all documentation for expanded config set and release to main.
+**Status**: Complete
 
 - [x] Add CIS Benchmark alignment labels to all config headers (8/8 curated configs)
-- [x] Add MITRE ATT&CK references to all config headers where applicable (server-ad, server-services, advanced-ot, enhanced-ot, jumphost)
-- [x] CIS Benchmark alignment integrated into config headers and website config descriptions (dedicated page deferred; alignment info is in each config's section)
-- [x] Update website config listing with all new configs (server-ad, server-services sections added)
-- [x] Update website navigation for expanded config set (nav dropdown updated)
-- [x] Update landing page config cards (6 cards: IT Workstation, IT Server, Server Services, OT Baseline, OT Enhanced, Jump Host)
-- [x] Update deployment guide: performance table, criticality-based decisions table, phased deployment references
-- [x] Update README.md with final config table (done in Phase 6d)
-- [ ] Verify Jekyll build
-- [ ] Merge to main
-- [ ] Deploy site to gh-pages
-- [ ] Verify all site links
-- [ ] Tag release
+- [x] Add MITRE ATT&CK references to all config headers where applicable
+- [x] CIS Benchmark alignment integrated into all website config descriptions (8/8 sections)
+- [x] Update website config listing with all new configs
+- [x] Update website navigation for expanded config set
+- [x] Update landing page config cards (6 cards)
+- [x] Update deployment guide: performance table, criticality-based decisions, phased deployment
+- [x] Update README.md with final config table
+- [x] Verify Jekyll build
+- [x] Merge to main
+- [x] Deploy site to gh-pages
+- [x] Verify all site links
+- [x] Tag release
 
 ## Decision Log
 
