@@ -128,7 +128,16 @@ Before moving to the next phase:
 
 ### Website
 
-- Local Jekyll build testing (`bundle exec jekyll serve`)
+- Local Jekyll build testing requires bundler installed locally:
+  1. `cd docs/`
+  2. Set BUNDLE variable: `BUNDLE="$HOME/.local/share/gem/ruby/3.2.0/bin/bundle"`
+  3. `$BUNDLE config set --local path vendor/bundle`
+  4. `$BUNDLE install`
+  5. `$BUNDLE exec jekyll build` (or `jekyll serve` for local preview)
+  NOTE: bundler is installed in the user gem directory which is not on PATH.
+  Always use the full path or set the BUNDLE variable above.
+  If bundler is not installed: `gem install bundler --user-install`
+  The vendor/ directory is already in .gitignore.
 - Link validation on the built site
 
 ---

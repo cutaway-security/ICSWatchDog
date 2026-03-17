@@ -76,6 +76,11 @@
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
     - Microsoft Securing DCs: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/securing-domain-controllers-against-attack
     - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
+    - CISA Ransomware Guide: https://www.cisa.gov/stopransomware/ransomware-guide
+
+  Ransomware Detection (added in v3.0):
+    T1490     - Inhibit System Recovery (shadow copy deletion, bcdedit, wbadmin)
+    T1562.001 - Disable or Modify Tools (Defender tampering, Sysmon tampering)
 -->
 
 <Sysmon schemaversion="4.50">
@@ -133,6 +138,27 @@
         <!-- DCSync tool indicators (detection on SOURCE machine, not DC) -->
         <CommandLine name="DC: mimikatz lsadump" condition="contains">lsadump</CommandLine>
         <CommandLine name="DC: secretsdump" condition="contains">secretsdump</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    Ransomware indicator detection: recovery inhibition, security tool disablement.
+    These generate named events for SIEM alerting and forensic investigation.
+    MITRE ATT&CK: T1490 (Inhibit System Recovery), T1562.001 (Disable or Modify Tools)
+    See: https://icswatchdog.com/ransomware/
+    -->
+    <RuleGroup name="ProcessCreate-RansomwareIndicators" groupRelation="or">
+      <ProcessCreate onmatch="include">
+        <!-- Recovery inhibition (T1490) -->
+        <CommandLine name="Ransomware: shadow copy deletion" condition="contains">delete shadows</CommandLine>
+        <CommandLine name="Ransomware: shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
+        <CommandLine name="Ransomware: recovery disabled" condition="contains">recoveryenabled no</CommandLine>
+        <CommandLine name="Ransomware: boot status policy" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
+        <CommandLine name="Ransomware: backup catalog deletion" condition="contains">delete catalog</CommandLine>
+        <CommandLine name="Ransomware: safe mode boot" condition="contains">bcdedit /set safeboot</CommandLine>
+        <!-- Defender/security tool disablement (T1562.001) -->
+        <CommandLine name="Ransomware: Defender realtime disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
+        <CommandLine name="Ransomware: Defender drive exclusion" condition="contains">ExclusionPath</CommandLine>
       </ProcessCreate>
     </RuleGroup>
 
@@ -397,6 +423,11 @@
         <TargetObject name="DC: NTFRS service" condition="contains">\Services\NtFrs\</TargetObject>
         <!-- DC-specific: Kerberos configuration -->
         <TargetObject name="DC: Kerberos config" condition="contains">\Control\Lsa\Kerberos</TargetObject>
+        <!-- Ransomware-relevant registry changes -->
+        <TargetObject name="Ransomware: SafeBoot config" condition="contains">\Control\SafeBoot</TargetObject>
+        <TargetObject name="Ransomware: WDigest credential caching" condition="contains">\SecurityProviders\WDigest</TargetObject>
+        <TargetObject name="Ransomware: Defender policy" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+        <TargetObject name="Ransomware: Sysmon Autologger" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
@@ -444,6 +475,30 @@
         These will generate events. If the volume is too high, you can
         exclude them, but review the connections first.
         -->
+      </PipeEvent>
+    </RuleGroup>
+
+    <!--
+    C2 framework and lateral movement named pipe detection.
+    MITRE ATT&CK: T1071 (Application Layer Protocol), T1021 (Remote Services)
+    See: https://icswatchdog.com/ransomware/
+    -->
+    <RuleGroup name="PipeCreated-C2Detection" groupRelation="or">
+      <PipeEvent onmatch="include">
+        <!-- Cobalt Strike default pipes -->
+        <PipeName name="C2: Cobalt Strike" condition="begin with">\MSSE-</PipeName>
+        <PipeName name="C2: Cobalt Strike postex" condition="begin with">\postex_</PipeName>
+        <PipeName name="C2: Cobalt Strike status" condition="begin with">\status_</PipeName>
+        <PipeName name="C2: Cobalt Strike msagent" condition="begin with">\msagent_</PipeName>
+        <!-- Lateral movement tools -->
+        <PipeName name="Lateral: PsExec" condition="is">\PSEXESVC</PipeName>
+        <PipeName name="Lateral: paexec" condition="begin with">\paexec</PipeName>
+        <PipeName name="Lateral: remcom" condition="begin with">\remcom</PipeName>
+        <PipeName name="Lateral: csexec" condition="begin with">\csexec</PipeName>
+        <!-- Credential tools -->
+        <PipeName name="Cred: lsadump" condition="is">\lsadump</PipeName>
+        <PipeName name="Cred: cachedump" condition="is">\cachedump</PipeName>
+        <PipeName name="Cred: wceservicepipe" condition="is">\wceservicepipe</PipeName>
       </PipeEvent>
     </RuleGroup>
 
@@ -508,6 +563,12 @@
         <!-- DC-specific: detect deletion of credential artifacts -->
         <TargetFilename name="DC: NTDS.dit deletion" condition="end with">.dit</TargetFilename>
         <TargetFilename name="DC: Hive file deletion" condition="end with">.hive</TargetFilename>
+        <!-- Backup and database file deletion (ransomware indicator, T1490) -->
+        <TargetFilename name="Ransomware: backup deletion" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="Ransomware: VHD deletion" condition="end with">.vhd</TargetFilename>
+        <TargetFilename name="Ransomware: VHDX deletion" condition="end with">.vhdx</TargetFilename>
+        <TargetFilename name="Ransomware: SQL data deletion" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="Ransomware: SQL log deletion" condition="end with">.ldf</TargetFilename>
       </FileDeleteDetected>
     </RuleGroup>
 
