@@ -1,0 +1,386 @@
+---
+layout: default
+title: Efficacy Testing
+permalink: /efficacy-testing/
+---
+
+<h1>Efficacy Testing</h1>
+
+<p>Efficacy testing validates that your Sysmon configuration actually generates the events it is designed to detect. Deploying Sysmon without verifying detection coverage is like installing a smoke detector without testing it -- you will not know it works until you need it.</p>
+
+<section class="overview-section">
+  <h2>What Is Efficacy Testing?</h2>
+  <p>Efficacy testing for Sysmon means performing known actions on a system and confirming that the corresponding Sysmon events appear in the event log. It answers three questions:</p>
+  <ol>
+    <li><strong>Is Sysmon running and logging?</strong> -- The service is active and writing to the event log.</li>
+    <li><strong>Does the config detect what it should?</strong> -- The rules match the activities they are designed to capture.</li>
+    <li><strong>Are exclusion rules too aggressive?</strong> -- Legitimate detections are not being suppressed by overly broad exclusions.</li>
+  </ol>
+  <p>Organizations that do not perform efficacy testing commonly discover gaps only during incident response -- when it is too late. Regular validation (after initial deployment, after config changes, and periodically) ensures your monitoring remains effective.</p>
+</section>
+
+<section class="read-section">
+  <h2>ICS Watch Dog Efficacy Test Script</h2>
+  <p>The ICS Watch Dog project includes a PowerShell validation script that tests Sysmon config efficacy by triggering safe, benign actions and verifying the events appear in the Sysmon log.</p>
+
+  <h3>Requirements</h3>
+  <ul>
+    <li>Windows with Sysmon installed, configured, and running</li>
+    <li>Administrator privileges (required to read the Sysmon event log)</li>
+    <li>PowerShell 3.0 or later</li>
+    <li>No external modules or dependencies</li>
+  </ul>
+
+  <h3>Download</h3>
+  <p>Download the script from the ICS Watch Dog repository:</p>
+  <pre><code><a href="https://github.com/cutaway-security/ICSWatchDog/blob/main/tools/Test-SysmonConfig.ps1" target="_blank" rel="noopener">tools/Test-SysmonConfig.ps1</a></code></pre>
+
+  <h3>Usage</h3>
+  <p>Run from an elevated (Administrator) PowerShell prompt:</p>
+
+  <pre><code># Run default observation-only tests (9 Event IDs)
+.\Test-SysmonConfig.ps1
+
+# Run all tests including registry and WMI changes (14 Event IDs)
+.\Test-SysmonConfig.ps1 -AllowSystemChanges
+
+# Increase wait time for slow systems (default: 10 seconds)
+.\Test-SysmonConfig.ps1 -WaitSeconds 20
+
+# Skip the confirmation prompt (for automated testing)
+.\Test-SysmonConfig.ps1 -SkipConfirmation</code></pre>
+
+  <h3>Test Groups</h3>
+  <p>Tests are divided into two groups based on system impact:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Group</th>
+        <th>Runs By Default</th>
+        <th>Event IDs</th>
+        <th>What It Does</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Observation-only</td>
+        <td>Yes</td>
+        <td>1, 3, 5, 11, 15, 17, 18, 22, 26</td>
+        <td>Starts/stops a process, creates/deletes temp files, makes a network connection, creates a named pipe, performs a DNS query. All artifacts are ephemeral.</td>
+      </tr>
+      <tr>
+        <td>System changes</td>
+        <td>No (requires <code>-AllowSystemChanges</code>)</td>
+        <td>12, 13, 19, 20, 21</td>
+        <td>Creates a HKCU Run key registry entry and WMI event subscriptions. All changes are cleaned up automatically, but failed cleanup leaves artifacts on the system.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warning">
+    <p><strong>OT environments:</strong> Start with the default observation-only tests. Only use <code>-AllowSystemChanges</code> after reviewing the planned changes the script displays and understanding the manual cleanup steps below. System changes should be tested in a lab environment first.</p>
+  </div>
+
+  <h3>How It Works</h3>
+  <ol>
+    <li><strong>Pre-flight checks</strong> -- Verifies administrator privileges, Sysmon service running, event log accessible, PowerShell version.</li>
+    <li><strong>Planned changes display</strong> -- Shows every action the script will perform, with full paths and warnings for system-modifying tests.</li>
+    <li><strong>Confirmation prompt</strong> -- Requires you to type Y before proceeding (override with <code>-SkipConfirmation</code>).</li>
+    <li><strong>Execute triggers</strong> -- Performs safe actions that should generate Sysmon events.</li>
+    <li><strong>Wait for propagation</strong> -- Pauses to allow Sysmon to write events to the log (configurable via <code>-WaitSeconds</code>).</li>
+    <li><strong>Verify events</strong> -- Queries the Sysmon event log for each expected Event ID within the test time window.</li>
+    <li><strong>Cleanup</strong> -- Removes all test artifacts with per-item success/failure reporting.</li>
+    <li><strong>Summary report</strong> -- Pass/fail per Event ID, cleanup status, and guidance for any failures.</li>
+  </ol>
+
+  <h3>Interpreting Results</h3>
+  <p>A <strong>[PASS]</strong> result means the Sysmon event appeared in the log within the wait period. A <strong>[FAIL]</strong> result may indicate:</p>
+  <ul>
+    <li>The Sysmon config does not monitor this event type (check your config's RuleGroup for the Event ID)</li>
+    <li>The event type is disabled in the config (e.g., ImageLoad and FileDelete are disabled by default in most ICS Watch Dog configs)</li>
+    <li>Event log propagation was slower than the wait period -- re-run with <code>-WaitSeconds 30</code></li>
+    <li>The config uses include rules that did not match the specific test action (review the rule conditions)</li>
+  </ul>
+  <p>Not all Event IDs will pass with every config. For example, the community file-create-only config only monitors Event ID 11 -- all other tests will correctly show [FAIL]. The test validates what <em>your</em> config detects.</p>
+</section>
+
+<section class="read-section">
+  <h2>Event ID Test Details</h2>
+  <p>The following table describes each test action and what it validates:</p>
+
+  <h3>Observation-Only Tests (Default)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Event ID</th>
+        <th>Event Type</th>
+        <th>Test Action</th>
+        <th>Config Rule Matched</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>ProcessCreate</td>
+        <td>Starts notepad.exe (hidden window, closed immediately)</td>
+        <td>Exclude-based: notepad.exe is not in the exclude list</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>NetworkConnect</td>
+        <td>TCP connection to example.com port 80 (no data sent)</td>
+        <td>Exclude-based: PowerShell is not excluded</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>ProcessTerminate</td>
+        <td>Stops the notepad.exe process started above</td>
+        <td>Exclude-based: notepad.exe is not excluded</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>FileCreate</td>
+        <td>Creates a .bat file in the user Temp directory</td>
+        <td>Include-based: matches .bat extension and Temp path rules</td>
+      </tr>
+      <tr>
+        <td>15</td>
+        <td>FileCreateStreamHash</td>
+        <td>Creates a .exe file in the user Temp directory</td>
+        <td>Include-based: matches .exe extension rule</td>
+      </tr>
+      <tr>
+        <td>17</td>
+        <td>PipeCreate</td>
+        <td>Creates a named pipe (ICSWatchDog-EfficacyTest-Pipe)</td>
+        <td>Exclude-based: custom pipe name is not in the exclude list</td>
+      </tr>
+      <tr>
+        <td>18</td>
+        <td>PipeConnect</td>
+        <td>Connects to the named pipe created above</td>
+        <td>Exclude-based: custom pipe name is not in the exclude list</td>
+      </tr>
+      <tr>
+        <td>22</td>
+        <td>DnsQuery</td>
+        <td>DNS query for icswatchdog-efficacy-test.example.com (non-existent, fails harmlessly)</td>
+        <td>Exclude-based: test domain is not in the exclude list</td>
+      </tr>
+      <tr>
+        <td>26</td>
+        <td>FileDeleteDetected</td>
+        <td>Deletes the .bat test file created by the EID 11 test</td>
+        <td>Include-based: matches .bat extension rule</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>System Change Tests (Requires -AllowSystemChanges)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Event ID</th>
+        <th>Event Type</th>
+        <th>Test Action</th>
+        <th>Config Rule Matched</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>12</td>
+        <td>RegistryCreate</td>
+        <td>Creates a value in HKCU\...\CurrentVersion\Run</td>
+        <td>Include-based: matches Run key monitoring rule</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td>RegistryValueSet</td>
+        <td>Sets the value created above (points to non-existent executable)</td>
+        <td>Include-based: matches Run key monitoring rule</td>
+      </tr>
+      <tr>
+        <td>19</td>
+        <td>WmiFilterCreate</td>
+        <td>Creates a WMI event filter (harmless query, cleaned up)</td>
+        <td>Exclude-based (empty exclude): all WMI events logged</td>
+      </tr>
+      <tr>
+        <td>20</td>
+        <td>WmiConsumerCreate</td>
+        <td>Creates a WMI command-line consumer (points to non-existent executable)</td>
+        <td>Exclude-based (empty exclude): all WMI events logged</td>
+      </tr>
+      <tr>
+        <td>21</td>
+        <td>WmiBindingCreate</td>
+        <td>Binds the filter to the consumer (cleaned up immediately)</td>
+        <td>Exclude-based (empty exclude): all WMI events logged</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section">
+  <h2>Event IDs Not Tested</h2>
+  <p>The following Event IDs are not included in the script because they cannot be safely triggered from PowerShell without risking system stability or requiring specialized tools:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Event ID</th>
+        <th>Event Type</th>
+        <th>Why Not Tested</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>2</td>
+        <td>FileCreateTime</td>
+        <td>Requires modifying file timestamps (timestomping) -- suspicious activity on a production system</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>DriverLoad</td>
+        <td>Requires loading a kernel driver -- unsafe on production systems</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>ImageLoad</td>
+        <td>Disabled by default in most configs due to extreme event volume; can generate millions of events per day</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>CreateRemoteThread</td>
+        <td>Requires injecting a thread into another process -- process injection technique</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>RawAccessRead</td>
+        <td>Disabled by default in most configs; requires raw disk reads</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>ProcessAccess</td>
+        <td>Config only monitors lsass.exe access; testing requires opening a handle to LSASS</td>
+      </tr>
+      <tr>
+        <td>23</td>
+        <td>FileDelete (archived)</td>
+        <td>Disabled by default; archives deleted files to disk, consuming storage</td>
+      </tr>
+      <tr>
+        <td>25</td>
+        <td>ProcessTampering</td>
+        <td>Requires process hollowing or herpaderping techniques -- advanced offensive operations</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>To test these Event IDs, use dedicated security testing tools in a lab environment (see <a href="#advanced-testing">Advanced Testing Tools</a> below).</p>
+</section>
+
+<section class="read-section">
+  <h2 id="manual-cleanup">Manual Cleanup</h2>
+  <p>If the script reports cleanup failures, use these commands to manually remove test artifacts. All artifacts use the prefix <code>ICSWatchDog-EfficacyTest</code> for easy identification.</p>
+
+  <h3>Files</h3>
+  <p>Test files are created in the user's Temp directory:</p>
+  <pre><code># Check for remaining test files
+Get-ChildItem -Path $env:TEMP -Filter "ICSWatchDog-EfficacyTest*"
+
+# Remove them
+Remove-Item -Path "$env:TEMP\ICSWatchDog-EfficacyTest*" -Force</code></pre>
+
+  <h3>Registry</h3>
+  <p>The system change test creates a single value in the HKCU Run key:</p>
+  <pre><code># Check for the test registry value
+Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ICSWatchDog-EfficacyTest" -ErrorAction SilentlyContinue
+
+# Remove it
+Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ICSWatchDog-EfficacyTest" -Force</code></pre>
+  <div class="callout callout-warning">
+    <p><strong>Important:</strong> If the registry value is not removed, Windows will attempt to launch <code>C:\ICSWatchDog-EfficacyTest-DoesNotExist.exe</code> at next logon. This will fail harmlessly (the file does not exist) but will generate an error message.</p>
+  </div>
+
+  <h3>WMI Subscriptions</h3>
+  <p>The system change test creates three WMI objects. Remove them in this order (binding first, then consumer, then filter):</p>
+  <pre><code># Remove binding
+Get-WmiObject -Namespace "root/subscription" -Class "__FilterToConsumerBinding" |
+  Where-Object { $_.Filter -like "*ICSWatchDog-EfficacyTest*" } | Remove-WmiObject
+
+# Remove consumer
+Get-WmiObject -Namespace "root/subscription" -Class "CommandLineEventConsumer" |
+  Where-Object { $_.Name -eq "ICSWatchDog-EfficacyTest-Consumer" } | Remove-WmiObject
+
+# Remove filter
+Get-WmiObject -Namespace "root/subscription" -Class "__EventFilter" |
+  Where-Object { $_.Name -eq "ICSWatchDog-EfficacyTest-Filter" } | Remove-WmiObject</code></pre>
+  <p>To verify all WMI test objects are removed:</p>
+  <pre><code># Should return no results
+Get-WmiObject -Namespace "root/subscription" -Class "__EventFilter" |
+  Where-Object { $_.Name -like "*ICSWatchDog*" }
+Get-WmiObject -Namespace "root/subscription" -Class "CommandLineEventConsumer" |
+  Where-Object { $_.Name -like "*ICSWatchDog*" }
+Get-WmiObject -Namespace "root/subscription" -Class "__FilterToConsumerBinding" |
+  Where-Object { $_.Filter -like "*ICSWatchDog*" }</code></pre>
+</section>
+
+<section class="read-section">
+  <h2 id="advanced-testing">Advanced Testing Tools</h2>
+  <p>The ICS Watch Dog efficacy test script is a focused smoke test. For organizations wanting deeper adversary emulation and detection validation, these tools provide broader coverage:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Type</th>
+        <th>Best For</th>
+        <th>OT Suitability</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://github.com/redcanaryco/atomic-red-team" target="_blank" rel="noopener">Atomic Red Team</a></td>
+        <td>Open source, PowerShell-based</td>
+        <td>ATT&amp;CK-mapped detection tests (1,070+ techniques)</td>
+        <td>Lab only -- many tests are destructive or modify system state significantly</td>
+      </tr>
+      <tr>
+        <td><a href="https://github.com/ScarredMonk/SysmonSimulator" target="_blank" rel="noopener">SysmonSimulator</a></td>
+        <td>Open source, C binary</td>
+        <td>Triggering specific Sysmon Event IDs including unsafe ones (8, 10, 25)</td>
+        <td>Lab only -- uses process injection and other offensive techniques</td>
+      </tr>
+      <tr>
+        <td><a href="https://caldera.mitre.org/" target="_blank" rel="noopener">MITRE Caldera</a></td>
+        <td>Open source, C2 platform</td>
+        <td>Automated adversary emulation with agent-based execution</td>
+        <td>Lab only -- requires C2 infrastructure and agent deployment</td>
+      </tr>
+      <tr>
+        <td><a href="https://scythe.io/" target="_blank" rel="noopener">Scythe</a></td>
+        <td>Commercial</td>
+        <td>Purple team exercises with repeatable campaigns</td>
+        <td>Lab only -- commercial platform for mature security programs</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warning">
+    <p><strong>Do not run adversary emulation tools on production OT systems.</strong> These tools perform actions that can disrupt operations, trigger security alerts, and leave artifacts that are difficult to distinguish from real attacks. Always use isolated lab environments that mirror your production setup.</p>
+  </div>
+</section>
+
+<section class="read-section">
+  <h2>When to Test</h2>
+  <p>Run efficacy tests:</p>
+  <ul>
+    <li><strong>After initial Sysmon deployment</strong> -- Confirm the config is working before relying on it for detection.</li>
+    <li><strong>After config changes</strong> -- Verify that rule modifications did not break existing detections.</li>
+    <li><strong>After Sysmon version upgrades</strong> -- Confirm compatibility with the new version.</li>
+    <li><strong>Periodically</strong> -- Quarterly or semi-annually to catch configuration drift or accidental changes.</li>
+    <li><strong>During incident response preparation</strong> -- Validate detection capability as part of IR readiness exercises.</li>
+  </ul>
+</section>

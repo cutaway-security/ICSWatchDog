@@ -2,143 +2,88 @@
 
 ## Current State
 
-**Last Session**: 2026-03-16
+**Last Session**: 2026-03-17
 **Branch**: claude-dev
-**Status**: WIP
+**Status**: Phase 7b in progress (script implemented, pending Windows testing and review)
 
 ## What Was Accomplished
 
-### Phases 1-3c: Complete (see previous sessions)
+### Phases 1-6e: Complete (see previous sessions)
 
-### Phase 4: Documentation (Complete)
+All configs built, documented, deployed. v2 released.
 
-**New pages created (3):**
+### Phase 7: Efficacy Testing (In Progress)
 
-1. **SANS ICS 5 Critical Controls** (`/sans-controls/`)
-   - Dedicated section for each of the 5 controls with how Sysmon supports them
-   - Config-to-control mapping table
-   - Important note that Sysmon monitors process-to-port, not protocol payloads
-   - References to SANS whitepaper, Dragos analysis, CISA/NSA advisories, SANS State of OT Security 2025
+#### Phase 7a: Deep Research (Complete)
 
-2. **Deployment Considerations** (`/deployment/`)
-   - Performance impact table per config level
-   - Network latency explanation (Sysmon does not introduce network latency)
-   - Event log size management guidance
-   - 4-phase deployment approach (Lab -> Non-critical -> Jump hosts -> Operational)
-   - Criticality-based deployment decision table (system type -> recommended config -> priority)
-   - Tuning guide: noise reduction, remote access tool tuning, vendor-specific rule additions
-   - Rollback plan (uninstall, config swap, service stop)
-   - Safety-critical system warning callout
+Researched Sysmon efficacy testing approaches:
+- Atomic Red Team: 1,070+ ATT&CK-mapped tests, heavyweight framework
+- MITRE Caldera: full C2 platform, too invasive for OT
+- Scythe: commercial AEV platform, overkill for config validation
+- SysmonSimulator (Securonix): C binary, covers 25 event types but uses unsafe techniques
+- PSSysmonTools (Matt Graeber): schema validation only, not runtime
+- Key gap: no existing lightweight PS script validates Sysmon config efficacy at runtime
 
-3. **Community Contributions** (`/community/`)
-   - Two contribution paths (PR and GitHub issue)
-   - What to include in contributions (header, rule names, comments, schema version, testing notes)
-   - Naming convention for community configs
-   - Review process
-   - Current community configs table
-   - Disclaimer for community configs
+Findings: safe PS techniques exist for EIDs 1, 3, 5, 11, 12/13, 15, 17/18, 19/20/21, 22, 26.
+Unsafe/disabled EIDs skipped: 2, 6, 7, 8, 9, 10, 23, 25.
 
-**Existing page updates:**
-- **Getting Started**: Added performance/latency section with link to Deployment Considerations
-- **Footer**: Added disclaimer with link to Deployment Considerations
-- **Navigation**: Guides dropdown now includes Deployment Considerations, SANS ICS 5 Controls, Community Contributions
+#### Phase 7b: Script Design and Implementation (In Progress)
 
-**Build verification:** 0.013s, 6 pages generated, no errors
+Analyzed all 8 curated configs to understand include/exclude rule logic. Designed test
+triggers to match actual config include rules (not just generate events, but generate
+events that the configs are designed to capture).
 
-### CutSec Frontend Standards Adoption
+Implemented tools/Test-SysmonConfig.ps1:
+- Pre-flight checks: admin privileges, Sysmon service, event log access, PS version
+- Planned changes display: full list of every action with warnings
+- Confirmation prompt (with -SkipConfirmation override)
+- 14 event triggers across 11 Event IDs, all safe and reversible
+- Configurable wait for event log propagation (-WaitSeconds, default 10)
+- Event verification via Get-WinEvent with FilterHashtable and XPath
+- Per-artifact cleanup with success/failure reporting
+- Summary report with pass/fail, cleanup status, manual remediation reference
+- Skipped EID documentation with pointers to external tools
 
-Adopted updated CutSec base template standards across website components:
+Added -AllowSystemChanges flag: registry and WMI tests require explicit opt-in.
+OT admins run observation-only tests by default (9 EIDs); system-modifying tests
+(5 EIDs) only execute when the flag is provided.
 
-**CSS (docs/css/style.css):**
-- Added missing design tokens: query/response block colors, timing badge BEM variants, --color-btn-text, --color-danger-light
-- Added details/summary (.details-styled) styles for HTML5 collapsible sections
-- Added JS-based .collapsible component styles (advanced use only)
-- Added query-block and response-block component styles (copy-to-clipboard, toggleable content)
-- Added module navigation (.module-nav) and progress (.module-progress) styles
-- Added timing badge container styles (.timing-badges, .section-timing)
-- Added blockquote styles
-- Unified card grid classes (.card-grid alongside .config-grid)
-- Updated --max-width from 920px to 960px (CutSec standard)
-- Updated print styles to hide interactive buttons (copy-btn, toggle-btn, section-toggle)
-- Updated responsive rules for new section classes
-
-**JS (docs/js/main.js):**
-- Replaced single-purpose theme toggle with full CutSec delegated-handler pattern
-- Added delegated click handler on document (CSP-compatible, no inline event attributes)
-- Added copy-to-clipboard handler for .copy-btn (with clipboard API fallback)
-- Added response block toggle handler for .toggle-btn
-- Added collapsible section toggle handler for .section-toggle
-- Added mobile nav toggle handler (moved from inline onclick)
-- Theme toggle now uses delegation instead of direct addEventListener
-
-**HTML (docs/_includes/nav.html):**
-- Removed inline onclick from mobile hamburger button (now handled via delegation)
-
-**Verification:**
-- Zero inline event handlers in all HTML files (confirmed via scan)
-- details/summary collapsible sections work with JS disabled (native HTML5)
-- Jekyll build not tested (Jekyll not installed in current environment; previous sessions verified builds successfully)
+Pending: testing on Windows system with Sysmon installed.
 
 ## In Progress
 
-None. All phases complete. v2 released.
+Phase 7c complete. Awaiting review before merge and release.
 
 ## Blockers
 
-None.
+None. Script cannot be tested on current Linux dev environment -- requires Windows + Sysmon.
 
 ## Completed This Session
 
-- Verified Phase 5 release status: all items confirmed done
-- Updated PLAN.md Phase 5 to Complete
-- Planned Phase 6: Config Expansion
-- Conducted Phase 6a research (4 parallel research tracks):
-  1. Workstation vs server Sysmon differentiation (process noise, exclusions, monitoring targets)
-  2. CIS Benchmark alignment (control mapping, Sysmon-extends-CIS, hardening impact)
-  3. AD/DC-specific Sysmon monitoring (MITRE ATT&CK, structural config differences)
-  4. Database + web server monitoring (multi-engine coverage, combined config approach)
-- Additional research based on review feedback:
-  5. Non-MSSQL databases (PostgreSQL, MySQL/MariaDB, Oracle, MongoDB, InfluxDB)
-  6. Non-IIS web servers (Apache httpd, Nginx, Tomcat)
-  7. Sectioned config vs separate files (community practices, enterprise deployment patterns)
-  8. Combined database+web config for colocated services (common in OT: Ignition, AVEVA)
-- Key decisions from research:
-  - Workstation/server split: justified (fundamentally different noise profiles)
-  - CIS alignment: documentation/labels only, not separate config variants
-  - AD/DC: separate config (structural changes required)
-  - Database + web server: combined into single server-services config (all engines)
-  - No separate OT server baseline or historian configs (covered by server-services + guidance)
-  - Separate complete files, not commented sections (matches enterprise GPO practice)
-  - Total curated configs: 8 (4 new, 2 stubs to complete, 2 unchanged)
-- Updated PLAN.md with research findings, revised phases (6a-6e), new decisions
-- Updated ARCHITECTURE.md with revised config model, file organization, server services coverage tables
+- Conducted Phase 7a deep research (efficacy testing tools, safe PS techniques, OT constraints)
+- Reviewed user feedback and incorporated design decisions into plan
+- Updated PLAN.md with Phase 7 (three sub-phases, 8 decision log entries)
+- Analyzed all 8 curated Sysmon configs for Event ID coverage and rule logic
+- Implemented tools/Test-SysmonConfig.ps1 (PowerShell 3+, ~450 lines)
+- Updated PLAN.md Phase 7b task list with actual implementation details
+- Updated RESUME.md
 
 ## Next Steps
 
-1. Verify Jekyll build locally (requires bundle install with vendor/bundle path)
+1. Review Phase 7c documentation and script updates
 2. Merge to main (exclude docs/ and claude-dev/)
 3. Deploy site to gh-pages
 4. Verify all site links
-5. Tag release (v2)
+5. Tag release
+6. Test script on Windows system with Sysmon installed
 
 ## Files Modified This Session
 
 | File | Change |
 |------|--------|
-| claude-dev/PLAN.md | All phases 6a-6e tracked, decision log updated |
-| claude-dev/ARCHITECTURE.md | Config model revised, file organization updated, coverage tables added |
-| claude-dev/RESUME.md | Updated with session progress |
-| sysmon-configs/sysmonconfig-baseline-it.xml | Renamed to sysmonconfig-baseline-it-workstation.xml, header updated (CIS, version) |
-| sysmon-configs/sysmonconfig-baseline-it-server.xml | New: server baseline with server-specific exclusions |
-| sysmon-configs/sysmonconfig-baseline-ot.xml | Added CIS Benchmark alignment label and reference |
-| sysmon-configs/sysmonconfig-enhanced-ot.xml | Complete rewrite: industrial port monitoring, expanded vendor coverage |
-| sysmon-configs/sysmonconfig-advanced-ot.xml | Complete rewrite: Event IDs 27-29, MITRE ATT&CK, role-specific guidance |
-| sysmon-configs/sysmonconfig-jumphost.xml | Added CIS Benchmark alignment and MITRE ATT&CK labels |
-| sysmon-configs/sysmonconfig-server-ad.xml | New: AD/DC config with RawAccessRead, NTDS/SYSVOL, LSASS tuning |
-| sysmon-configs/sysmonconfig-server-services.xml | New: combined database + web server, all engines, ImageLoad for web |
-| README.md | Updated config table, Quick Start, removed "In Development" |
-| docs/_pages/configurations.html | Added server-ad and server-services sections, updated all descriptions |
-| docs/_pages/getting-started.html | Updated download links for workstation/server split |
-| docs/_includes/nav.html | Updated navigation dropdown for new config structure |
-| docs/index.html | Updated landing page config cards (6 cards) |
-| docs/_pages/deployment.html | Updated performance table, criticality-based decisions, phased deployment |
+| claude-dev/PLAN.md | Added Phase 7 (7a/7b/7c), 9 decision log entries, updated current phase |
+| claude-dev/RESUME.md | Updated with Phase 7 session activity |
+| tools/Test-SysmonConfig.ps1 | New: efficacy test script (PS 3+, 14 triggers, 11 Event IDs, -AllowSystemChanges flag) |
+| docs/_pages/efficacy-testing.html | New: efficacy testing guide (usage, test details, manual cleanup, advanced tools) |
+| docs/_includes/nav.html | Added Efficacy Testing to Guides dropdown |
+| README.md | Added Efficacy Testing section with script usage |

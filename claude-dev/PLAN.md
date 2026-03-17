@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: All phases complete.
-**Status**: Complete
-**Focus**: v2 released with expanded config set.
+**Phase**: Phase 7 - Efficacy Testing
+**Status**: Phase 7a complete (research). Phase 7b next (script design and implementation).
+**Focus**: PowerShell validation script for Sysmon config efficacy testing.
 
 ## Phases
 
@@ -309,6 +309,102 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-03-16 | No separate OT server baseline or OT historian configs | OT historians are specialized database/web servers; covered by server-services config + OT vendor tuning guidance in documentation |
 | 2026-03-16 | Separate complete files, not commented sections | Commented XML sections are error-prone; no major Sysmon project uses them for role blocks; matches enterprise GPO deployment pattern |
 | 2026-03-16 | Minimize config count to avoid overwhelming OT admins | Only create separate configs when structural Sysmon differences (enabling/disabling Event IDs, fundamentally different exclusion logic) justify it; tuning notes in documentation otherwise |
+| 2026-03-17 | Single efficacy test script, not per-config-tier | Events log or they do not; one script tests all safely-testable EIDs |
+| 2026-03-17 | No external dependencies for efficacy script | Simplicity; OT environments may have restricted internet and software install policies |
+| 2026-03-17 | Skip dangerous Event IDs (8, 10, 25) entirely | Safety on live systems; knowledgeable admins can use SysmonSimulator or Atomic Red Team |
+| 2026-03-17 | Account for event log propagation delay | Sysmon event log writes are not instantaneous; verification must wait before querying |
+| 2026-03-17 | Script must display all planned changes before execution | OT environments require change awareness; admins must know exactly what will be modified |
+| 2026-03-17 | Cleanup verification with manual fallback documentation | Failed cleanup must be reported and documented; manual steps in guide appendix |
+| 2026-03-17 | Script requires administrator privileges | Get-WinEvent for Sysmon log needs elevation; explicit requirement, not optional |
+| 2026-03-17 | Script location: tools/ directory | Separate from configs; clear purpose distinction |
+| 2026-03-17 | System-modifying tests require -AllowSystemChanges flag | OT admins are change-averse; registry and WMI modifications must be explicitly opted into |
+
+### Phase 7: Efficacy Testing
+
+**Status**: Not Started
+
+Provide a PowerShell 3+ validation script that confirms ICS Watch Dog Sysmon configs
+generate expected events. Single script, safe for live systems, focused smoke test
+(not adversary emulation).
+
+Design considerations:
+- Single script that tests all safely-testable Event IDs in one run (no config-tier parameter; events log or they do not)
+- No external dependencies -- pure PowerShell 3+, no modules to install
+- Requires administrator privileges (Get-WinEvent for Sysmon log needs elevation); script must check and exit if not elevated
+- Event log generation has inherent delay; verification queries must account for timing (sleep/retry before checking)
+- Safe by default -- only TEMP files, localhost/example.com connections, benign processes, ephemeral pipes, DNS
+- System-modifying tests (registry Run key, WMI subscriptions) require explicit -AllowSystemChanges flag
+- Must display warnings and a complete list of all changes the script will make before executing
+- Cleanup must be verified and reported (success/failure per artifact)
+- Failed cleanup must be clearly reported with manual remediation steps referenced in documentation appendix
+- Skip dangerous Event IDs entirely (8, 10, 25) -- admins wanting those are knowledgeable enough to use SysmonSimulator or Atomic Red Team
+- Script lives in tools/ directory
+- Documentation references Atomic Red Team, MITRE Caldera, and Scythe for organizations wanting deeper adversary emulation testing
+
+#### Phase 7a: Deep Research
+
+- [x] Research safe PowerShell techniques for triggering each Sysmon Event ID
+- [x] Research existing tools (Atomic Red Team, SysmonSimulator, PSSysmonTools, Caldera, Scythe)
+- [x] Research OT/ICS safety constraints for efficacy testing
+- [x] Research PowerShell event log querying for Sysmon verification
+- [x] Document findings and finalize script design considerations
+
+Key findings:
+- No existing lightweight PS script validates Sysmon config efficacy at runtime (gap in tooling)
+- Safe PS techniques exist for EIDs 1, 3, 11, 12/13/14, 17/18, 19/20/21, 22, 23
+- EIDs 8, 10, 25 require unsafe operations (process injection, handle manipulation, hollowing) -- skip
+- EID 7 (ImageLoad) can be triggered via Add-Type but is extremely high volume -- include only if config enables it
+- Get-WinEvent with FilterHashtable and time window is the verification method
+- Sysmon event log delay is real and must be accounted for in verification timing
+- OT safety: only benign actions, full cleanup, no impact on system stability
+
+#### Phase 7b: Script Design and Implementation
+
+- [x] Design script structure:
+      - Pre-flight checks (admin privileges, Sysmon running, Sysmon log accessible, PS version)
+      - Display warnings and full list of actions before execution
+      - Prompt for confirmation before proceeding (with -SkipConfirmation override)
+      - Record start timestamp for event log queries
+      - Trigger functions per Event ID (safe, benign actions only)
+      - Configurable wait for event log propagation delay (-WaitSeconds parameter)
+      - Verification functions (Get-WinEvent with FilterHashtable and XPath for precise matching)
+      - Cleanup functions with per-artifact success/failure reporting
+      - Summary report: pass/fail per Event ID, cleanup status, manual steps if cleanup fails
+- [x] Define testable Event IDs and trigger methods:
+      - EID 1 (ProcessCreate): Start-Process notepad.exe (hidden window)
+      - EID 3 (NetworkConnect): TcpClient to example.com:80
+      - EID 5 (ProcessTerminate): Stop-Process on test notepad
+      - EID 11 (FileCreate): Set-Content .bat in Temp (matches include rules)
+      - EID 12 (RegistryCreate): New-ItemProperty in HKCU Run key (matches include rules)
+      - EID 13 (RegistryValueSet): Same operation generates both 12 and 13
+      - EID 15 (FileCreateStreamHash): Set-Content .exe in Temp (matches include rules)
+      - EID 17/18 (PipeCreate/PipeConnect): NamedPipeServerStream + NamedPipeClientStream
+      - EID 19/20/21 (WMI): Set-WmiInstance for filter/consumer/binding, then cleanup
+      - EID 22 (DNSQuery): .NET DNS resolver for non-existent test domain
+      - EID 26 (FileDeleteDetected): Remove-Item .bat file (matches include rules)
+      Note: Removed EID 14 (RegistryRename) -- not independently testable without
+      touching monitored paths beyond what is needed. EID 12/13 cover registry validation.
+- [x] Implement script in tools/Test-SysmonConfig.ps1
+- [ ] Test script on Windows system with Sysmon installed
+
+#### Phase 7c: Documentation and Integration
+
+- [x] Create efficacy testing documentation page for website (docs/_pages/efficacy-testing.html)
+      - What efficacy testing is and why it matters for Sysmon deployments
+      - Script requirements, download link, usage examples
+      - Test groups table (observation-only vs system changes)
+      - How it works (8-step flow)
+      - Interpreting results guidance
+      - Event ID test details (two tables: default and system change tests)
+      - Event IDs not tested (table with reasons)
+      - Manual cleanup appendix (files, registry, WMI with exact commands)
+      - Advanced testing tools (Atomic Red Team, SysmonSimulator, Caldera, Scythe)
+      - When to test guidance
+- [x] Add tools/ directory with script to repository
+- [x] Update README.md with efficacy testing section and script usage
+- [x] Update website navigation (Guides dropdown: added Efficacy Testing)
+- [x] Verify Jekyll build (0.015s, 8 pages, no errors)
+- [ ] Merge and release
 
 ## Out of Scope
 
@@ -316,5 +412,5 @@ Two role-specific server configs, each self-contained (includes server baseline 
 - SIEM-specific integration guides
 - Non-Windows endpoint monitoring
 - Comprehensive vendor-specific ICS application rule sets (examples and guidance provided, not exhaustive configs)
-- Config testing on live ICS systems (testing is on general Windows)
 - Industrial protocol content inspection (Sysmon monitors process-to-port connections, not protocol payloads)
+- Adversary emulation or red team tooling (references provided for external tools)

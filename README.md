@@ -55,6 +55,22 @@ sysmon.exe -accepteula -i sysmonconfig-baseline-it-workstation.xml
 
 For detailed instructions, see the [Getting Started](https://icswatchdog.com/getting-started/) guide on the project website.
 
+## Efficacy Testing
+
+After deploying Sysmon, validate that your configuration is generating the expected events. The included test script performs safe actions and checks the Sysmon event log for results:
+
+```
+# Run observation-only tests (no system changes)
+.\tools\Test-SysmonConfig.ps1
+
+# Include registry and WMI tests (modifies system state, cleaned up automatically)
+.\tools\Test-SysmonConfig.ps1 -AllowSystemChanges
+```
+
+Requires: Administrator privileges, Sysmon installed and running, PowerShell 3+. No external dependencies.
+
+For details, see the [Efficacy Testing](https://icswatchdog.com/efficacy-testing/) guide.
+
 ## Disclaimer
 
 These configurations are provided as-is for educational and operational use. They are NOT tested against all environments and may require tuning for your specific systems. Cutaway Security, LLC and contributors assume no liability for any impact resulting from the use of these configurations. Users are responsible for testing in their own environments before production deployment. This is especially critical in ICS/OT environments where system availability and safety are paramount.

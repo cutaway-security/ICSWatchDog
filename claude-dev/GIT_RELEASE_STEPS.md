@@ -11,7 +11,7 @@ All development occurs on the `claude-dev` branch. Releases strip development fi
 
 | Item | Format | Example | Purpose |
 |------|--------|---------|---------|
-| Dev snapshot tag | `tag-v#` | `tag-v3` | Marks the claude-dev state that produced a release |
+| Dev snapshot tag | `dev-v#` | `dev-v3` | Marks the claude-dev state that produced a release |
 | Release branch | `release-v#` | `release-v3` | Temporary branch for stripping dev files |
 | Main release tag | `v#` | `v3` | Marks the public release on main; used for rollbacks |
 
@@ -48,7 +48,7 @@ Expected: `On branch claude-dev` with `nothing to commit, working tree clean`. I
 ### 2. Tag the release on claude-dev
 
 ```bash
-git tag -a tag-v# -m "Release v#: <brief description>"
+git tag -a dev-v# -m "Release v#: <brief description>"
 git push origin --tags
 ```
 
@@ -68,6 +68,15 @@ git rm -r claude-dev/
 git rm -r docs/
 git rm CLAUDE.md
 git status
+```
+
+**NOTE:** `git rm -r docs/` only removes tracked files. If you have run Jekyll
+locally (`bundle install`, `jekyll build`), untracked files will remain on disk
+(vendor/bundle/, _site/, .bundle/). These are in .gitignore and will NOT be in
+the commit. If the docs/ directory still appears after `git rm`, clean up with:
+
+```bash
+rm -rf docs/vendor docs/_site docs/.bundle
 ```
 
 Confirm: only development file deletions are staged. No unexpected changes.
