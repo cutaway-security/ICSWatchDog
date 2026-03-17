@@ -1,0 +1,443 @@
+---
+layout: default
+title: Sysmon and Ransomware Detection
+permalink: /ransomware/
+---
+
+<h1>Sysmon and Ransomware Detection for ICS/OT</h1>
+<p>This guide explains how Sysmon detects ransomware activity, what it cannot detect, and how ICS Watch Dog configurations provide ransomware-relevant telemetry across all tiers.</p>
+
+<div class="callout callout-warning">
+  <p><strong>Important:</strong> Sysmon is primarily a <strong>detection and forensic telemetry tool</strong>, not a prevention tool. It generates event logs that reveal ransomware activity, but it does not block or quarantine threats. Two exceptions exist: Event ID 27 (FileBlockExecutable) and Event ID 28 (FileBlockShredding) in schema 4.90 configs can block specific file operations. Defense in depth is required -- see the <a href="#defense-in-depth">Defense in Depth</a> section.</p>
+</div>
+
+<section class="read-section">
+  <h2>How Ransomware Attacks Work</h2>
+  <p>Ransomware attacks follow a predictable progression. Understanding each stage helps explain which Sysmon Event IDs provide detection at each point.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Kill Chain Stage</th>
+        <th>What Happens</th>
+        <th>Sysmon Event IDs</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Initial Access</strong></td>
+        <td>Phishing attachment, exploit, or compromised credentials deliver the payload</td>
+        <td>11 (FileCreate), 15 (FileStreamHash), 22 (DnsQuery)</td>
+      </tr>
+      <tr>
+        <td><strong>Execution</strong></td>
+        <td>Ransomware binary or script runs, often via LOLBins (certutil, mshta, PowerShell)</td>
+        <td>1 (ProcessCreate), 7 (ImageLoad), 19-21 (WmiEvent)</td>
+      </tr>
+      <tr>
+        <td><strong>Persistence</strong></td>
+        <td>Registry autostart keys, scheduled tasks, malicious drivers installed</td>
+        <td>12-14 (RegistryEvent), 11 (FileCreate), 6 (DriverLoad)</td>
+      </tr>
+      <tr>
+        <td><strong>Privilege Escalation</strong></td>
+        <td>Credential dumping (LSASS), process injection, vulnerable driver loading (BYOVD)</td>
+        <td>10 (ProcessAccess), 8 (CreateRemoteThread), 6 (DriverLoad)</td>
+      </tr>
+      <tr>
+        <td><strong>Lateral Movement</strong></td>
+        <td>SMB/RDP/WinRM connections, PsExec, WMI-based remote execution</td>
+        <td>3 (NetworkConnect), 17-18 (PipeEvent), 1 (ProcessCreate)</td>
+      </tr>
+      <tr>
+        <td><strong>Impact</strong></td>
+        <td>Shadow copy deletion, recovery inhibition, file encryption, ransom note creation</td>
+        <td>1 (ProcessCreate), 11 (FileCreate), 26 (FileDeleteDetected), 25 (ProcessTampering), 27 (FileBlockExecutable), 29 (FileExecutableDetected)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section">
+  <h2>What ICS Watch Dog Configs Detect</h2>
+  <p>All ICS Watch Dog configurations include ransomware detection indicators. The following sections describe each detection category with the specific Sysmon Event IDs and rule patterns used.</p>
+
+  <h3>Recovery Inhibition (Event ID 1: ProcessCreate)</h3>
+  <p>Nearly all ransomware families delete shadow copies and disable recovery before encrypting files. ICS Watch Dog configs detect these commands via ProcessCreate include rules with named RuleNames for SIEM alerting:</p>
+  <ul>
+    <li><code>vssadmin.exe delete shadows /all /quiet</code> -- Shadow copy deletion</li>
+    <li><code>wmic shadowcopy delete</code> -- Shadow copy deletion via WMI</li>
+    <li><code>bcdedit /set recoveryenabled no</code> -- Windows recovery disabled</li>
+    <li><code>bcdedit /set safeboot</code> -- Safe mode boot (Black Basta technique)</li>
+    <li><code>wbadmin delete catalog</code> -- Windows backup catalog deletion</li>
+    <li><code>bcdedit /set bootstatuspolicy ignoreallfailures</code> -- Boot status policy changed</li>
+  </ul>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1490/" target="_blank" rel="noopener">T1490 - Inhibit System Recovery</a></p>
+  <p><strong>Ransomware families:</strong> WannaCry, Ryuk, Conti, LockBit, REvil, BlackCat/ALPHV, EKANS, Black Basta, Akira</p>
+
+  <h3>Security Tool Disablement (Event ID 1 + Events 12-14)</h3>
+  <p>Ransomware disables Windows Defender and other security tools before encrypting. Detected via ProcessCreate command line patterns and registry changes:</p>
+  <ul>
+    <li><code>Set-MpPreference -DisableRealtimeMonitoring $true</code> -- Defender realtime disabled</li>
+    <li><code>Set-MpPreference -ExclusionPath</code> -- Defender exclusions added (e.g., exclude entire drive)</li>
+    <li>Registry: <code>\Policies\Microsoft\Windows Defender</code> -- Group Policy-based Defender disablement</li>
+    <li>Registry: <code>\Control\SafeBoot</code> -- Safe mode persistence (ensures ransomware service runs in safe mode where security tools do not load)</li>
+    <li>Registry: <code>\SecurityProviders\WDigest</code> -- Plaintext credential caching enabled</li>
+    <li>Registry: <code>\Autologger\EventLog-Microsoft-Windows-Sysmon</code> -- Sysmon logging tampered with</li>
+  </ul>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1562/001/" target="_blank" rel="noopener">T1562.001 - Disable or Modify Tools</a></p>
+
+  <h3>Credential Dumping (Event ID 10: ProcessAccess)</h3>
+  <p>Virtually all human-operated ransomware campaigns dump credentials from LSASS to obtain domain admin access for lateral movement. All ICS Watch Dog configs monitor for any non-system process accessing lsass.exe:</p>
+  <ul>
+    <li>Mimikatz accessing lsass.exe memory</li>
+    <li>Impacket secretsdump</li>
+    <li><code>rundll32.exe comsvcs.dll, MiniDump</code> -- LSASS memory dump via built-in DLL</li>
+  </ul>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1003/" target="_blank" rel="noopener">T1003 - OS Credential Dumping</a></p>
+
+  <h3>Process Injection and Tampering (Event IDs 8, 25)</h3>
+  <p>Ransomware injects code into legitimate processes to evade detection and encrypt from trusted contexts:</p>
+  <ul>
+    <li><strong>Event ID 8 (CreateRemoteThread)</strong> -- Detects code injection via remote thread creation. Ryuk, REvil, and BlackByte use this technique.</li>
+    <li><strong>Event ID 25 (ProcessTampering)</strong> -- Detects process hollowing and herpaderping. BlackByte 2.0 hollows svchost.exe before encrypting. Legitimate software does not use these techniques, making this a high-fidelity indicator.</li>
+  </ul>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1055/" target="_blank" rel="noopener">T1055 - Process Injection</a></p>
+
+  <h3>C2 Named Pipes (Event IDs 17-18: PipeEvent)</h3>
+  <p>Ransomware operators typically use C2 frameworks like Cobalt Strike to manage compromised networks before deploying ransomware. ICS Watch Dog configs include named pipe detection rules for known C2 indicators:</p>
+  <ul>
+    <li><strong>Cobalt Strike:</strong> <code>\MSSE-*-server</code>, <code>\postex_*</code>, <code>\status_*</code>, <code>\msagent_*</code></li>
+    <li><strong>Lateral movement:</strong> <code>\PSEXESVC</code> (PsExec), <code>\paexec</code>, <code>\remcom</code>, <code>\csexec</code></li>
+    <li><strong>Credential tools:</strong> <code>\lsadump</code>, <code>\cachedump</code>, <code>\wceservicepipe</code></li>
+  </ul>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1021/" target="_blank" rel="noopener">T1021 - Remote Services</a></p>
+
+  <h3>Ransom Note Detection (Event ID 11: FileCreate)</h3>
+  <p>OT configurations and the Jump Host config include FileCreate rules that detect common ransom note filename patterns. On an OT system, files with names containing DECRYPT, RANSOM, or RECOVER are highly suspicious:</p>
+  <ul>
+    <li>Files containing "DECRYPT" in the filename</li>
+    <li>Files containing "RANSOM" in the filename</li>
+    <li>Files containing "RECOVER" in the filename</li>
+    <li><code>Decrypt-Your-Files.txt</code> -- EKANS ransomware specific</li>
+  </ul>
+  <p><strong>Note:</strong> These rules are included in OT configs and the Jump Host config but not IT baseline configs, where filenames containing these terms are more common in normal business use.</p>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1486/" target="_blank" rel="noopener">T1486 - Data Encrypted for Impact</a></p>
+
+  <h3>Backup and Database File Deletion (Event ID 26: FileDeleteDetected)</h3>
+  <p>Ransomware deletes backup files and database data files to prevent recovery. All ICS Watch Dog configs monitor deletion of:</p>
+  <ul>
+    <li><code>.bak</code> -- Database backup files</li>
+    <li><code>.vhd</code> / <code>.vhdx</code> -- Virtual hard disk files</li>
+    <li><code>.mdf</code> / <code>.ldf</code> -- SQL Server data and log files</li>
+  </ul>
+  <p>These deletions, combined with shadow copy deletion commands, are a strong indicator of ransomware activity in progress.</p>
+
+  <h3>BYOVD: Vulnerable Driver Loading (Event ID 6: DriverLoad)</h3>
+  <p>Modern ransomware groups load vulnerable legitimate drivers to disable EDR and antivirus at the kernel level (Bring Your Own Vulnerable Driver). All ICS Watch Dog configs log non-Microsoft driver loads. Notable vulnerable drivers used in ransomware attacks:</p>
+  <ul>
+    <li>RTCore64.sys (MSI) -- used by BlackByte</li>
+    <li>DBUtil_2_3.sys (Dell) -- CVE-2021-21551</li>
+    <li>mhyprot2.sys (Genshin Impact anti-cheat) -- used by multiple ransomware actors</li>
+    <li>ProcExp.sys (Process Explorer) -- legitimate tool abused for AV kill</li>
+  </ul>
+  <p>Cross-reference driver hashes against the <a href="https://www.loldrivers.io/" target="_blank" rel="noopener">LOLDrivers database</a> for known vulnerable drivers.</p>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/techniques/T1562/001/" target="_blank" rel="noopener">T1562.001 - Disable or Modify Tools</a></p>
+
+  <h3>Executable File Detection (Event IDs 27, 29 -- Advanced OT and Jump Host)</h3>
+  <p>Configs using schema 4.90 (Advanced OT and Jump Host) include additional detection capabilities:</p>
+  <ul>
+    <li><strong>Event ID 27 (FileBlockExecutable)</strong> -- Detects (and can block) executable creation in OT vendor directories, Startup folders, and other protected locations. This is one of Sysmon's few <strong>preventive</strong> capabilities. <a href="https://www.cisa.gov/stopransomware/ransomware-guide" target="_blank" rel="noopener">CISA specifically recommends this feature</a> for ransomware mitigation.</li>
+    <li><strong>Event ID 29 (FileExecutableDetected)</strong> -- Detects any new PE (executable) file written to disk, regardless of file extension. Catches ransomware executables disguised as .txt, .jpg, or other non-executable extensions.</li>
+  </ul>
+</section>
+
+<section class="read-section">
+  <h2>ICS-Specific Ransomware</h2>
+  <p>Several ransomware families have specifically targeted ICS/OT environments. The techniques used in these attacks inform the detection rules in ICS Watch Dog configurations.</p>
+
+  <h3>EKANS / Snake</h3>
+  <p>EKANS is the most ICS-specific ransomware to date. Unlike generic ransomware, EKANS contains a hard-coded kill list of ICS processes including GE Proficy and Honeywell HMIWeb. Before encrypting, it:</p>
+  <ul>
+    <li>Performs DNS resolution of the target organization's internal domain to verify it is on the correct victim network</li>
+    <li>Terminates ICS processes and database/backup services (MSSQL, Veeam, Arcserve)</li>
+    <li>Deletes shadow copies via WMI</li>
+    <li>Drops <code>Decrypt-Your-Files.txt</code> as its ransom note</li>
+  </ul>
+  <p><strong>Sysmon detection:</strong> Event ID 1 (process termination commands, shadow copy deletion), Event ID 22 (internal domain DNS resolution), Event ID 11 (ransom note creation)</p>
+  <p><strong>MITRE ATT&CK:</strong> <a href="https://attack.mitre.org/software/S0605/" target="_blank" rel="noopener">S0605 - EKANS</a></p>
+
+  <h3>LockerGoga (Norsk Hydro, 2019)</h3>
+  <p>LockerGoga was deployed via Active Directory Group Policy, forcing password changes to lock out users and encrypting files with a .locked extension. This attack demonstrated how ransomware can leverage AD infrastructure for deployment -- a reason why monitoring domain controllers with the <a href="{{ site.baseurl }}/configurations/#server-ad">Server AD/DC config</a> is critical.</p>
+
+  <h3>Colonial Pipeline (DarkSide, 2021)</h3>
+  <p>The Colonial Pipeline attack targeted the IT network, but the loss of billing and monitoring capability forced OT operations to shut down. This demonstrates that IT-side ransomware can have OT impact even without directly touching OT systems -- and why IT baseline monitoring matters for ICS/OT organizations.</p>
+
+  <h3>What Makes ICS Ransomware Different</h3>
+  <ul>
+    <li><strong>Process kill lists</strong> -- Termination of HMI, SCADA, historian, and PLC programming software before encryption</li>
+    <li><strong>Target validation</strong> -- DNS resolution of internal domains to confirm OT network presence</li>
+    <li><strong>Safety implications</strong> -- Encrypting or crashing safety systems can have physical consequences beyond data loss</li>
+    <li><strong>Recovery complexity</strong> -- OT systems may require vendor involvement to restore, and downtime can affect production</li>
+  </ul>
+</section>
+
+<section class="read-section">
+  <h2>What Sysmon Cannot Detect</h2>
+  <p>Sysmon is a powerful telemetry tool, but it has limitations. Being honest about these limitations helps organizations build appropriate defense in depth.</p>
+  <ul>
+    <li><strong>In-memory-only ransomware</strong> -- Fileless ransomware that never writes an executable to disk evades FileCreate and FileExecutableDetected. However, it is still detectable through ProcessCreate (scripting interpreter), CreateRemoteThread (injection), and ProcessTampering (hollowing).</li>
+    <li><strong>Kernel-level attacks after BYOVD</strong> -- Once an attacker loads a vulnerable driver and gains kernel access, they can disable Sysmon entirely by unloading its driver or zeroing its event log.</li>
+    <li><strong>Network protocol content</strong> -- Sysmon logs process-to-port connections but cannot inspect packet payloads. It cannot detect ICS protocol manipulation (Modbus command injection, S7comm abuse).</li>
+    <li><strong>Encrypted C2 traffic</strong> -- Sysmon logs the connection (IP, port, process) but not the encrypted payload.</li>
+    <li><strong>Safe mode attacks</strong> -- If ransomware forces a safe mode boot and disables Sysmon before reboot, Sysmon may not be running during encryption. Registry monitoring for SafeBoot key changes detects the setup, but not the execution.</li>
+    <li><strong>Evasion techniques</strong> -- Direct syscalls bypassing user-mode hooks, DLL unhooking, and event log clearing can reduce Sysmon's effectiveness.</li>
+  </ul>
+</section>
+
+<section class="read-section">
+  <h2>Config Coverage by Tier</h2>
+  <p>The following table shows which ransomware detection capabilities are available in each ICS Watch Dog configuration tier.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Detection</th>
+        <th>IT Baseline</th>
+        <th>OT Baseline</th>
+        <th>OT Enhanced</th>
+        <th>OT Advanced</th>
+        <th>Jump Host</th>
+        <th>Server AD</th>
+        <th>Server Services</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Shadow copy deletion</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Recovery inhibition (bcdedit)</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Defender/security tool disablement</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>LSASS credential dumping</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Process injection/tampering</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>C2 named pipes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes (log all)</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>SafeBoot/WDigest/Sysmon registry</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Backup file deletion</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>BYOVD driver detection</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>Ransom note filenames</td>
+        <td>--</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>--</td>
+        <td>--</td>
+      </tr>
+      <tr>
+        <td>FileBlockExecutable (Event 27)</td>
+        <td>--</td>
+        <td>--</td>
+        <td>--</td>
+        <td>Yes</td>
+        <td>--</td>
+        <td>--</td>
+        <td>--</td>
+      </tr>
+      <tr>
+        <td>FileExecutableDetected (Event 29)</td>
+        <td>--</td>
+        <td>--</td>
+        <td>--</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>--</td>
+        <td>--</td>
+      </tr>
+      <tr>
+        <td>Industrial port monitoring</td>
+        <td>--</td>
+        <td>--</td>
+        <td>Yes</td>
+        <td>Yes</td>
+        <td>--</td>
+        <td>--</td>
+        <td>--</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section" id="defense-in-depth">
+  <h2>Defense in Depth</h2>
+  <p>Sysmon alone is not sufficient to protect against ransomware. It provides critical detection telemetry, but effective ransomware defense requires multiple layers:</p>
+
+  <h3>Complementary Controls</h3>
+  <ul>
+    <li><strong>EDR/Antivirus</strong> -- Real-time prevention and response. Sysmon provides forensic depth; EDR provides blocking capability.</li>
+    <li><strong>Application whitelisting</strong> -- AppLocker or Windows Defender Application Control (WDAC). Particularly important for OT systems with predictable software profiles.</li>
+    <li><strong>Windows Security Event Logs</strong> -- Sysmon cannot detect DCSync, Golden Ticket, Kerberoasting, or account creation. Windows Event IDs 4662, 4769, 4720, 4738 are required for these. See the <a href="{{ site.baseurl }}/configurations/#server-ad">Server AD/DC config</a> header for complementary audit requirements.</li>
+    <li><strong>Network monitoring</strong> -- IDS/IPS and protocol-aware tools for ICS environments (Zeek, Claroty, Nozomi, Dragos). Sysmon monitors which process connects to which port, not protocol payloads.</li>
+    <li><strong>Backup solutions</strong> -- Offline, tested, ransomware-resistant backups. Sysmon detects backup deletion, but prevention requires proper backup architecture.</li>
+    <li><strong>Network segmentation</strong> -- IT/OT boundary enforcement. Sysmon detects boundary violations but cannot enforce them.</li>
+    <li><strong>Privileged access management</strong> -- Limiting domain admin credentials reduces the blast radius of credential dumping.</li>
+  </ul>
+
+  <h3>Sysmon's Role in OT</h3>
+  <p>In OT environments, Sysmon's detection-only approach (Events 1-26) is well-suited because automated response is dangerous. Isolating an HMI or engineering workstation mid-operation could cause process safety issues. Sysmon informs human operators without interfering with operations, enabling informed manual response decisions.</p>
+  <p>Event IDs 27-28 (blocking) in the Advanced OT config should be used cautiously -- block only in directories where executables should never appear, not in active software directories during maintenance windows.</p>
+</section>
+
+<section class="read-section">
+  <h2>MITRE ATT&CK Reference</h2>
+  <p>Key MITRE ATT&CK techniques relevant to ransomware, mapped to Sysmon Event IDs:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Technique</th>
+        <th>Description</th>
+        <th>Sysmon Events</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1486/" target="_blank" rel="noopener">T1486</a></td>
+        <td>Data Encrypted for Impact</td>
+        <td>11, 26, 29</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1490/" target="_blank" rel="noopener">T1490</a></td>
+        <td>Inhibit System Recovery</td>
+        <td>1</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1489/" target="_blank" rel="noopener">T1489</a></td>
+        <td>Service Stop (ICS process kill)</td>
+        <td>1, 5</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1562/001/" target="_blank" rel="noopener">T1562.001</a></td>
+        <td>Disable or Modify Tools</td>
+        <td>1, 6, 12-14</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1003/" target="_blank" rel="noopener">T1003</a></td>
+        <td>OS Credential Dumping</td>
+        <td>10</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1055/" target="_blank" rel="noopener">T1055</a></td>
+        <td>Process Injection</td>
+        <td>8, 25</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1021/" target="_blank" rel="noopener">T1021</a></td>
+        <td>Remote Services (lateral movement)</td>
+        <td>3, 17-18</td>
+      </tr>
+      <tr>
+        <td><a href="https://attack.mitre.org/techniques/T1112/" target="_blank" rel="noopener">T1112</a></td>
+        <td>Modify Registry</td>
+        <td>12-14</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section">
+  <h2>References</h2>
+  <ul>
+    <li><a href="https://www.cisa.gov/stopransomware/ransomware-guide" target="_blank" rel="noopener">CISA #StopRansomware Guide</a></li>
+    <li><a href="https://attack.mitre.org/techniques/T1486/" target="_blank" rel="noopener">MITRE ATT&CK T1486 - Data Encrypted for Impact</a></li>
+    <li><a href="https://attack.mitre.org/software/S0605/" target="_blank" rel="noopener">MITRE ATT&CK S0605 - EKANS Ransomware</a></li>
+    <li><a href="https://www.loldrivers.io/" target="_blank" rel="noopener">LOLDrivers - Living Off The Land Drivers</a></li>
+    <li><a href="https://www.dragos.com/year-in-review/" target="_blank" rel="noopener">Dragos OT Cybersecurity Year in Review</a></li>
+    <li><a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon" target="_blank" rel="noopener">Microsoft Sysmon Documentation</a></li>
+    <li><a href="https://github.com/SigmaHQ/sigma" target="_blank" rel="noopener">SigmaHQ - Community Detection Rules</a></li>
+    <li><a href="https://www.sans.org/white-papers/five-ics-cybersecurity-critical-controls" target="_blank" rel="noopener">SANS ICS 5 Critical Controls</a></li>
+  </ul>
+</section>
+
+<div class="callout callout-info">
+  <p><strong>Next steps:</strong> Review the <a href="{{ site.baseurl }}/configurations/">Configuration Files</a> to select the right tier for your environment. Read the <a href="{{ site.baseurl }}/deployment/">Deployment Considerations</a> guide for phased rollout planning. All ICS Watch Dog configurations include the ransomware detection indicators described on this page.</p>
+</div>
