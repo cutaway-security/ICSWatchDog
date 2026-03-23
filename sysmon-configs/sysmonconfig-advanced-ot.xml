@@ -102,7 +102,11 @@
 
 <Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
-  <CheckRevocation/>
+  <!-- CheckRevocation: checks loaded driver code-signing certificate revocation status.
+       Requires network access to CRL distribution points / OCSP responders.
+       Disabled by default for OT configs because many OT systems are air-gapped or
+       have restricted network access. Set to True if this system can reach CRL endpoints. -->
+  <CheckRevocation>False</CheckRevocation>
 
   <EventFiltering>
 

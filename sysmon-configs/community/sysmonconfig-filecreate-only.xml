@@ -14,7 +14,8 @@
 <Sysmon schemaversion="4.50">
     <!--SYSMON META CONFIG-->
     <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
-    <CheckRevocation/>
+    <!-- CheckRevocation: set to False if this system has no internet access -->
+    <CheckRevocation>True</CheckRevocation>
     <EventFiltering>
         <RuleGroup name="" groupRelation="or">
             <FileCreate onmatch="include">

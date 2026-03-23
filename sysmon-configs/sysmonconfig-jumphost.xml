@@ -72,7 +72,10 @@
 
 <Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
-  <CheckRevocation/>
+  <!-- CheckRevocation: checks loaded driver code-signing certificate revocation status.
+       Requires network access to CRL distribution points / OCSP responders.
+       Set to False if this system has no internet or restricted network access. -->
+  <CheckRevocation>True</CheckRevocation>
 
   <EventFiltering>
 

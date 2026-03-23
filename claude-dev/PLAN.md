@@ -318,6 +318,8 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-03-17 | Script requires administrator privileges | Get-WinEvent for Sysmon log needs elevation; explicit requirement, not optional |
 | 2026-03-17 | Script location: tools/ directory | Separate from configs; clear purpose distinction |
 | 2026-03-17 | System-modifying tests require -AllowSystemChanges flag | OT admins are change-averse; registry and WMI modifications must be explicitly opted into |
+| 2026-03-23 | Replace self-closing CheckRevocation with explicit boolean values | User feedback: self-closing `<CheckRevocation/>` fails Sysmon config validation in some versions. Also, CRL checking requires network access incompatible with air-gapped OT systems. IT configs default True, OT configs default False. |
+| 2026-03-23 | OT configs default CheckRevocation to False | OT systems are frequently air-gapped or network-restricted; CRL/OCSP checking causes timeouts and adds network dependency to security monitoring |
 
 ### Phase 7: Efficacy Testing
 

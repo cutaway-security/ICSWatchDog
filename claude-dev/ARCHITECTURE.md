@@ -162,7 +162,7 @@ Each config XML follows:
 - Disclaimer in header comment block
 - Version, author, attribution, minimum Sysmon version, SANS control mapping
 - `<Sysmon schemaversion="X.XX">` root element
-- `<HashAlgorithms>` and `<CheckRevocation/>` meta config
+- `<HashAlgorithms>` and `<CheckRevocation>` meta config (explicit True/False; IT configs default True, OT configs default False for air-gapped environments)
 - `<EventFiltering>` containing `<RuleGroup>` elements per Event ID
 - Each rule uses `onmatch="include"` or `onmatch="exclude"` logic
 - Rules tagged with descriptive `name` attributes for log traceability
