@@ -1,0 +1,11 @@
+<!--
+  Test fixture: invalid module that contains a forbidden <Sysmon> root element.
+  The merge script should reject this with an error.
+-->
+<Sysmon schemaversion="4.50">
+  <RuleGroup name="ProcessCreate-Invalid" groupRelation="or">
+    <ProcessCreate onmatch="include">
+      <Image condition="end with">\bad.exe</Image>
+    </ProcessCreate>
+  </RuleGroup>
+</Sysmon>

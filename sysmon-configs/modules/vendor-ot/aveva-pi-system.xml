@@ -1,0 +1,65 @@
+<!--
+  ICS Watch Dog Module: AVEVA / OSIsoft PI System
+  Category:     vendor-ot
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1005 Data from Local System, T1213 Data from Information Repositories,
+                T1565.002 Transmitted Data Manipulation
+
+  PURPOSE:
+    Monitor AVEVA PI System (formerly OSIsoft PI) processes and configuration. PI is
+    the dominant historian platform in process industries (oil/gas, power, chemicals,
+    pharma). PI Data Archive is a high-value target for both data theft and process
+    manipulation via tag value injection.
+
+  WHEN TO USE:
+    Servers running PI Data Archive, PI AF Server, PI Vision, or related PI components.
+    Combine with sysmonconfig-server-services.xml for database/web server coverage.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1005/
+    https://attack.mitre.org/techniques/T1213/
+    https://attack.mitre.org/techniques/T1565/002/
+-->
+<RuleGroup name="ProcessCreate-AVEVA-PI" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1005 Data from Local System
+      AVEVA PI System processes. Unexpected execution of PI tools outside maintenance
+      windows may indicate unauthorized data export or tag manipulation.
+      Reference: https://attack.mitre.org/techniques/T1005/
+    -->
+    <Image name="technique_id=T1005,technique=Data from Local System,detection=PI Data Archive subsystem" condition="end with">\pinetmgr.exe</Image>
+    <Image name="technique_id=T1005,technique=Data from Local System,detection=PI Data Archive snapshot" condition="end with">\pisnapss.exe</Image>
+    <Image name="technique_id=T1005,technique=Data from Local System,detection=PI Data Archive archive" condition="end with">\piarchss.exe</Image>
+    <Image name="technique_id=T1005,technique=Data from Local System,detection=PI System Management Tools" condition="end with">\pismt3.exe</Image>
+    <Image name="technique_id=T1005,technique=Data from Local System,detection=PI System Explorer (AF)" condition="end with">\PISystemExplorer.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-AVEVA-PI" groupRelation="or">
+  <FileCreate onmatch="include">
+    <!--
+      T1565.002 Transmitted Data Manipulation
+      File creation in PI installation directory may indicate tampering with PI
+      modules, configuration, or DLL sideloading attempts.
+      Reference: https://attack.mitre.org/techniques/T1565/002/
+    -->
+    <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in PI installation directory" condition="contains">\PIPC\</TargetFilename>
+    <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in OSIsoft installation directory" condition="contains">\OSIsoft\</TargetFilename>
+  </FileCreate>
+</RuleGroup>
+
+<RuleGroup name="NetworkConnect-AVEVA-PI" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS)
+      Connections to PI Data Archive default port. Unexpected client connections
+      may indicate unauthorized data extraction from the historian.
+      Reference: https://attack.mitre.org/techniques/T0830/
+    -->
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PI Data Archive port 5450" condition="is">5450</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PI AF Server port 5457" condition="is">5457</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

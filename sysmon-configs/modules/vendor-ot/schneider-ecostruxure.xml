@@ -1,0 +1,39 @@
+<!--
+  ICS Watch Dog Module: Schneider Electric EcoStruxure / Unity Pro / Citect
+  Category:     vendor-ot
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1565.001 Stored Data Manipulation
+
+  PURPOSE:
+    Monitor Schneider Electric engineering tool execution and project files for
+    Modicon PLCs (M340, M580, M221, etc.) and Citect SCADA systems.
+
+  WHEN TO USE:
+    Engineering workstations and HMIs running Schneider Electric software.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1565/001/
+-->
+<RuleGroup name="ProcessCreate-Schneider" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1565.001 Stored Data Manipulation
+      Schneider Electric engineering tools.
+    -->
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider EcoStruxure Control Expert" condition="end with">\Unity.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider EcoStruxure Machine Expert" condition="end with">\SoMachine.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Citect SCADA Studio" condition="end with">\CitectExplorer.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Citect runtime" condition="end with">\CtExplor.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-Schneider" groupRelation="or">
+  <FileCreate onmatch="include">
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Unity Pro project (.stu)" condition="end with">.stu</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Unity Pro export (.xef)" condition="end with">.xef</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Unity Pro source export (.xsy)" condition="end with">.xsy</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Citect project export (.ctz)" condition="end with">.ctz</TargetFilename>
+  </FileCreate>
+</RuleGroup>

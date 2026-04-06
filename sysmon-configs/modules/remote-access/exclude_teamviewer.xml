@@ -1,0 +1,35 @@
+<!--
+  ICS Watch Dog Module: TeamViewer (sanctioned, noise reduction)
+  Category:     remote-access
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+  Dual-use:     Use exclude_teamviewer.xml if TeamViewer is sanctioned;
+                use include_teamviewer.xml if TeamViewer is unsanctioned.
+
+  PURPOSE:
+    Suppress noise from sanctioned TeamViewer usage. The curated configs include
+    TeamViewer process detection by default; this module overrides that with
+    targeted exclusions for environments where TeamViewer is approved.
+
+  WHEN TO USE:
+    TeamViewer is sanctioned at your site for vendor remote support or admin access.
+
+  TUNING NOTE:
+    Even when sanctioned, monitor TeamViewer connections from unexpected sources
+    (different user accounts, different parent processes, off-hours activity).
+    Consider scoping the exclusion further by user or session context.
+-->
+<RuleGroup name="NetworkConnect-Exclude-TeamViewer" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Sanctioned TeamViewer client network" condition="end with">\TeamViewer.exe</Image>
+    <Image name="exclude=Sanctioned TeamViewer service network" condition="end with">\TeamViewer_Service.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-TeamViewer" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <QueryName name="exclude=Sanctioned TeamViewer DNS" condition="end with">.teamviewer.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

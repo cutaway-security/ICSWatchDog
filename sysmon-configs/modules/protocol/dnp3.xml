@@ -1,0 +1,20 @@
+<!--
+  ICS Watch Dog Module: DNP3
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to DNP3 default port 20000. DNP3 is widely used
+    in electric utility, water/wastewater, and oil and gas SCADA systems.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T0830/
+-->
+<RuleGroup name="NetworkConnect-DNP3" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to DNP3 port 20000" condition="is">20000</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

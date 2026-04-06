@@ -1,0 +1,53 @@
+<!--
+  ICS Watch Dog Module: Rockwell Studio 5000 / RSLogix
+  Category:     vendor-ot
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1565.001 Stored Data Manipulation
+
+  PURPOSE:
+    Monitor Rockwell Automation engineering tool execution and project file activity.
+    Studio 5000 Logix Designer (formerly RSLogix 5000) is the primary programming
+    environment for Allen-Bradley ControlLogix and CompactLogix PLCs. RSLogix 500
+    targets MicroLogix and SLC 500. RSLogix 5 targets PLC-5.
+
+  WHEN TO USE:
+    Engineering workstations with Rockwell tools installed.
+
+  WHEN NOT TO USE:
+    HMI/operator stations running FactoryTalk View only. Use the FactoryTalk module
+    if available, or vendor-ot/rockwell-factorytalk.xml.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1565/001/
+-->
+<RuleGroup name="ProcessCreate-Rockwell-Studio5000" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1565.001 Stored Data Manipulation
+      Rockwell engineering tools. Unexpected execution outside change-control
+      windows warrants investigation. Reference: https://attack.mitre.org/techniques/T1565/001/
+    -->
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell Studio 5000 Logix Designer" condition="end with">\RSLogix5000.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell Studio 5000 launcher" condition="end with">\LogixDesigner.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 500" condition="end with">\RSLogix 500.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5" condition="end with">\RSLogix 5.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLinx Classic" condition="end with">\RSLinxClassic.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLinx Enterprise" condition="end with">\RSLinx.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-Rockwell-Studio5000" groupRelation="or">
+  <FileCreate onmatch="include">
+    <!--
+      T1565.001 Stored Data Manipulation
+      Rockwell project file formats. Reference: https://attack.mitre.org/techniques/T1565/001/
+    -->
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell Studio 5000 project archive" condition="end with">.ACD</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5000 ASCII export" condition="end with">.L5K</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5000 XML export" condition="end with">.L5X</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 500 project" condition="end with">.RSS</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5 project" condition="end with">.RSP</TargetFilename>
+  </FileCreate>
+</RuleGroup>

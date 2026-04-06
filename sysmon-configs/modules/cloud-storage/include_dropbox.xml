@@ -1,0 +1,49 @@
+<!--
+  ICS Watch Dog Module: Dropbox (unsanctioned, detection)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_dropbox.xml if Dropbox is unsanctioned;
+                use exclude_dropbox.xml if Dropbox is sanctioned.
+
+  PURPOSE:
+    Detect Dropbox client usage as a potential data exfiltration vector. Dropbox
+    on an OT engineering workstation may indicate data leaving the OT network
+    through an unsanctioned channel, bypassing DLP and network monitoring.
+
+  ATT&CK:       T1567.002 Exfiltration to Cloud Storage,
+                T1102 Web Service
+
+  WHEN TO USE:
+    Dropbox is NOT sanctioned at your site. Any observation indicates a policy
+    violation or potential data exfiltration.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1567/002/
+    https://attack.mitre.org/techniques/T1102/
+-->
+<RuleGroup name="ProcessCreate-Detect-Dropbox" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1567.002 Exfiltration to Cloud Storage + T1102 Web Service
+      Dropbox client execution on a system where it is not sanctioned.
+      Investigate the user, the parent process, and any file activity that
+      preceded execution.
+    -->
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Dropbox client execution" condition="end with">\Dropbox.exe</Image>
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Dropbox updater execution" condition="end with">\DropboxUpdate.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-Dropbox" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <!--
+      T1567.002 Exfiltration to Cloud Storage
+      DNS lookups for Dropbox infrastructure indicate active client communication.
+    -->
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for Dropbox cloud" condition="end with">.dropbox.com</QueryName>
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for Dropbox CDN" condition="end with">.dropboxstatic.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

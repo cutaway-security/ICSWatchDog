@@ -1,0 +1,34 @@
+<!--
+  ICS Watch Dog Module: Dropbox (sanctioned use, noise reduction)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+  Dual-use:     Use exclude_dropbox.xml if Dropbox is sanctioned;
+                use include_dropbox.xml if Dropbox is unsanctioned.
+
+  PURPOSE:
+    Suppress Sysmon event noise from sanctioned Dropbox client usage. Use this
+    module ONLY if Dropbox is approved at your site for OT-relevant file transfer.
+
+  WHEN TO USE:
+    Dropbox is sanctioned at your site.
+
+  WHEN NOT TO USE:
+    Dropbox is unsanctioned. Use include_dropbox.xml instead to detect its use.
+-->
+<RuleGroup name="NetworkConnect-Exclude-Dropbox" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Sanctioned Dropbox client network" condition="end with">\Dropbox\Client\Dropbox.exe</Image>
+    <Image name="exclude=Sanctioned Dropbox updater network" condition="end with">\Dropbox\Update\DropboxUpdate.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-Dropbox" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Sanctioned Dropbox DNS noise" condition="end with">\Dropbox\Client\Dropbox.exe</Image>
+    <QueryName name="exclude=Sanctioned Dropbox cloud DNS" condition="end with">.dropbox.com</QueryName>
+    <QueryName name="exclude=Sanctioned Dropbox CDN DNS" condition="end with">.dropboxstatic.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

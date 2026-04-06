@@ -1,0 +1,30 @@
+<!--
+  ICS Watch Dog Module: Microsoft OneDrive (sanctioned use, noise reduction)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+  Dual-use:     Use exclude_onedrive.xml if OneDrive is sanctioned;
+                use include_onedrive.xml if OneDrive is unsanctioned.
+
+  PURPOSE:
+    Suppress noise from sanctioned Microsoft OneDrive sync client. OneDrive is
+    integrated into Windows and many enterprise environments enable it by default.
+
+  WHEN TO USE:
+    OneDrive is sanctioned at your site.
+-->
+<RuleGroup name="NetworkConnect-Exclude-OneDrive" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Sanctioned OneDrive client network" condition="end with">\Microsoft OneDrive\OneDrive.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-OneDrive" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <QueryName name="exclude=Sanctioned OneDrive cloud DNS" condition="end with">.onedrive.com</QueryName>
+    <QueryName name="exclude=Sanctioned OneDrive sync DNS" condition="end with">.onedrive.live.com</QueryName>
+    <QueryName name="exclude=Sanctioned OneDrive Microsoft 365" condition="end with">.sharepoint.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

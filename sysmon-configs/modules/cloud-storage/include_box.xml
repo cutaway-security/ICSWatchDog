@@ -1,0 +1,30 @@
+<!--
+  ICS Watch Dog Module: Box (unsanctioned, detection)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_box.xml if Box is unsanctioned;
+                use exclude_box.xml if Box is sanctioned.
+
+  PURPOSE:
+    Detect Box cloud storage client usage as a potential data exfiltration vector.
+
+  ATT&CK:       T1567.002 Exfiltration to Cloud Storage, T1102 Web Service
+
+  WHEN TO USE:
+    Box is NOT sanctioned at your site.
+-->
+<RuleGroup name="ProcessCreate-Detect-Box" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Box Drive client execution" condition="end with">\Box\Box.exe</Image>
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Box Sync client execution" condition="end with">\Box Sync\BoxSync.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-Box" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for Box cloud" condition="end with">.box.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

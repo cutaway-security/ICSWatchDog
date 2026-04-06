@@ -1,0 +1,25 @@
+<!--
+  ICS Watch Dog Module: OPC UA
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to OPC UA default port 4840. OPC UA is the
+    modern cross-vendor industrial interoperability protocol used by most new
+    deployments and increasingly retrofit into legacy systems.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T0830/
+-->
+<RuleGroup name="NetworkConnect-OPC-UA" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS) + T0855 Unauthorized Command Message (ICS)
+      OPC UA default port 4840.
+    -->
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to OPC-UA port 4840" condition="is">4840</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

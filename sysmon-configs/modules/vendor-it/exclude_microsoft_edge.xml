@@ -1,0 +1,28 @@
+<!--
+  ICS Watch Dog Module: Microsoft Edge (noise reduction)
+  Category:     vendor-it
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+
+  PURPOSE:
+    Suppress Sysmon event noise from sanctioned Microsoft Edge browser usage.
+    Edge is included in modern Windows installations and is commonly used in
+    OT environments for vendor portal access and documentation lookup.
+
+  WHEN TO USE:
+    Edge is sanctioned at your site AND its event volume is overwhelming
+    your monitoring pipeline.
+-->
+<RuleGroup name="NetworkConnect-Exclude-Edge" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Microsoft Edge browser network" condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-Edge" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Microsoft Edge browser DNS noise" condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+  </DnsQuery>
+</RuleGroup>

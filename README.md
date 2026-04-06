@@ -61,6 +61,27 @@ Every detection rule in the curated configurations is tagged with the MITRE ATT&
 
 For the full convention, format details, SIEM parsing examples, and field constraints, see the [ATT&CK Rule Tagging](https://icswatchdog.com/attack-tagging/) guide.
 
+## Module Library
+
+Advanced users can customize their Sysmon configuration by merging opt-in modules from the [`sysmon-configs/modules/`](sysmon-configs/modules/) directory into a curated base config. Modules are focused XML fragments organized into six categories: OT vendor (Siemens, Rockwell, Schneider, AVEVA, Ignition), IT vendor noise reduction (Chrome, Edge, Firefox, Adobe, Office), cloud storage (Dropbox, OneDrive, Google Drive, Box, MEGA), sector (electric, water, oil/gas, manufacturing), industrial protocol (Modbus, OPC-UA, DNP3, S7comm, EtherNet/IP, BACnet, IEC 60870-5-104, MQTT), and remote access (TeamViewer, AnyDesk, ScreenConnect, RustDesk).
+
+The merge tool combines a base curated config with selected modules into a deployable configuration:
+
+```
+.\tools\Merge-SysmonModules.ps1 `
+    -BaseConfig sysmon-configs\sysmonconfig-baseline-ot.xml `
+    -Modules @(
+        'sysmon-configs\modules\vendor-ot\siemens-tia-portal.xml',
+        'sysmon-configs\modules\protocol\modbus-tcp.xml',
+        'sysmon-configs\modules\cloud-storage\include_mega.xml'
+    ) `
+    -OutputPath sysmonconfig-site-acmeplant.xml
+```
+
+Requires: Windows PowerShell 5.1+ or PowerShell Core 7+. No external dependencies. The curated configs remain the primary supported deployment artifact -- modules are an opt-in layer for advanced users.
+
+For module library overview, dual-use convention, and full module list, see the [Module Library](https://icswatchdog.com/modules/) guide.
+
 ## Efficacy Testing
 
 After deploying Sysmon, validate that your configuration is generating the expected events. The included test script performs safe actions and checks the Sysmon event log for results:

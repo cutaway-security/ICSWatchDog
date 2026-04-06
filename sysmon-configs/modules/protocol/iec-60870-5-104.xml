@@ -1,0 +1,21 @@
+<!--
+  ICS Watch Dog Module: IEC 60870-5-104
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to IEC 60870-5-104 port 2404. IEC 104 is the
+    network-enabled version of IEC 60870-5-101, used for telecontrol in electric
+    power transmission and distribution outside North America.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T0830/
+-->
+<RuleGroup name="NetworkConnect-IEC-60870-5-104" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to IEC 60870-5-104 port 2404" condition="is">2404</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

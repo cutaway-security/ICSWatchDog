@@ -1,0 +1,14 @@
+<!--
+  Test fixture module: sample vendor module with two RuleGroups.
+-->
+<RuleGroup name="ProcessCreate-Test-Vendor" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=test vendor tool" condition="end with">\test-vendor.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-Test-Vendor" groupRelation="or">
+  <FileCreate onmatch="include">
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=test vendor project file" condition="end with">.testproj</TargetFilename>
+  </FileCreate>
+</RuleGroup>

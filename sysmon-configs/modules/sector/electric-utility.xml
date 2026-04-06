@@ -1,0 +1,82 @@
+<!--
+  ICS Watch Dog Module: Electric Utility
+  Category:     sector
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message,
+                T0836 Modify Parameter, T0852 Screen Capture
+
+  PURPOSE:
+    Add electric utility-specific monitoring relevant to NERC CIP and IEC 61850
+    environments. Covers SEL relay engineering tools, ABB Microscada, GE PowerOn,
+    and IEC 61850 SCL/CID file activity.
+
+  WHEN TO USE:
+    Engineering workstations and HMIs in electric power substations, generation
+    plants, transmission and distribution control centers.
+
+  RELEVANT REGULATIONS:
+    NERC CIP-007 (System Security Management)
+    NERC CIP-010 (Configuration Change Management)
+    IEC 62443
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T0836/
+    https://attack.mitre.org/techniques/T0852/
+-->
+<RuleGroup name="ProcessCreate-Electric-Utility" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T0836 Modify Parameter (ICS) + T0852 Screen Capture (ICS)
+      SEL ACSELERATOR QuickSet is the engineering tool for SEL protection relays.
+      Settings changes affect protection logic that controls grid stability.
+      Reference: https://attack.mitre.org/techniques/T0836/
+    -->
+    <Image name="technique_id=T0836,technique=Modify Parameter,detection=SEL ACSELERATOR QuickSet relay engineering tool" condition="end with">\AcSELerator\QuickSet.exe</Image>
+    <Image name="technique_id=T0836,technique=Modify Parameter,detection=SEL ACSELERATOR Architect" condition="end with">\Architect.exe</Image>
+    <!--
+      T0836 Modify Parameter (ICS)
+      ABB Microscada protection engineering. Reference: https://attack.mitre.org/techniques/T0836/
+    -->
+    <Image name="technique_id=T0836,technique=Modify Parameter,detection=ABB Microscada protection engineering" condition="end with">\Microscada\msfm.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-Electric-Utility" groupRelation="or">
+  <FileCreate onmatch="include">
+    <!--
+      T0836 Modify Parameter (ICS)
+      SEL relay settings databases (.rdb) and event reports (.cev). Settings file
+      modifications outside maintenance windows may indicate unauthorized protection
+      logic changes.
+    -->
+    <TargetFilename name="technique_id=T0836,technique=Modify Parameter,detection=SEL relay settings database (.rdb)" condition="end with">.rdb</TargetFilename>
+    <TargetFilename name="technique_id=T0852,technique=Screen Capture,detection=SEL relay event report (.cev)" condition="end with">.cev</TargetFilename>
+    <!--
+      T1565.001 Stored Data Manipulation
+      IEC 61850 substation configuration files. SCL describes the substation
+      configuration including IEDs, data objects, and dataset definitions.
+      Reference: https://attack.mitre.org/techniques/T1565/001/
+    -->
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=IEC 61850 SCL substation configuration" condition="end with">.scd</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=IEC 61850 IED configuration description" condition="end with">.cid</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=IEC 61850 IED capability description" condition="end with">.icd</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=IEC 61850 substation specification" condition="end with">.ssd</TargetFilename>
+  </FileCreate>
+</RuleGroup>
+
+<RuleGroup name="NetworkConnect-Electric-Utility" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS) + T0855 Unauthorized Command Message (ICS)
+      Electric sector industrial protocols. References:
+        https://attack.mitre.org/techniques/T0830/
+        https://attack.mitre.org/techniques/T0855/
+    -->
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to IEC 61850 MMS port 102" condition="is">102</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to IEC 60870-5-104 port 2404" condition="is">2404</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to DNP3 port 20000" condition="is">20000</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to ICCP/TASE.2 port 102" condition="is">102</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

@@ -1,0 +1,57 @@
+<!--
+  ICS Watch Dog Module: Inductive Automation Ignition Gateway
+  Category:     vendor-ot
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1505.003 Web Shell, T1565.002 Transmitted Data Manipulation
+
+  PURPOSE:
+    Monitor Inductive Automation Ignition Gateway. Ignition is a Java-based
+    SCADA/HMI platform that runs on Windows and Linux. The Gateway runs as
+    java.exe (or ignition.exe wrapper), uses Tomcat/Jetty for the web UI, and
+    typically connects to MySQL or PostgreSQL for the historian backend.
+
+  WHEN TO USE:
+    Servers and gateways running Ignition Gateway. Combine with
+    sysmonconfig-server-services.xml for database backend monitoring.
+
+  TUNING NOTE:
+    java.exe is intentionally NOT included as a generic ParentImage detector here
+    because Ignition runs as java.exe and would generate constant noise. If you
+    want to detect specific child-process patterns from java.exe, scope by the
+    Ignition install path.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1505/003/
+    https://attack.mitre.org/techniques/T1565/002/
+-->
+<RuleGroup name="FileCreate-Ignition" groupRelation="or">
+  <FileCreate onmatch="include">
+    <!--
+      T1565.002 Transmitted Data Manipulation
+      File creation in the Ignition installation directory may indicate tampering
+      with Ignition modules, projects, or configuration.
+    -->
+    <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Inductive Automation directory" condition="contains">\Inductive Automation\</TargetFilename>
+    <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Ignition modules directory" condition="contains">\Ignition\user-lib\modules\</TargetFilename>
+    <!--
+      T1505.003 Server Software Component: Web Shell
+      File creation in the Ignition project resources may indicate webshell-style
+      tampering or unauthorized project modification.
+    -->
+    <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=File created in Ignition project resources" condition="contains">\Ignition\data\projects\</TargetFilename>
+  </FileCreate>
+</RuleGroup>
+
+<RuleGroup name="NetworkConnect-Ignition" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS)
+      Ignition Gateway default ports.
+    -->
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to Ignition Gateway HTTP port 8088" condition="is">8088</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to Ignition Gateway HTTPS port 8043" condition="is">8043</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to Ignition Gateway Network port 8060" condition="is">8060</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

@@ -1,0 +1,34 @@
+<!--
+  ICS Watch Dog Module: AnyDesk (unsanctioned, detection)
+  Category:     remote-access
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_anydesk.xml if AnyDesk is unsanctioned;
+                use exclude_anydesk.xml if AnyDesk is sanctioned.
+
+  PURPOSE:
+    Detect AnyDesk client and host execution. AnyDesk is heavily abused by
+    ransomware operators and tech support scammers. CISA AA23-025A explicitly
+    calls out AnyDesk as a commonly abused RMM tool.
+
+  ATT&CK:       T1219 Remote Access Software, T1133 External Remote Services
+
+  REFERENCES:
+    https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-025a
+    https://lolrmm.io/tools/AnyDesk/
+-->
+<RuleGroup name="ProcessCreate-Detect-AnyDesk" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=AnyDesk client execution" condition="end with">\AnyDesk.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=AnyDesk service execution" condition="end with">\AnyDesk-Service.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-AnyDesk" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for AnyDesk infrastructure" condition="end with">.anydesk.com</QueryName>
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for AnyDesk net" condition="end with">.net.anydesk.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

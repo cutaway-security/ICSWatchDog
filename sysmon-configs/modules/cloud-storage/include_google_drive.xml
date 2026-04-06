@@ -1,0 +1,31 @@
+<!--
+  ICS Watch Dog Module: Google Drive (unsanctioned, detection)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_google_drive.xml if Google Drive is unsanctioned;
+                use exclude_google_drive.xml if Google Drive is sanctioned.
+
+  PURPOSE:
+    Detect Google Drive desktop client usage as a potential data exfiltration vector.
+
+  ATT&CK:       T1567.002 Exfiltration to Cloud Storage, T1102 Web Service
+
+  WHEN TO USE:
+    Google Drive is NOT sanctioned at your site.
+-->
+<RuleGroup name="ProcessCreate-Detect-GoogleDrive" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Google Drive desktop client" condition="end with">\Google\Drive\GoogleDrive.exe</Image>
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned Google Drive File Stream" condition="end with">\GoogleDriveFS.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-GoogleDrive" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for Google Drive" condition="end with">drive.google.com</QueryName>
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for Google Drive API" condition="end with">.googleapis.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

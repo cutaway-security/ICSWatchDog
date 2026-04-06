@@ -1,0 +1,31 @@
+<!--
+  ICS Watch Dog Module: Manufacturing
+  Category:     sector
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Add discrete and process manufacturing monitoring. Manufacturing environments
+    typically use EtherNet/IP (Allen-Bradley/Rockwell), Profinet (Siemens),
+    OPC-UA, and Modbus TCP. Discrete plants run robotics and motion control;
+    process plants run continuous chemical, food, or material processes.
+
+  WHEN TO USE:
+    Engineering workstations, MES systems, and control rooms in manufacturing.
+-->
+<RuleGroup name="NetworkConnect-Manufacturing" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS) + T0855 Unauthorized Command Message (ICS)
+      Manufacturing industrial protocols.
+    -->
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP TCP port 44818" condition="is">44818</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP implicit port 2222" condition="is">2222</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PROFINET IO CM port 34962" condition="is">34962</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to OPC-UA port 4840" condition="is">4840</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to Modbus TCP port 502" condition="is">502</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to S7comm port 102" condition="is">102</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

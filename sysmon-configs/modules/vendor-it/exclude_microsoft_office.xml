@@ -1,0 +1,41 @@
+<!--
+  ICS Watch Dog Module: Microsoft Office (noise reduction)
+  Category:     vendor-it
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+
+  PURPOSE:
+    Suppress noise from Microsoft Office (Word, Excel, PowerPoint, Outlook) on
+    engineering workstations. Office is heavily used in OT environments for
+    procedures (Word), HMI tag lists and historian data exports (Excel),
+    and reporting.
+
+  WHEN TO USE:
+    Office is sanctioned at your site AND its event volume is overwhelming
+    your monitoring pipeline.
+
+  TUNING NOTE:
+    Office macros are a major malware delivery vector. Excluding Office processes
+    reduces noise but suppresses forensic value. Consider tuning at the rule level
+    instead of merging this blanket exclusion. Specifically, do NOT exclude
+    suspicious Office child processes (cmd.exe, powershell.exe, mshta.exe, etc.).
+    Those are critical detections.
+-->
+<RuleGroup name="NetworkConnect-Exclude-Office" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Microsoft Word network" condition="end with">\OFFICE16\WINWORD.EXE</Image>
+    <Image name="exclude=Microsoft Excel network" condition="end with">\OFFICE16\EXCEL.EXE</Image>
+    <Image name="exclude=Microsoft PowerPoint network" condition="end with">\OFFICE16\POWERPNT.EXE</Image>
+    <Image name="exclude=Microsoft Outlook network" condition="end with">\OFFICE16\OUTLOOK.EXE</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-Office" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Microsoft Word DNS noise" condition="end with">\OFFICE16\WINWORD.EXE</Image>
+    <Image name="exclude=Microsoft Excel DNS noise" condition="end with">\OFFICE16\EXCEL.EXE</Image>
+    <Image name="exclude=Microsoft Outlook DNS noise" condition="end with">\OFFICE16\OUTLOOK.EXE</Image>
+  </DnsQuery>
+</RuleGroup>

@@ -1,0 +1,41 @@
+<!--
+  ICS Watch Dog Module: Microsoft OneDrive (unsanctioned, detection)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_onedrive.xml if OneDrive is unsanctioned;
+                use exclude_onedrive.xml if OneDrive is sanctioned.
+
+  PURPOSE:
+    Detect Microsoft OneDrive sync client usage. On systems where OneDrive is not
+    approved (most OT systems), execution may indicate accidental Microsoft account
+    sign-in syncing OT files to a personal cloud, or deliberate data exfiltration.
+
+  ATT&CK:       T1567.002 Exfiltration to Cloud Storage, T1102 Web Service
+
+  WHEN TO USE:
+    OneDrive is NOT sanctioned at your site.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1567/002/
+-->
+<RuleGroup name="ProcessCreate-Detect-OneDrive" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1567.002 Exfiltration to Cloud Storage
+      OneDrive client execution on a non-sanctioned system. Common cause: a user
+      signed into a personal Microsoft account, triggering OneDrive sync of the
+      Documents and Desktop folders to a personal cloud.
+    -->
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=Unsanctioned OneDrive client execution" condition="end with">\OneDrive.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-OneDrive" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for OneDrive cloud" condition="end with">.onedrive.com</QueryName>
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for OneDrive sync" condition="end with">.onedrive.live.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

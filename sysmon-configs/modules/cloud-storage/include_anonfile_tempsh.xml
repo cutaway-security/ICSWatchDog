@@ -1,0 +1,45 @@
+<!--
+  ICS Watch Dog Module: Anonymous File Sharing (detection only)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+
+  PURPOSE:
+    Detect access to anonymous file sharing services commonly used by threat actors
+    for tool delivery and data exfiltration. These services have no legitimate
+    business use in OT environments and DNS resolution alone is a strong signal.
+
+    Services covered: temp.sh, transfer.sh, file.io, anonfiles.com, send.cm,
+    bashupload.com, pixeldrain.com, gofile.io, qaz.im, 0x0.st, catbox.moe.
+
+  ATT&CK:       T1105 Ingress Tool Transfer, T1567 Exfiltration Over Web Service
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1105/
+    https://attack.mitre.org/techniques/T1567/
+-->
+<RuleGroup name="DnsQuery-Detect-AnonymousFileSharing" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <!--
+      T1105 Ingress Tool Transfer + T1567 Exfiltration Over Web Service
+      Anonymous file sharing services. Used by threat actors for both tool
+      delivery (download stage) and data theft (upload stage).
+      References:
+        https://attack.mitre.org/techniques/T1105/
+        https://attack.mitre.org/techniques/T1567/
+    -->
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for temp.sh anonymous file sharing" condition="is">temp.sh</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for transfer.sh anonymous file sharing" condition="is">transfer.sh</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for file.io anonymous file sharing" condition="is">file.io</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for anonfiles.com" condition="end with">.anonfiles.com</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for send.cm anonymous file sharing" condition="is">send.cm</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for bashupload.com" condition="is">bashupload.com</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for pixeldrain anonymous file sharing" condition="end with">.pixeldrain.com</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for gofile anonymous file sharing" condition="end with">.gofile.io</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for qaz.im anonymous file sharing" condition="is">qaz.im</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for 0x0.st anonymous file sharing" condition="is">0x0.st</QueryName>
+    <QueryName name="technique_id=T1105|T1567,technique=Ingress Tool Transfer,detection=DNS query for catbox.moe anonymous file sharing" condition="end with">.catbox.moe</QueryName>
+  </DnsQuery>
+</RuleGroup>

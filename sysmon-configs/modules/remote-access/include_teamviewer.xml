@@ -1,0 +1,41 @@
+<!--
+  ICS Watch Dog Module: TeamViewer (unsanctioned, detection)
+  Category:     remote-access
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_teamviewer.xml if TeamViewer is unsanctioned;
+                use exclude_teamviewer.xml if TeamViewer is sanctioned.
+
+  PURPOSE:
+    Detect TeamViewer client and host execution. TeamViewer is one of the most
+    commonly abused remote access tools. Notable incident: 2021 Oldsmar water
+    treatment plant attempted intrusion via TeamViewer.
+
+  ATT&CK:       T1219 Remote Access Software, T1133 External Remote Services
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1219/
+    https://attack.mitre.org/techniques/T1133/
+    https://lolrmm.io/tools/TeamViewer/
+-->
+<RuleGroup name="ProcessCreate-Detect-TeamViewer" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1219 Remote Access Software + T1133 External Remote Services
+      TeamViewer execution. Investigate the user, parent process, and any subsequent
+      file or network activity.
+    -->
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=TeamViewer client execution" condition="end with">\TeamViewer.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=TeamViewer service execution" condition="end with">\TeamViewer_Service.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=TeamViewer desktop execution" condition="end with">\TeamViewer_Desktop.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=TeamViewer QuickSupport execution" condition="end with">\TeamViewerQS.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-TeamViewer" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for TeamViewer infrastructure" condition="end with">.teamviewer.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

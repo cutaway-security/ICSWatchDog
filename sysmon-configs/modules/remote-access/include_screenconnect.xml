@@ -1,0 +1,36 @@
+<!--
+  ICS Watch Dog Module: ConnectWise ScreenConnect / ConnectWise Control (unsanctioned)
+  Category:     remote-access
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+  Dual-use:     Use include_screenconnect.xml if ScreenConnect is unsanctioned;
+                use exclude_screenconnect.xml if ScreenConnect is sanctioned.
+
+  PURPOSE:
+    Detect ConnectWise ScreenConnect (formerly ConnectWise Control) client and
+    host execution. Heavily abused by ransomware affiliates following the
+    Feb 2024 ConnectWise vulnerability (CVE-2024-1709).
+
+  ATT&CK:       T1219 Remote Access Software, T1133 External Remote Services
+
+  REFERENCES:
+    https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060b
+    https://lolrmm.io/tools/ConnectWise%20Control/
+-->
+<RuleGroup name="ProcessCreate-Detect-ScreenConnect" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=ScreenConnect client execution" condition="end with">\ScreenConnect.ClientService.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=ScreenConnect host execution" condition="end with">\ScreenConnect.WindowsClient.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=ConnectWise Control client" condition="end with">\ConnectWiseControl.Client.exe</Image>
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=ConnectWise Control service" condition="end with">\ConnectWiseControl.Service.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-ScreenConnect" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for ScreenConnect cloud" condition="end with">.screenconnect.com</QueryName>
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for ConnectWise Control cloud" condition="end with">.connectwisecontrol.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

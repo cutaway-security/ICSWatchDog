@@ -1,0 +1,45 @@
+<!--
+  ICS Watch Dog Module: Google Chrome (noise reduction)
+  Category:     vendor-it
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+
+  PURPOSE:
+    Suppress Sysmon event noise from sanctioned Google Chrome browser usage on
+    OT engineering workstations and IT systems where Chrome is approved for
+    accessing vendor portals, documentation, and web-based ICS dashboards.
+
+  WHEN TO USE:
+    Chrome is sanctioned at your site AND its event volume is overwhelming
+    your monitoring pipeline.
+
+  WHEN NOT TO USE:
+    Chrome is not approved for OT use and you want to detect its presence as
+    an unauthorized application. In that case, do not merge this module and
+    let the baseline catch Chrome execution.
+
+  TUNING NOTE:
+    These exclusions reduce noise but do not blind you to Chrome process tree
+    activity. ProcessCreate events for Chrome child processes still fire unless
+    you also exclude chrome.exe from ProcessCreate (not done here, since the standard
+    chrome process tree is forensically valuable).
+-->
+<RuleGroup name="NetworkConnect-Exclude-Chrome" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Google Chrome browser network" condition="end with">\Chrome\Application\chrome.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-Chrome" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Google Chrome browser DNS noise" condition="end with">\Chrome\Application\chrome.exe</Image>
+  </DnsQuery>
+</RuleGroup>
+
+<RuleGroup name="FileCreateTime-Exclude-Chrome" groupRelation="or">
+  <FileCreateTime onmatch="exclude">
+    <Image name="exclude=Google Chrome timestamp updates" condition="end with">\Chrome\Application\chrome.exe</Image>
+  </FileCreateTime>
+</RuleGroup>

@@ -1,0 +1,20 @@
+<!--
+  ICS Watch Dog Module: MQTT
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to MQTT brokers. MQTT is a lightweight
+    publish/subscribe protocol increasingly used in IIoT and modern SCADA
+    deployments (Inductive Automation Ignition, AWS IoT, Azure IoT).
+    Port 1883 is unencrypted; 8883 is MQTT over TLS.
+-->
+<RuleGroup name="NetworkConnect-MQTT" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to MQTT port 1883" condition="is">1883</DestinationPort>
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to MQTT over TLS port 8883" condition="is">8883</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

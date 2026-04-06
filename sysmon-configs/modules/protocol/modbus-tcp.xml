@@ -1,0 +1,35 @@
+<!--
+  ICS Watch Dog Module: Modbus TCP
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to Modbus TCP port 502. Modbus is the most
+    widely deployed industrial protocol and the simplest target for unauthorized
+    PLC interaction (read holding registers, write coils, force commands).
+
+  WHEN TO USE:
+    Any OT system that should NOT initiate Modbus connections, or where you want
+    to identify which processes communicate with PLCs over Modbus.
+
+  TUNING NOTE:
+    Sysmon monitors process-to-port connections, NOT protocol payloads. For
+    Modbus function code or register-level monitoring, use a network IDS such
+    as Zeek with the modbus.bro analyzer.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T0830/
+    https://attack.mitre.org/techniques/T0855/
+-->
+<RuleGroup name="NetworkConnect-Modbus-TCP" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <!--
+      T0830 Adversary-in-the-Middle (ICS) + T0855 Unauthorized Command Message (ICS)
+      Modbus TCP default port 502. Reference: https://attack.mitre.org/techniques/T0830/
+    -->
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to Modbus TCP port 502" condition="is">502</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

@@ -1,0 +1,30 @@
+<!--
+  ICS Watch Dog Module: RustDesk (unsanctioned, detection)
+  Category:     remote-access
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+
+  PURPOSE:
+    Detect RustDesk client execution. RustDesk is an open-source TeamViewer
+    alternative that has seen rising abuse by threat actors specifically because
+    it can self-host (bypassing cloud-based detection of commercial RMM tools)
+    and is less commonly monitored than commercial alternatives.
+
+  ATT&CK:       T1219 Remote Access Software, T1133 External Remote Services
+
+  REFERENCES:
+    https://lolrmm.io/tools/RustDesk/
+-->
+<RuleGroup name="ProcessCreate-Detect-RustDesk" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image name="technique_id=T1219|T1133,technique=Remote Access Software,detection=RustDesk client execution" condition="end with">\rustdesk.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-RustDesk" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1219,technique=Remote Access Software,detection=DNS query for RustDesk infrastructure" condition="end with">.rustdesk.com</QueryName>
+  </DnsQuery>
+</RuleGroup>

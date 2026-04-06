@@ -4,7 +4,7 @@
 
 **Last Session**: 2026-04-06
 **Branch**: claude-dev
-**Status**: Phase 8a, 8b, and 8c documentation complete. ATT&CK Rule Tagging website page published. README updated with brief reference. Jekyll build verified. Awaiting Phase 8c release (merge to main, deploy site, tag v3.0).
+**Status**: Phase 9a-9d complete. 35 modules across 6 categories shipped, merge tooling and test harness implemented, modules.html and related-projects.html published. Jekyll build verified. Phase 8c and 9e releases both pending.
 
 ## What Was Accomplished
 
@@ -52,7 +52,7 @@ Pending: testing on Windows system with Sysmon installed.
 
 ## In Progress
 
-Phase 8c documentation complete. Awaiting user approval to execute the release (merge to main, deploy site, tag v3.0).
+Phase 9a-9d complete. Phase 9e release pending user approval. Phase 8c release also still pending and can be combined with the Phase 9e release into a single v4.0 cut.
 
 ## Blockers
 
@@ -140,6 +140,41 @@ None. Efficacy test script cannot be tested on current Linux dev environment -- 
   - Updated README.md with brief ATT&CK tagging section (no link to claude-dev/ per user constraint; links to icswatchdog.com/attack-tagging/ for the full convention)
   - Verified Jekyll build (0.012s, no errors)
   - Confirmed _site/attack-tagging/index.html generated
+- Removed claude-dev/ references from all 8 curated config XML headers, replaced with https://icswatchdog.com/attack-tagging/
+- Phase 9 (Module Library) execution:
+  - Phase 9a: Built foundation and 35 modules across 6 categories
+    - sysmon-configs/modules/ directory with README.md and INDEX.md
+    - vendor-ot/ (5): siemens-tia-portal, rockwell-studio5000, schneider-ecostruxure, aveva-pi-system, ignition-gateway
+    - vendor-it/ (5): exclude_google_chrome, exclude_microsoft_edge, exclude_mozilla_firefox, exclude_adobe_reader, exclude_microsoft_office
+    - cloud-storage/ (8): exclude_dropbox + include_dropbox, exclude_onedrive + include_onedrive, include_box, include_google_drive, include_mega, include_anonfile_tempsh
+    - sector/ (4): electric-utility, water-wastewater, oil-gas-pipeline, manufacturing
+    - protocol/ (8): modbus-tcp, opc-ua, ethernet-ip, dnp3, s7comm, bacnet, iec-60870-5-104, mqtt
+    - remote-access/ (5): include_teamviewer + exclude_teamviewer, include_anydesk, include_screenconnect, include_rustdesk
+    - All 35 modules pass xmllint validation when wrapped in synthetic root
+    - All include rules use the Phase 8 ATT&CK structured tagging convention
+    - Fixed XML comment double-hyphen issues in 5 modules
+  - Phase 9b: tools/Merge-SysmonModules.ps1
+    - PowerShell 3+ compatible, no external dependencies
+    - Reads base config, validates structure, parses modules wrapped in synthetic root
+    - Inserts module RuleGroups into base EventFiltering
+    - Preserves meta config (HashAlgorithms, CheckRevocation, schemaversion)
+    - Rejects forbidden elements (Sysmon, HashAlgorithms, CheckRevocation, EventFiltering)
+    - Detects schema 4.90 mismatch and warns
+    - Validates output XML before writing, reports merge manifest
+  - Phase 9c: Test harness
+    - tools/Test-MergeSysmonModules.ps1 with 7 test cases
+    - Test fixtures: tools/test-fixtures/{base-configs, modules, expected}/
+    - 2 base configs (minimal-base, ot-base), 4 sample modules, 1 expected output
+    - Verified merge logic correctness via Python reference implementation against real curated configs and real modules (cannot execute pwsh on current Linux dev env; PS test harness will run on Windows or pwsh-equipped Linux)
+    - Tested: simple merge, multi-module merge, forbidden element rejection, schema mismatch warning, real config end-to-end, malformed XML rejection, nonexistent file rejection
+    - All test scenarios pass when executed via reference implementation
+  - Phase 9d: Documentation
+    - Created docs/_pages/modules.html (module library overview, categories table, dual-use convention, schema versions, merge tool usage, test harness, available modules list, contributing guide)
+    - Created docs/_pages/related-projects.html (Sysmon, SwiftOnSecurity, sysmon-modular, MITRE ATT&CK, SANS ICS 5 Controls, LOLRMM, adversary emulation tools)
+    - Added Module Library and Related Projects to docs/_includes/nav.html
+    - Updated README.md with Module Library section (links to icswatchdog.com/modules/, no claude-dev/ links)
+    - Verified Jekyll build (0.015s, no errors, _site/modules/index.html and _site/related-projects/index.html generated)
+- Updated PLAN.md Phase 9 sub-phases (9a-9e) marked complete or pending
 
 ## Previous Session (2026-03-23)
 
@@ -167,17 +202,19 @@ None. Efficacy test script cannot be tested on current Linux dev environment -- 
 
 ## Next Steps
 
-1. Review the new attack-tagging.html page and the README brief section
-2. Phase 8c release execution (when approved):
+1. Review Phase 9 deliverables: 35 modules across 6 categories, merge tool, test harness, modules.html, related-projects.html
+2. Decide on release strategy:
+   - Option A: Ship v3.0 (Phase 8 ATT&CK tagging only) and v4.0 (Phase 9 modules) as separate releases
+   - Option B: Combine into a single v4.0 release containing both Phase 8 tagging and Phase 9 module library
+3. Run the PowerShell test harness on a Windows system (or Linux with pwsh installed) to validate the actual merge script:
+   `.\tools\Test-MergeSysmonModules.ps1`
+4. Release execution (when approved):
+   - Commit Phase 9 changes
    - Merge to main (exclude docs/ and claude-dev/)
    - Deploy site to gh-pages
    - Verify all site links point to main
-   - Tag release v3.0
-3. Phase 9a (Module Library Structure and Initial Modules)
-4. Phase 9b (Merge Tooling)
-5. Phase 9c (Test Harness)
-6. Phase 9d (Documentation)
-7. Phase 9e (Release) -- v4.x candidate
+   - Tag release (v3.0 or v4.0 depending on strategy)
+5. After release: monitor for community contributions and expand the module library incrementally
 
 ## Files Modified This Session
 
@@ -197,6 +234,22 @@ None. Efficacy test script cannot be tested on current Linux dev environment -- 
 | sysmon-configs/sysmonconfig-server-services.xml | ATT&CK tagging applied: 131 include + 57 exclude rules (T1505.001/003/004) |
 | sysmon-configs/sysmonconfig-enhanced-ot.xml | ATT&CK tagging applied: 143 include + 42 exclude rules (industrial protocol T0830/T0855) |
 | sysmon-configs/sysmonconfig-advanced-ot.xml | ATT&CK tagging applied: 159 include + 42 exclude rules (FileBlockExecutable T1204.002/T1036.005) |
-| docs/_pages/attack-tagging.html | NEW: ATT&CK Rule Tagging convention page (field definitions, examples, field constraints, coverage stats, SIEM parsing examples for Splunk/Elastic/Sentinel) |
-| docs/_includes/nav.html | Added ATT&CK Rule Tagging link to Guides dropdown |
-| README.md | Added brief ATT&CK Rule Tagging section linking to icswatchdog.com/attack-tagging/ (no link to claude-dev/) |
+| docs/_pages/attack-tagging.html | NEW: ATT&CK Rule Tagging convention page |
+| docs/_pages/modules.html | NEW: Module Library overview, dual-use convention, merge tool usage, available modules list |
+| docs/_pages/related-projects.html | NEW: Microsoft Sysmon, SwiftOnSecurity, sysmon-modular, MITRE ATT&CK, SANS, LOLRMM, adversary emulation |
+| docs/_includes/nav.html | Added ATT&CK Rule Tagging, Module Library, and Related Projects to Guides dropdown |
+| README.md | Added ATT&CK Rule Tagging and Module Library sections (links to public icswatchdog.com pages, no claude-dev/ links) |
+| sysmon-configs/sysmonconfig-*.xml (all 8) | claude-dev/ references replaced with icswatchdog.com/attack-tagging/ URL |
+| sysmon-configs/modules/README.md | NEW: module library README (format, dual-use, merge tool usage, contributing) |
+| sysmon-configs/modules/INDEX.md | NEW: complete module index with descriptions, ATT&CK refs, schema |
+| sysmon-configs/modules/vendor-ot/*.xml | NEW: 5 OT vendor modules |
+| sysmon-configs/modules/vendor-it/*.xml | NEW: 5 IT vendor noise reduction modules |
+| sysmon-configs/modules/cloud-storage/*.xml | NEW: 8 cloud storage modules (dual-use) |
+| sysmon-configs/modules/sector/*.xml | NEW: 4 sector modules |
+| sysmon-configs/modules/protocol/*.xml | NEW: 8 industrial protocol modules |
+| sysmon-configs/modules/remote-access/*.xml | NEW: 5 remote access modules (dual-use) |
+| tools/Merge-SysmonModules.ps1 | NEW: PowerShell module merge tool (PS 3+, no deps) |
+| tools/Test-MergeSysmonModules.ps1 | NEW: PowerShell test harness with 7 test cases |
+| tools/test-fixtures/base-configs/ | NEW: 2 base config fixtures |
+| tools/test-fixtures/modules/ | NEW: 4 sample modules including invalid/schema-mismatch test cases |
+| tools/test-fixtures/expected/ | NEW: 1 expected output fixture |

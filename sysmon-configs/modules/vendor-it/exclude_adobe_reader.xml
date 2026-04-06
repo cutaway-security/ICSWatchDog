@@ -1,0 +1,34 @@
+<!--
+  ICS Watch Dog Module: Adobe Acrobat Reader (noise reduction)
+  Category:     vendor-it
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+
+  PURPOSE:
+    Suppress noise from Adobe Acrobat Reader. Adobe Reader is ubiquitous on OT
+    engineering workstations because vendor manuals, P&IDs, equipment datasheets,
+    and procedure documents are typically distributed as PDFs.
+
+  WHEN TO USE:
+    Adobe Reader is sanctioned at your site AND its event volume is overwhelming
+    your monitoring pipeline.
+
+  TUNING NOTE:
+    Acrobat Reader has historically been a malware delivery vector via crafted PDFs.
+    Excluding it suppresses some forensic value. Consider scoping the exclusion
+    rather than blanket-excluding all Reader activity.
+-->
+<RuleGroup name="NetworkConnect-Exclude-AdobeReader" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Adobe Acrobat Reader network" condition="end with">\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe</Image>
+    <Image name="exclude=Adobe Acrobat (32-bit) network" condition="end with">\Adobe\Acrobat DC\Acrobat\Acrobat.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-AdobeReader" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Adobe Acrobat Reader DNS noise" condition="end with">\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe</Image>
+  </DnsQuery>
+</RuleGroup>

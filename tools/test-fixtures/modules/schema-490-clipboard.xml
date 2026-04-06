@@ -1,0 +1,7 @@
+<!--
+  Test fixture: module that uses a schema 4.90-only feature (ClipboardChange).
+  Merging into a 4.50 base should produce a warning but succeed.
+-->
+<RuleGroup name="ClipboardChange-Test" groupRelation="or">
+  <ClipboardChange onmatch="exclude"/>
+</RuleGroup>

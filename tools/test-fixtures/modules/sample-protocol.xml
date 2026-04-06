@@ -1,0 +1,8 @@
+<!--
+  Test fixture module: sample protocol module with one RuleGroup.
+-->
+<RuleGroup name="NetworkConnect-Test-Modbus" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=test Modbus port 502" condition="is">502</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

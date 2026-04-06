@@ -1,0 +1,56 @@
+<!--
+  ICS Watch Dog Module: Siemens TIA Portal
+  Category:     vendor-ot
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1565.001 Stored Data Manipulation, T0857 Modify Controller Tasking
+
+  PURPOSE:
+    Monitor Siemens TIA Portal engineering workstation activity. TIA Portal is the
+    primary engineering tool for Siemens S7-1200/1500/300/400 PLCs. Activity in TIA
+    Portal can indicate unauthorized PLC programming, project file tampering, or
+    download to controller events outside change-control windows.
+
+  WHEN TO USE:
+    Engineering workstations with TIA Portal installed (V13-V19+).
+
+  WHEN NOT TO USE:
+    Production HMIs and operator stations: TIA Portal should not be installed there.
+    Use sysmonconfig-baseline-ot.xml or sysmonconfig-enhanced-ot.xml as the base.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1565/001/
+    https://attack.mitre.org/techniques/T0857/
+-->
+<RuleGroup name="ProcessCreate-Siemens-TIA" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1565.001 Stored Data Manipulation
+      Siemens TIA Portal main process. Investigate unexpected execution outside
+      planned engineering windows. Reference: https://attack.mitre.org/techniques/T1565/001/
+    -->
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal main executable" condition="end with">\Siemens.Automation.Portal.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal launcher" condition="end with">\Siemens.Automation.PortalCmd.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens STEP 7 classic engineering tool" condition="end with">\s7tgtopx.exe</Image>
+    <Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens WinCC Configuration Studio" condition="end with">\CCExplorer.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="FileCreate-Siemens-TIA" groupRelation="or">
+  <FileCreate onmatch="include">
+    <!--
+      T1565.001 Stored Data Manipulation
+      TIA Portal project files. Files outside the standard project directory may
+      indicate exfiltration of PLC logic. Reference: https://attack.mitre.org/techniques/T1565/001/
+    -->
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project archive (.zap)" condition="end with">.zap</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project archive (.zap16)" condition="end with">.zap16</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project archive (.zap17)" condition="end with">.zap17</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project archive (.zap18)" condition="end with">.zap18</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project archive (.zap19)" condition="end with">.zap19</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens AWL/STL source export" condition="end with">.awl</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens SCL source export" condition="end with">.scl</TargetFilename>
+    <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens GRAPH source export" condition="end with">.gr7</TargetFilename>
+  </FileCreate>
+</RuleGroup>

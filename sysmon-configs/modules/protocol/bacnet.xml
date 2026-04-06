@@ -1,0 +1,19 @@
+<!--
+  ICS Watch Dog Module: BACnet/IP
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to BACnet/IP port 47808. BACnet is the dominant
+    protocol for building automation systems (HVAC, lighting, access control)
+    and is increasingly relevant to OT cybersecurity programs as IT/OT convergence
+    spreads to facilities.
+-->
+<RuleGroup name="NetworkConnect-BACnet-IP" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to BACnet/IP port 47808" condition="is">47808</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

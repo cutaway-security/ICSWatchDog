@@ -1,0 +1,16 @@
+<!--
+  Test fixture: minimal base config for merge tool testing.
+  NOT for production deployment.
+-->
+<Sysmon schemaversion="4.50">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <CheckRevocation>True</CheckRevocation>
+
+  <EventFiltering>
+    <RuleGroup name="ProcessCreate-Base" groupRelation="or">
+      <ProcessCreate onmatch="exclude">
+        <Image name="exclude=base test exclusion" condition="is">C:\Windows\System32\conhost.exe</Image>
+      </ProcessCreate>
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon>

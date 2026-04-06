@@ -1,0 +1,19 @@
+<!--
+  ICS Watch Dog Module: EtherNet/IP (Allen-Bradley / Rockwell)
+  Category:     protocol
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
+
+  PURPOSE:
+    Monitor process connections to EtherNet/IP. Used by Allen-Bradley/Rockwell
+    PLCs (ControlLogix, CompactLogix, MicroLogix), Omron, and others. Port 44818
+    is for explicit messaging (TCP); port 2222 is for implicit messaging (CIP I/O).
+-->
+<RuleGroup name="NetworkConnect-EtherNetIP" groupRelation="or">
+  <NetworkConnect onmatch="include">
+    <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP TCP port 44818" condition="is">44818</DestinationPort>
+    <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP implicit messaging port 2222" condition="is">2222</DestinationPort>
+  </NetworkConnect>
+</RuleGroup>

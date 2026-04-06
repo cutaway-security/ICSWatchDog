@@ -1,0 +1,26 @@
+<!--
+  ICS Watch Dog Module: Mozilla Firefox (noise reduction)
+  Category:     vendor-it
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Exclude (noise reduction)
+
+  PURPOSE:
+    Suppress Sysmon event noise from sanctioned Mozilla Firefox browser usage.
+
+  WHEN TO USE:
+    Firefox is sanctioned at your site AND its event volume is overwhelming
+    your monitoring pipeline.
+-->
+<RuleGroup name="NetworkConnect-Exclude-Firefox" groupRelation="or">
+  <NetworkConnect onmatch="exclude">
+    <Image name="exclude=Mozilla Firefox browser network" condition="end with">\Mozilla Firefox\firefox.exe</Image>
+  </NetworkConnect>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Exclude-Firefox" groupRelation="or">
+  <DnsQuery onmatch="exclude">
+    <Image name="exclude=Mozilla Firefox browser DNS noise" condition="end with">\Mozilla Firefox\firefox.exe</Image>
+  </DnsQuery>
+</RuleGroup>

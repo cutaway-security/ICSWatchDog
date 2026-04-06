@@ -1,0 +1,43 @@
+<!--
+  ICS Watch Dog Module: MEGA (detection only, generally not sanctioned)
+  Category:     cloud-storage
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  Rule type:    Include (detection)
+
+  PURPOSE:
+    Detect MEGA.nz cloud storage client and uploads. MEGA is heavily used by
+    threat actors for data exfiltration because of its end-to-end encryption
+    and resistance to law enforcement takedowns. There is rarely a legitimate
+    business case for MEGA in OT environments.
+
+  ATT&CK:       T1567.002 Exfiltration to Cloud Storage, T1102 Web Service
+
+  WHEN TO USE:
+    Always recommended for OT environments unless your organization explicitly
+    sanctions MEGA (in which case write your own exclude module).
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1567/002/
+-->
+<RuleGroup name="ProcessCreate-Detect-MEGA" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!--
+      T1567.002 Exfiltration to Cloud Storage
+      MEGA desktop client execution. High-confidence exfiltration indicator in
+      enterprise and OT environments. Investigate immediately.
+    -->
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=MEGA desktop sync client execution" condition="end with">\MEGAsync.exe</Image>
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=MEGA command line tool execution" condition="end with">\MEGAcmd.exe</Image>
+    <Image name="technique_id=T1567.002|T1102,technique=Exfiltration to Cloud Storage,detection=MEGA shell extension execution" condition="end with">\MEGAShellExt.exe</Image>
+  </ProcessCreate>
+</RuleGroup>
+
+<RuleGroup name="DnsQuery-Detect-MEGA" groupRelation="or">
+  <DnsQuery onmatch="include">
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for MEGA.nz" condition="end with">.mega.nz</QueryName>
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for MEGA.io" condition="end with">.mega.io</QueryName>
+    <QueryName name="technique_id=T1567.002,technique=Exfiltration to Cloud Storage,detection=DNS query for MEGA UserContent CDN" condition="end with">.mega.co.nz</QueryName>
+  </DnsQuery>
+</RuleGroup>
