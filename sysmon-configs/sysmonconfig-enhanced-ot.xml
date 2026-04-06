@@ -1,6 +1,6 @@
 <!--
   ICS Watch Dog - OT Enhanced Sysmon Configuration
-  Version:      v2.0
+  Version:      v2.1
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
@@ -23,6 +23,21 @@
     NOTE: Sysmon monitors process-to-port connections, NOT protocol payloads.
     For protocol-level inspection, use dedicated ICS network monitoring tools.
 
+  MITRE ATT&CK Coverage:
+    T0830     - Adversary-in-the-Middle (ICS) - industrial protocol monitoring
+    T0855     - Unauthorized Command Message (ICS) - industrial protocol monitoring
+    T0857     - Modify Controller Tasking (ICS) - firmware files
+    T1003.001 - LSASS Memory
+    T1486     - Data Encrypted for Impact (ransom note detection, EKANS)
+    T1490     - Inhibit System Recovery
+    T1547.001 - Registry Run Keys / Startup Folder
+    T1559.001 - Component Object Model (DCOM/OPC registry)
+    T1562.001 - Disable or Modify Tools
+    T1562.004 - Disable or Modify System Firewall
+    T1565.001 - Stored Data Manipulation (ICS project files)
+    T1565.002 - Transmitted Data Manipulation (ICS vendor directories)
+    T1572     - Protocol Tunneling
+
   DESCRIPTION:
     This is the OT ENHANCED configuration. It builds on the OT Baseline
     (sysmonconfig-baseline-ot.xml) with the following additions:
@@ -40,6 +55,9 @@
 
     - EXPANDED REGISTRY MONITORING: OPC and DCOM configuration keys relevant
       to OT communication infrastructure.
+
+    All include rules use the ATT&CK structured tagging convention.
+    See https://icswatchdog.com/attack-tagging/ for the full specification.
 
     Industrial protocols monitored (via NetworkConnect port rules):
       Modbus TCP (502), EtherNet/IP (44818, 2222), OPC-UA (4840),
@@ -75,11 +93,6 @@
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
     - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
     - CISA Ransomware Guide: https://www.cisa.gov/stopransomware/ransomware-guide
-
-  Ransomware Detection (added in v3.0):
-    T1490     - Inhibit System Recovery (shadow copy deletion, bcdedit, wbadmin)
-    T1562.001 - Disable or Modify Tools (Defender tampering, Sysmon tampering)
-    T1486     - Data Encrypted for Impact (ransom note detection, EKANS)
 -->
 
 <Sysmon schemaversion="4.50">
@@ -95,75 +108,59 @@
     <!--
     ================================================================
     EVENT ID 1: PROCESS CREATION [ProcessCreate]
-    Same as OT Baseline: log all, exclude minimal system noise.
-    OT systems should have fewer running processes than IT workstations.
-    Be conservative with exclusions.
+    Same as OT Baseline.
     ================================================================
     -->
     <RuleGroup name="ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="exclude">
-        <!-- Windows system noise (same as OT Baseline) -->
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
-        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
-        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
-        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
-        <!-- Windows Defender noise -->
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
-        <!--
-        NOTE: OT systems should have fewer running processes than IT workstations.
-        Be conservative with exclusions. If a process is unexpected on an OT system,
-        you WANT to see it in the logs.
-        Add your site-specific enterprise software exclusions below this line.
-        -->
+        <Image name="exclude=Background Task Host" condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image name="exclude=Runtime Broker" condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image name="exclude=Search Protocol Host" condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image name="exclude=Search Filter Host" condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image name="exclude=Audio Device Graph" condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image name="exclude=conhost system noise" condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=Microsoft Update Notification" condition="is">C:\Windows\System32\musNotification.exe</Image>
+        <Image name="exclude=Microsoft Update Notification UX" condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+        <Image name="exclude=Windows Error Reporting" condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting (32-bit)" condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting manager" condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image name="exclude=Software Protection Platform" condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image name="exclude=Compatibility Telemetry" condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <Image name="exclude=Windows Defender MsMpEng" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender NisSrv" condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image name="exclude=Windows Defender MpCmdRun" condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
       </ProcessCreate>
     </RuleGroup>
 
     <!--
-    Ransomware indicator detection: recovery inhibition, security tool disablement.
-    These generate named events for SIEM alerting and forensic investigation.
-    MITRE ATT&CK: T1490 (Inhibit System Recovery), T1562.001 (Disable or Modify Tools)
-    See: https://icswatchdog.com/ransomware/
+      T1490 Inhibit System Recovery + T1562.001 Disable or Modify Tools
     -->
     <RuleGroup name="ProcessCreate-RansomwareIndicators" groupRelation="or">
       <ProcessCreate onmatch="include">
-        <!-- Recovery inhibition (T1490) -->
-        <CommandLine name="Ransomware: shadow copy deletion" condition="contains">delete shadows</CommandLine>
-        <CommandLine name="Ransomware: shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
-        <CommandLine name="Ransomware: recovery disabled" condition="contains">recoveryenabled no</CommandLine>
-        <CommandLine name="Ransomware: boot status policy" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
-        <CommandLine name="Ransomware: backup catalog deletion" condition="contains">delete catalog</CommandLine>
-        <CommandLine name="Ransomware: safe mode boot" condition="contains">bcdedit /set safeboot</CommandLine>
-        <!-- Defender/security tool disablement (T1562.001) -->
-        <CommandLine name="Ransomware: Defender realtime disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
-        <CommandLine name="Ransomware: Defender drive exclusion" condition="contains">ExclusionPath</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via vssadmin" condition="contains">delete shadows</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows recovery disabled via bcdedit" condition="contains">recoveryenabled no</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware boot status policy bypass via bcdedit" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows backup catalog deletion via wbadmin" condition="contains">delete catalog</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware safe mode boot configuration" condition="contains">bcdedit /set safeboot</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender realtime monitoring disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender path exclusion added" condition="contains">ExclusionPath</CommandLine>
       </ProcessCreate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
-    Detects timestomping (same as OT Baseline).
-    MITRE ATT&CK: T1070.006 (Indicator Removal: Timestomp)
+    MITRE ATT&CK: T1070.006 (Timestomp)
     ================================================================
     -->
     <RuleGroup name="FileCreateTime" groupRelation="or">
       <FileCreateTime onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
-        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
-        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+        <Image name="exclude=svchost timestamp updates" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image name="exclude=msiexec install timestamp updates" condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image name="exclude=Chrome browser timestamp updates" condition="end with">\Chrome\Application\chrome.exe</Image>
+        <Image name="exclude=Edge browser timestamp updates" condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
       </FileCreateTime>
     </RuleGroup>
 
@@ -171,142 +168,88 @@
     ================================================================
     EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
     ENHANCED: Two RuleGroups for NetworkConnect.
-
-    RuleGroup 1 (exclude-based): Log all connections except Defender noise.
-    Same as OT Baseline - less aggressive exclusions than IT. On OT systems,
-    network connections are significant and should be logged broadly.
-
-    RuleGroup 2 (include-based): INDUSTRIAL PROTOCOL PORT MONITORING.
-    Logs connections on industrial protocol ports with descriptive RuleNames.
-    This is the primary enhancement over the OT Baseline.
-
+    RuleGroup 1: general exclude (same as OT Baseline).
+    RuleGroup 2: INDUSTRIAL PROTOCOL PORT MONITORING (primary enhancement).
     NOTE: Sysmon monitors WHICH PROCESS connects to WHICH PORT. It does NOT
     inspect protocol payloads. For protocol-level monitoring, use dedicated
     ICS network monitoring tools (e.g., Zeek, Claroty, Nozomi, Dragos).
-
-    NOTE: Both RuleGroups are evaluated. The exclude group filters noise;
-    the include group adds named rules for industrial ports. A connection
-    on port 502 will generate an event from both groups (one generic, one
-    named). If you want only named industrial port events, you can modify
-    the exclude group to be more aggressive.
     ================================================================
     -->
     <RuleGroup name="NetworkConnect-General" groupRelation="or">
       <NetworkConnect onmatch="exclude">
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
-        <!--
-        NOTE: svchost.exe is NOT excluded in OT configs. On OT systems, svchost
-        network connections may be significant and worth reviewing.
-        -->
+        <Image name="exclude=Windows Defender MsMpEng network" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng network" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
       </NetworkConnect>
     </RuleGroup>
 
+    <!--
+      T0830 Adversary-in-the-Middle (ICS) + T0855 Unauthorized Command Message (ICS)
+      Industrial protocol port monitoring. SANS ICS 5 Critical Control #3 primary focus.
+      These rules log connections on known industrial protocol ports with descriptive
+      RuleNames for SIEM correlation. An unexpected process connecting to Modbus TCP
+      port 502 may indicate reconnaissance, lateral movement, or unauthorized commands.
+      IMPORTANT: These are DEFAULT ports. Your environment may use non-standard ports.
+      Add your site-specific ports following the same pattern.
+      References:
+        https://attack.mitre.org/techniques/T0830/
+        https://attack.mitre.org/techniques/T0855/
+    -->
     <RuleGroup name="NetworkConnect-IndustrialPorts" groupRelation="or">
       <NetworkConnect onmatch="include">
-        <!--
-        ================================================================
-        INDUSTRIAL PROTOCOL PORT MONITORING
-        SANS ICS 5 Critical Control #3: ICS Network Visibility
-
-        These rules log connections on known industrial protocol ports.
-        Each rule has a descriptive name for SIEM correlation and alerting.
-
-        IMPORTANT: These are DEFAULT ports. Your environment may use
-        non-standard ports. Add your site-specific ports below.
-        ================================================================
-        -->
-
-        <!-- Modbus TCP (SCADA/PLC communication) -->
-        <DestinationPort name="ICS: Modbus TCP" condition="is">502</DestinationPort>
-
-        <!-- EtherNet/IP (Rockwell/Allen-Bradley, common in manufacturing) -->
-        <DestinationPort name="ICS: EtherNet/IP" condition="is">44818</DestinationPort>
-        <DestinationPort name="ICS: EtherNet/IP implicit" condition="is">2222</DestinationPort>
-
-        <!-- OPC UA (modern OPC, cross-vendor interoperability) -->
-        <DestinationPort name="ICS: OPC-UA" condition="is">4840</DestinationPort>
-
-        <!-- OPC DA/DCOM (legacy OPC, uses RPC endpoint mapper) -->
-        <!-- NOTE: Port 135 (RPC) is also used by many Windows services.
-             On an OT system, unexpected RPC connections warrant review. -->
-        <DestinationPort name="ICS: OPC DA/DCOM (RPC)" condition="is">135</DestinationPort>
-
-        <!-- DNP3 (power/water/utilities SCADA) -->
-        <DestinationPort name="ICS: DNP3" condition="is">20000</DestinationPort>
-
-        <!-- Siemens S7comm (S7-300/400/1200/1500 PLCs) -->
-        <DestinationPort name="ICS: S7comm/ISO-TSAP" condition="is">102</DestinationPort>
-
-        <!-- BACnet/IP (building automation) -->
-        <DestinationPort name="ICS: BACnet/IP" condition="is">47808</DestinationPort>
-
-        <!-- IEC 60870-5-104 (power grid telecontrol) -->
-        <DestinationPort name="ICS: IEC 104" condition="is">2404</DestinationPort>
-
-        <!-- MQTT (IIoT messaging, Ignition MQTT modules) -->
-        <DestinationPort name="ICS: MQTT" condition="is">1883</DestinationPort>
-        <DestinationPort name="ICS: MQTT TLS" condition="is">8883</DestinationPort>
-
-        <!-- Ignition Gateway (Inductive Automation) -->
-        <DestinationPort name="ICS: Ignition Gateway HTTP" condition="is">8088</DestinationPort>
-        <DestinationPort name="ICS: Ignition Gateway HTTPS" condition="is">8043</DestinationPort>
-
-        <!-- OSIsoft PI (AVEVA PI Data Archive) -->
-        <DestinationPort name="ICS: PI Data Archive" condition="is">5450</DestinationPort>
-
-        <!-- GE SRTP (GE Fanuc PLCs) -->
-        <DestinationPort name="ICS: GE SRTP" condition="is">18245</DestinationPort>
-
-        <!-- PROFINET (Siemens, industrial ethernet) -->
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to Modbus TCP port 502" condition="is">502</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP TCP port 44818" condition="is">44818</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to EtherNet/IP implicit messaging port 2222" condition="is">2222</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to OPC-UA port 4840" condition="is">4840</DestinationPort>
+        <!-- NOTE: Port 135 (RPC) is also used by many Windows services. On an OT
+             system, unexpected RPC connections warrant review. -->
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to OPC DA/DCOM RPC port 135" condition="is">135</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to DNP3 port 20000" condition="is">20000</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to S7comm/ISO-TSAP port 102" condition="is">102</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to BACnet/IP port 47808" condition="is">47808</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to IEC 60870-5-104 port 2404" condition="is">2404</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to MQTT port 1883" condition="is">1883</DestinationPort>
+        <DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to MQTT over TLS port 8883" condition="is">8883</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to Ignition Gateway HTTP port 8088" condition="is">8088</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to Ignition Gateway HTTPS port 8043" condition="is">8043</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to OSIsoft PI Data Archive port 5450" condition="is">5450</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to GE SRTP port 18245" condition="is">18245</DestinationPort>
         <!-- NOTE: PROFINET DCP uses UDP broadcast, not typically TCP connections.
              PROFINET RT/IRT operates at Layer 2 (not visible to Sysmon).
              Port 34962-34964 used for PROFINET IO context management. -->
-        <DestinationPort name="ICS: PROFINET IO CM" condition="is">34962</DestinationPort>
-        <DestinationPort name="ICS: PROFINET IO alarm" condition="is">34963</DestinationPort>
-        <DestinationPort name="ICS: PROFINET IO data" condition="is">34964</DestinationPort>
-
-        <!--
-        Add your site-specific industrial protocol ports below this line.
-        Use descriptive name attributes for log traceability.
-        -->
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PROFINET IO CM port 34962" condition="is">34962</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PROFINET IO alarm port 34963" condition="is">34963</DestinationPort>
+        <DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Process connecting to PROFINET IO data port 34964" condition="is">34964</DestinationPort>
       </NetworkConnect>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
-    Same as OT Baseline.
     ================================================================
     -->
     <RuleGroup name="ProcessTerminate" groupRelation="or">
       <ProcessTerminate onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=Background Task Host termination" condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image name="exclude=Runtime Broker termination" condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image name="exclude=conhost termination noise" condition="is">C:\Windows\System32\conhost.exe</Image>
       </ProcessTerminate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 6: DRIVER LOADED [DriverLoad]
-    Same as OT Baseline. Log all non-Microsoft drivers.
-    OT NOTE: ICS/OT vendor drivers (PLC communication hardware,
-    serial adapters, USB-to-serial converters) will appear here.
-    This is expected and useful for asset inventory.
     ================================================================
     -->
     <RuleGroup name="DriverLoad" groupRelation="or">
       <DriverLoad onmatch="exclude">
-        <Signature condition="contains">Microsoft</Signature>
-        <Signature condition="contains">Windows</Signature>
+        <Signature name="exclude=Microsoft signed driver" condition="contains">Microsoft</Signature>
+        <Signature name="exclude=Windows signed driver" condition="contains">Windows</Signature>
       </DriverLoad>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 7: IMAGE LOADED [ImageLoad]
-    Disabled by default (same as OT Baseline).
     ================================================================
     -->
     <RuleGroup name="ImageLoad" groupRelation="or">
@@ -316,25 +259,23 @@
     <!--
     ================================================================
     EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
-    Same as OT Baseline.
     MITRE ATT&CK: T1055 (Process Injection)
     ================================================================
     -->
     <RuleGroup name="CreateRemoteThread" groupRelation="or">
       <CreateRemoteThread onmatch="exclude">
-        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+        <SourceImage name="exclude=csrss legitimate remote thread" condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage name="exclude=wininit legitimate remote thread" condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage name="exclude=winlogon legitimate remote thread" condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage name="exclude=services legitimate remote thread" condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage name="exclude=lsass legitimate remote thread" condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage name="exclude=svchost legitimate remote thread" condition="is">C:\Windows\System32\svchost.exe</SourceImage>
       </CreateRemoteThread>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 9: RAW ACCESS READ [RawAccessRead]
-    Disabled by default (same as OT Baseline).
     ================================================================
     -->
     <RuleGroup name="RawAccessRead" groupRelation="or">
@@ -342,15 +283,11 @@
     </RuleGroup>
 
     <!--
-    ================================================================
-    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
-    Same as OT Baseline - monitor lsass.exe access.
-    MITRE ATT&CK: T1003 (OS Credential Dumping)
-    ================================================================
+      T1003.001 LSASS Memory
     -->
     <RuleGroup name="ProcessAccess" groupRelation="or">
       <ProcessAccess onmatch="include">
-        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+        <TargetImage name="technique_id=T1003.001,technique=LSASS Memory,detection=Process accessing lsass.exe" condition="is">C:\Windows\System32\lsass.exe</TargetImage>
       </ProcessAccess>
     </RuleGroup>
 
@@ -363,126 +300,107 @@
     -->
     <RuleGroup name="FileCreate" groupRelation="or">
       <FileCreate onmatch="include">
-        <!-- === Startup and persistence locations (same as OT Baseline) === -->
-        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
-        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
-        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
-
-        <!-- === Executable and script file types (same as OT Baseline) === -->
-        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
-        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
-        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
-        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
-        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
-        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
-        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
-        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
-        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
-        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
-        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
-        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
-
-        <!-- === User download/temp locations (same as OT Baseline) === -->
-        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
-        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
-        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
+        <!-- Persistence locations -->
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Start Menu" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task XML created in Tasks directory" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!-- Executable and script file types -->
+        <TargetFilename name="technique_id=T1204.002,technique=Malicious File,detection=Executable file created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1574.002,technique=DLL Side-Loading,detection=DLL file created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1543.003|T1014,technique=Windows Service,detection=System driver (.sys) file created" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Batch script created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Command script created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1059.001,technique=PowerShell,detection=PowerShell script created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=VBScript file created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1059.007,technique=JavaScript,detection=JavaScript file created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=Windows Script File created" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="technique_id=T1218.005,technique=Mshta,detection=HTML Application file created" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="technique_id=T1546.002,technique=Screensaver,detection=Screensaver executable created" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="technique_id=T1218.007,technique=Msiexec,detection=MSI installer file created" condition="end with">.msi</TargetFilename>
+        <!-- User/temp locations -->
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in user Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in user AppData Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in ProgramData folder" condition="contains">\ProgramData\</TargetFilename>
 
         <!--
-        ================================================================
-        OT-SPECIFIC FILE TYPES (from OT Baseline)
-        ================================================================
+          T1565.001 Stored Data Manipulation (ICS project files)
+          PLC programming and HMI/SCADA project files.
         -->
-
-        <!-- PLC programming project files -->
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap17</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap18</TargetFilename>
-        <TargetFilename name="ICS: Siemens TIA Portal project" condition="end with">.ap19</TargetFilename>
-        <TargetFilename name="ICS: Siemens STEP 7 project" condition="end with">.s7p</TargetFilename>
-        <TargetFilename name="ICS: CODESYS project" condition="end with">.project</TargetFilename>
-        <TargetFilename name="ICS: IEC 61131 structured text" condition="end with">.st</TargetFilename>
-
-        <!-- HMI/SCADA project files -->
-        <TargetFilename name="ICS: AVEVA InTouch app" condition="end with">.app</TargetFilename>
-
-        <!-- Firmware and binary files -->
-        <TargetFilename name="ICS: Firmware hex" condition="end with">.hex</TargetFilename>
-        <TargetFilename name="ICS: Firmware binary" condition="end with">.bin</TargetFilename>
-        <TargetFilename name="ICS: Firmware update" condition="end with">.fw</TargetFilename>
-
-        <!-- Configuration files -->
-        <TargetFilename name="ICS: OPC config" condition="end with">.opf</TargetFilename>
-
-        <!-- Archive files (common malware delivery in OT environments) -->
-        <TargetFilename name="Archive: ZIP" condition="end with">.zip</TargetFilename>
-        <TargetFilename name="Archive: RAR" condition="end with">.rar</TargetFilename>
-        <TargetFilename name="Archive: 7z" condition="end with">.7z</TargetFilename>
-        <TargetFilename name="Archive: ISO" condition="end with">.iso</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project file (.ap17) created" condition="end with">.ap17</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project file (.ap18) created" condition="end with">.ap18</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens TIA Portal project file (.ap19) created" condition="end with">.ap19</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Siemens STEP 7 project file created" condition="end with">.s7p</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=CODESYS project file created" condition="end with">.project</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=IEC 61131 structured text source created" condition="end with">.st</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=AVEVA InTouch application file created" condition="end with">.app</TargetFilename>
 
         <!--
-        ================================================================
-        ENHANCED: Additional ICS file types
-        ================================================================
+          T0857 Modify Controller Tasking + T1601 System Firmware (ICS ATT&CK)
+          Firmware files.
         -->
+        <TargetFilename name="technique_id=T0857|T1601,technique=Modify Controller Tasking,detection=Firmware HEX file created" condition="end with">.hex</TargetFilename>
+        <TargetFilename name="technique_id=T0857|T1601,technique=Modify Controller Tasking,detection=Firmware binary file created" condition="end with">.bin</TargetFilename>
+        <TargetFilename name="technique_id=T0857|T1601,technique=Modify Controller Tasking,detection=Firmware update file created" condition="end with">.fw</TargetFilename>
 
-        <!-- Rockwell/Allen-Bradley project files -->
-        <TargetFilename name="ICS: Rockwell Studio 5000 project" condition="end with">.ACD</TargetFilename>
-        <TargetFilename name="ICS: Rockwell RSLogix project" condition="end with">.RSS</TargetFilename>
-        <TargetFilename name="ICS: Rockwell RSLogix 5000 project" condition="end with">.L5K</TargetFilename>
-        <TargetFilename name="ICS: Rockwell RSLogix 5000 export" condition="end with">.L5X</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=OPC configuration file created" condition="end with">.opf</TargetFilename>
 
-        <!-- Schneider Electric project files -->
-        <TargetFilename name="ICS: Schneider Unity Pro project" condition="end with">.stu</TargetFilename>
-        <TargetFilename name="ICS: Schneider EcoStruxure project" condition="end with">.xef</TargetFilename>
-
-        <!-- SEL relay configuration -->
-        <TargetFilename name="ICS: SEL relay settings" condition="end with">.rdb</TargetFilename>
-        <TargetFilename name="ICS: SEL event report" condition="end with">.cev</TargetFilename>
-
-        <!-- GE/Emerson project files -->
-        <TargetFilename name="ICS: GE Proficy project" condition="end with">.cmp</TargetFilename>
-
-        <!-- OPC UA certificate files (certificate changes may indicate tampering) -->
-        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.der</TargetFilename>
-        <TargetFilename name="ICS: OPC UA certificate" condition="end with">.pem</TargetFilename>
-
-        <!-- ICS configuration exports -->
-        <TargetFilename name="ICS: Config export CSV" condition="end with">.csv</TargetFilename>
-
-        <!-- Recycle Bin (malware staging/hiding) -->
-        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
-        <!-- Group Policy changes -->
-        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
-
-        <!-- Ransom note detection (T1486) -->
-        <TargetFilename name="Ransomware: ransom note" condition="contains">DECRYPT</TargetFilename>
-        <TargetFilename name="Ransomware: ransom note" condition="contains">RANSOM</TargetFilename>
-        <TargetFilename name="Ransomware: ransom note" condition="contains">RECOVER</TargetFilename>
-        <TargetFilename name="Ransomware: EKANS note" condition="end with">Decrypt-Your-Files.txt</TargetFilename>
+        <!-- Archives -->
+        <TargetFilename name="technique_id=T1560.001,technique=Archive via Utility,detection=ZIP archive created" condition="end with">.zip</TargetFilename>
+        <TargetFilename name="technique_id=T1560.001,technique=Archive via Utility,detection=RAR archive created" condition="end with">.rar</TargetFilename>
+        <TargetFilename name="technique_id=T1560.001,technique=Archive via Utility,detection=7z archive created" condition="end with">.7z</TargetFilename>
+        <TargetFilename name="technique_id=T1204.002|T1027.006,technique=Malicious File,detection=ISO file created (common malware container)" condition="end with">.iso</TargetFilename>
 
         <!--
-        ================================================================
-        VENDOR INSTALLATION DIRECTORIES (from OT Baseline + expanded)
-        Monitor changes to ICS/OT software installation directories.
-        ================================================================
+          T1565.001 Stored Data Manipulation
+          ENHANCED: Additional ICS vendor project file formats.
         -->
-        <TargetFilename name="ICS: Siemens directory" condition="contains">\Siemens\</TargetFilename>
-        <TargetFilename name="ICS: Rockwell directory" condition="contains">\Rockwell Software\</TargetFilename>
-        <TargetFilename name="ICS: Rockwell FactoryTalk" condition="contains">\FactoryTalk\</TargetFilename>
-        <TargetFilename name="ICS: Schneider directory" condition="contains">\Schneider Electric\</TargetFilename>
-        <TargetFilename name="ICS: Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
-        <TargetFilename name="ICS: ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
-        <TargetFilename name="ICS: OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
-        <TargetFilename name="ICS: Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
-        <TargetFilename name="ICS: Kepware directory" condition="contains">\Kepware\</TargetFilename>
-        <TargetFilename name="ICS: SEL directory" condition="contains">\SEL\</TargetFilename>
-        <TargetFilename name="ICS: CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
-        <!-- Enhanced: additional vendor directories -->
-        <TargetFilename name="ICS: GE directory" condition="contains">\GE Digital\</TargetFilename>
-        <TargetFilename name="ICS: GE iFIX directory" condition="contains">\GE\iFIX\</TargetFilename>
-        <TargetFilename name="ICS: Honeywell directory" condition="contains">\Honeywell\</TargetFilename>
-        <TargetFilename name="ICS: Emerson directory" condition="contains">\Emerson\</TargetFilename>
-        <TargetFilename name="ICS: ABB directory" condition="contains">\ABB\</TargetFilename>
-        <TargetFilename name="ICS: Yokogawa directory" condition="contains">\Yokogawa\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell Studio 5000 project (.ACD) created" condition="end with">.ACD</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix project (.RSS) created" condition="end with">.RSS</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5000 project (.L5K) created" condition="end with">.L5K</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Rockwell RSLogix 5000 export (.L5X) created" condition="end with">.L5X</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider Unity Pro project (.stu) created" condition="end with">.stu</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=Schneider EcoStruxure project (.xef) created" condition="end with">.xef</TargetFilename>
+        <TargetFilename name="technique_id=T0836|T1565.001,technique=Modify Parameter,detection=SEL relay settings file created" condition="end with">.rdb</TargetFilename>
+        <TargetFilename name="technique_id=T0852,technique=Screen Capture,detection=SEL relay event report created" condition="end with">.cev</TargetFilename>
+        <TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=GE Proficy project file created" condition="end with">.cmp</TargetFilename>
+        <!--
+          T1552.004 Private Keys + T1556 Modify Authentication Process
+          OPC UA certificate changes may indicate tampering with OT authentication.
+        -->
+        <TargetFilename name="technique_id=T1552.004|T1556,technique=Private Keys,detection=OPC UA certificate (.der) created" condition="end with">.der</TargetFilename>
+        <TargetFilename name="technique_id=T1552.004|T1556,technique=Private Keys,detection=OPC UA certificate (.pem) created" condition="end with">.pem</TargetFilename>
+        <TargetFilename name="technique_id=T1005,technique=Data from Local System,detection=ICS configuration CSV export created" condition="end with">.csv</TargetFilename>
+
+        <TargetFilename name="technique_id=T1564.001,technique=Hidden Files and Directories,detection=File staged in Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <TargetFilename name="technique_id=T1484.001,technique=Group Policy Modification,detection=Group Policy file modified" condition="contains">\GroupPolicy\</TargetFilename>
+
+        <!-- Ransom note detection -->
+        <TargetFilename name="technique_id=T1486,technique=Data Encrypted for Impact,detection=Ransom note filename containing DECRYPT" condition="contains">DECRYPT</TargetFilename>
+        <TargetFilename name="technique_id=T1486,technique=Data Encrypted for Impact,detection=Ransom note filename containing RANSOM" condition="contains">RANSOM</TargetFilename>
+        <TargetFilename name="technique_id=T1486,technique=Data Encrypted for Impact,detection=Ransom note filename containing RECOVER" condition="contains">RECOVER</TargetFilename>
+        <TargetFilename name="technique_id=T1486,technique=Data Encrypted for Impact,detection=EKANS ransomware note (Decrypt-Your-Files.txt)" condition="end with">Decrypt-Your-Files.txt</TargetFilename>
+
+        <!--
+          T1565.002 Transmitted Data Manipulation
+          ICS vendor installation directories.
+        -->
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Siemens installation directory" condition="contains">\Siemens\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Rockwell Software directory" condition="contains">\Rockwell Software\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in FactoryTalk directory" condition="contains">\FactoryTalk\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Schneider Electric directory" condition="contains">\Schneider Electric\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Wonderware directory" condition="contains">\Wonderware\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in ArchestrA directory" condition="contains">\ArchestrA\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in OSIsoft PI directory" condition="contains">\PIPC\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Inductive Automation Ignition directory" condition="contains">\Inductive Automation\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Kepware directory" condition="contains">\Kepware\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in SEL directory" condition="contains">\SEL\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in CODESYS directory" condition="contains">\CODESYS\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in GE Digital directory" condition="contains">\GE Digital\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in GE iFIX directory" condition="contains">\GE\iFIX\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Honeywell directory" condition="contains">\Honeywell\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Emerson directory" condition="contains">\Emerson\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in ABB directory" condition="contains">\ABB\</TargetFilename>
+        <TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in Yokogawa directory" condition="contains">\Yokogawa\</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
@@ -490,102 +408,93 @@
     ================================================================
     EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
     ENHANCED: Builds on OT Baseline with OPC/DCOM registry monitoring.
-    OPC DA uses DCOM, and changes to DCOM configuration can affect
-    or compromise OT communications.
-    MITRE ATT&CK: T1547 (Boot or Logon Autostart Execution)
     ================================================================
     -->
     <RuleGroup name="RegistryEvent" groupRelation="or">
       <RegistryEvent onmatch="include">
-        <!-- Autostart locations (same as OT Baseline) -->
-        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
-        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
-        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
-        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
-        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
-        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
-        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
-        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
-        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
-        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
-        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
-        <!-- Enhanced: OPC/DCOM configuration (critical for OT communications) -->
-        <TargetObject name="ICS: DCOM config" condition="contains">\SOFTWARE\Microsoft\Ole</TargetObject>
-        <TargetObject name="ICS: OPC server registration" condition="contains">\OPC\</TargetObject>
-        <!-- Enhanced: Windows Firewall rules (changes may expose industrial ports) -->
-        <TargetObject name="Firewall rules" condition="contains">\Services\SharedAccess\Parameters\FirewallPolicy</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry Run key modified" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry RunOnce key modified" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=RunServices key modified" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Explorer Policies Run key modified" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="technique_id=T1543.003,technique=Windows Service,detection=Windows service registry key modified" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task cache modified" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="technique_id=T1546.010,technique=AppInit DLLs,detection=AppInit_DLLs registry value modified" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="technique_id=T1546.012,technique=Image File Execution Options Injection,detection=IFEO registry key modified" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Shell value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Userinit value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=AppLocker policy modified" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!--
+          T1559.001 Component Object Model + T1562.004 Disable or Modify System Firewall
+          ENHANCED: OPC/DCOM config changes can affect or compromise OT communications.
+          Firewall rule changes may expose industrial ports.
+        -->
+        <TargetObject name="technique_id=T1559.001,technique=Component Object Model,detection=DCOM Ole configuration modified" condition="contains">\SOFTWARE\Microsoft\Ole</TargetObject>
+        <TargetObject name="technique_id=T1559.001,technique=Component Object Model,detection=OPC server registration modified" condition="contains">\OPC\</TargetObject>
+        <TargetObject name="technique_id=T1562.004,technique=Disable or Modify System Firewall,detection=Windows Firewall rules modified" condition="contains">\Services\SharedAccess\Parameters\FirewallPolicy</TargetObject>
         <!-- Ransomware-relevant registry changes -->
-        <TargetObject name="Ransomware: SafeBoot config" condition="contains">\Control\SafeBoot</TargetObject>
-        <TargetObject name="Ransomware: WDigest credential caching" condition="contains">\SecurityProviders\WDigest</TargetObject>
-        <TargetObject name="Ransomware: Defender policy" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
-        <TargetObject name="Ransomware: Sysmon Autologger" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
+        <TargetObject name="technique_id=T1490,technique=Inhibit System Recovery,detection=SafeBoot configuration modified" condition="contains">\Control\SafeBoot</TargetObject>
+        <TargetObject name="technique_id=T1112|T1003.001,technique=Modify Registry,detection=WDigest credential caching enabled" condition="contains">\SecurityProviders\WDigest</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Windows Defender policy modified" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Sysmon Autologger registry tampering" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
-    Same as OT Baseline.
     ================================================================
     -->
     <RuleGroup name="FileCreateStreamHash" groupRelation="or">
       <FileCreateStreamHash onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.vbs</TargetFilename>
-        <TargetFilename condition="end with">.js</TargetFilename>
-        <TargetFilename condition="end with">.hta</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Executable Mark of the Web stream created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=DLL Mark of the Web stream created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Batch script Mark of the Web stream created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Command script Mark of the Web stream created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=PowerShell script Mark of the Web stream created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=VBScript Mark of the Web stream created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=JavaScript Mark of the Web stream created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=HTA Mark of the Web stream created" condition="end with">.hta</TargetFilename>
       </FileCreateStreamHash>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
-    Same as OT Baseline.
     ================================================================
     -->
     <RuleGroup name="PipeCreated" groupRelation="or">
       <PipeEvent onmatch="exclude">
-        <PipeName condition="is">\lsass</PipeName>
-        <PipeName condition="is">\wkssvc</PipeName>
-        <PipeName condition="is">\srvsvc</PipeName>
-        <PipeName condition="is">\winreg</PipeName>
-        <PipeName condition="is">\spoolss</PipeName>
+        <PipeName name="exclude=lsass system pipe" condition="is">\lsass</PipeName>
+        <PipeName name="exclude=Workstation service pipe" condition="is">\wkssvc</PipeName>
+        <PipeName name="exclude=Server service pipe" condition="is">\srvsvc</PipeName>
+        <PipeName name="exclude=Remote registry pipe" condition="is">\winreg</PipeName>
+        <PipeName name="exclude=Print spooler pipe" condition="is">\spoolss</PipeName>
       </PipeEvent>
     </RuleGroup>
 
     <!--
-    C2 framework and lateral movement named pipe detection.
-    MITRE ATT&CK: T1071 (Application Layer Protocol), T1021 (Remote Services)
-    See: https://icswatchdog.com/ransomware/
+      T1572 Protocol Tunneling + T1021.002 SMB Admin Shares + T1003.001 LSASS Memory
+      C2 framework named pipes and lateral movement tool indicators.
     -->
     <RuleGroup name="PipeCreated-C2Detection" groupRelation="or">
       <PipeEvent onmatch="include">
-        <!-- Cobalt Strike default pipes -->
-        <PipeName name="C2: Cobalt Strike" condition="begin with">\MSSE-</PipeName>
-        <PipeName name="C2: Cobalt Strike postex" condition="begin with">\postex_</PipeName>
-        <PipeName name="C2: Cobalt Strike status" condition="begin with">\status_</PipeName>
-        <PipeName name="C2: Cobalt Strike msagent" condition="begin with">\msagent_</PipeName>
-        <!-- Lateral movement tools -->
-        <PipeName name="Lateral: PsExec" condition="is">\PSEXESVC</PipeName>
-        <PipeName name="Lateral: paexec" condition="begin with">\paexec</PipeName>
-        <PipeName name="Lateral: remcom" condition="begin with">\remcom</PipeName>
-        <PipeName name="Lateral: csexec" condition="begin with">\csexec</PipeName>
-        <!-- Credential tools -->
-        <PipeName name="Cred: lsadump" condition="is">\lsadump</PipeName>
-        <PipeName name="Cred: cachedump" condition="is">\cachedump</PipeName>
-        <PipeName name="Cred: wceservicepipe" condition="is">\wceservicepipe</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike default named pipe MSSE-" condition="begin with">\MSSE-</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike post-exploitation pipe postex_" condition="begin with">\postex_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike status pipe" condition="begin with">\status_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike msagent pipe" condition="begin with">\msagent_</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PsExec service pipe PSEXESVC" condition="is">\PSEXESVC</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PAExec lateral movement pipe" condition="begin with">\paexec</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=RemCom lateral movement pipe" condition="begin with">\remcom</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=CSExec lateral movement pipe" condition="begin with">\csexec</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Mimikatz lsadump named pipe" condition="is">\lsadump</PipeName>
+        <PipeName name="technique_id=T1003.005,technique=Cached Domain Credentials,detection=Cachedump named pipe" condition="is">\cachedump</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Windows Credential Editor service pipe" condition="is">\wceservicepipe</PipeName>
       </PipeEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
-    Same as OT Baseline - log all WMI persistence.
-    MITRE ATT&CK: T1546.003 (Event Triggered Execution: WMI)
     ================================================================
     -->
     <RuleGroup name="WmiEvent" groupRelation="or">
@@ -595,22 +504,19 @@
     <!--
     ================================================================
     EVENT ID 22: DNS QUERY [DnsQuery]
-    Same as OT Baseline - fewer exclusions than IT configs.
-    DNS queries from OT systems are more significant.
     ================================================================
     -->
     <RuleGroup name="DnsQuery" groupRelation="or">
       <DnsQuery onmatch="exclude">
-        <QueryName condition="end with">.microsoft.com</QueryName>
-        <QueryName condition="end with">.windowsupdate.com</QueryName>
-        <QueryName condition="end with">.windows.com</QueryName>
+        <QueryName name="exclude=Microsoft DNS query" condition="end with">.microsoft.com</QueryName>
+        <QueryName name="exclude=Windows Update DNS query" condition="end with">.windowsupdate.com</QueryName>
+        <QueryName name="exclude=Windows DNS query" condition="end with">.windows.com</QueryName>
       </DnsQuery>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
-    Disabled by default (same as OT Baseline).
     ================================================================
     -->
     <RuleGroup name="FileDelete" groupRelation="or">
@@ -620,8 +526,6 @@
     <!--
     ================================================================
     EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
-    Same as OT Baseline - log all process tampering.
-    MITRE ATT&CK: T1055.012 (Process Hollowing)
     ================================================================
     -->
     <RuleGroup name="ProcessTampering" groupRelation="or">
@@ -631,23 +535,21 @@
     <!--
     ================================================================
     EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
-    Same as OT Baseline.
     ================================================================
     -->
     <RuleGroup name="FileDeleteDetected" groupRelation="or">
       <FileDeleteDetected onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.sys</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
-        <!-- Backup and database file deletion (ransomware indicator, T1490) -->
-        <TargetFilename name="Ransomware: backup deletion" condition="end with">.bak</TargetFilename>
-        <TargetFilename name="Ransomware: VHD deletion" condition="end with">.vhd</TargetFilename>
-        <TargetFilename name="Ransomware: VHDX deletion" condition="end with">.vhdx</TargetFilename>
-        <TargetFilename name="Ransomware: SQL data deletion" condition="end with">.mdf</TargetFilename>
-        <TargetFilename name="Ransomware: SQL log deletion" condition="end with">.ldf</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Executable file deleted" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=DLL file deleted" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=System driver deleted" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=PowerShell script deleted" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Batch script deleted" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Command script deleted" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Backup file (.bak) deletion" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhd) deletion" condition="end with">.vhd</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhdx) deletion" condition="end with">.vhdx</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server data file (.mdf) deletion" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server log file (.ldf) deletion" condition="end with">.ldf</TargetFilename>
       </FileDeleteDetected>
     </RuleGroup>
 

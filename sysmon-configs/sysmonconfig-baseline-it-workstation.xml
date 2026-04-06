@@ -1,6 +1,6 @@
 <!--
   ICS Watch Dog - IT Workstation Baseline Sysmon Configuration
-  Version:      v2.0
+  Version:      v2.1
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
@@ -20,6 +20,25 @@
     Extends Section 9 (Windows Firewall) - Sysmon Event ID 3 logs process-to-connection
       mapping not available from firewall logs alone
 
+  MITRE ATT&CK Coverage:
+    T1003.001 - LSASS Memory
+    T1055     - Process Injection
+    T1055.012 - Process Hollowing
+    T1059     - Command and Scripting Interpreter (multiple sub-techniques)
+    T1070.004 - File Deletion
+    T1070.006 - Timestomp
+    T1071.001 - Application Layer Protocol (Web Protocols)
+    T1490     - Inhibit System Recovery
+    T1547.001 - Registry Run Keys / Startup Folder
+    T1547.004 - Winlogon Helper DLL
+    T1546.010 - AppInit DLLs
+    T1546.012 - Image File Execution Options Injection
+    T1543.003 - Windows Service
+    T1546.003 - WMI Event Subscription
+    T1562.001 - Disable or Modify Tools
+    T1564.004 - NTFS File Attributes
+    T1572     - Protocol Tunneling
+
   DESCRIPTION:
     This is the IT WORKSTATION BASELINE configuration. It is the starting point for deploying
     Sysmon on Windows workstations, desktops, and laptops. It excludes common desktop noise
@@ -28,6 +47,9 @@
     For SERVERS, use sysmonconfig-baseline-it-server.xml instead. Servers have fundamentally
     different process noise and monitoring needs.
     For OT environments, use sysmonconfig-baseline-ot.xml which builds on this config.
+
+    All include rules use the ATT&CK structured tagging convention.
+    See https://icswatchdog.com/attack-tagging/ for the full specification.
 
     This config monitors:
     - Process creation and termination (desktop noise excluded)
@@ -65,10 +87,6 @@
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
     - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_desktop
     - CISA Ransomware Guide: https://www.cisa.gov/stopransomware/ransomware-guide
-
-  Ransomware Detection (added in v3.0):
-    T1490     - Inhibit System Recovery (shadow copy deletion, bcdedit, wbadmin)
-    T1562.001 - Disable or Modify Tools (Defender tampering, Sysmon tampering)
 -->
 
 <Sysmon schemaversion="4.50">
@@ -90,46 +108,50 @@
     <RuleGroup name="ProcessCreate" groupRelation="or">
       <ProcessCreate onmatch="exclude">
         <!-- Windows system noise -->
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
-        <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
-        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
-        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
-        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <Image name="exclude=Background Task Host" condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image name="exclude=Runtime Broker" condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image name="exclude=Search Protocol Host" condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+        <Image name="exclude=Search Filter Host" condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+        <Image name="exclude=Audio Device Graph" condition="is">C:\Windows\System32\audiodg.exe</Image>
+        <Image name="exclude=conhost system noise" condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=Microsoft Update Notification" condition="is">C:\Windows\System32\musNotification.exe</Image>
+        <Image name="exclude=Microsoft Update Notification UX" condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+        <Image name="exclude=Windows Error Reporting" condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting (32-bit)" condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting manager" condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image name="exclude=Software Protection Platform" condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image name="exclude=Compatibility Telemetry" condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
         <!-- Windows Defender noise -->
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender MsMpEng" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender NisSrv" condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image name="exclude=Windows Defender MpCmdRun" condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
         <!-- IMPORTANT: Add your enterprise software exclusions below this line -->
       </ProcessCreate>
     </RuleGroup>
 
     <!--
-    Ransomware indicator detection: recovery inhibition, security tool disablement.
-    These generate named events for SIEM alerting and forensic investigation.
-    MITRE ATT&CK: T1490 (Inhibit System Recovery), T1562.001 (Disable or Modify Tools)
-    See: https://icswatchdog.com/ransomware/
+      T1490 Inhibit System Recovery + T1562.001 Disable or Modify Tools
+      Ransomware indicator detection: recovery inhibition and security tool disablement.
+      These commands have legitimate uses but are also classic ransomware preparation steps.
+      Investigate every match in the context of the executing user and parent process.
+      References:
+        https://attack.mitre.org/techniques/T1490/
+        https://attack.mitre.org/techniques/T1562/001/
+        https://icswatchdog.com/ransomware/
     -->
     <RuleGroup name="ProcessCreate-RansomwareIndicators" groupRelation="or">
       <ProcessCreate onmatch="include">
         <!-- Recovery inhibition (T1490) -->
-        <CommandLine name="Ransomware: shadow copy deletion" condition="contains">delete shadows</CommandLine>
-        <CommandLine name="Ransomware: shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
-        <CommandLine name="Ransomware: recovery disabled" condition="contains">recoveryenabled no</CommandLine>
-        <CommandLine name="Ransomware: boot status policy" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
-        <CommandLine name="Ransomware: backup catalog deletion" condition="contains">delete catalog</CommandLine>
-        <CommandLine name="Ransomware: safe mode boot" condition="contains">bcdedit /set safeboot</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via vssadmin" condition="contains">delete shadows</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows recovery disabled via bcdedit" condition="contains">recoveryenabled no</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware boot status policy bypass via bcdedit" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows backup catalog deletion via wbadmin" condition="contains">delete catalog</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware safe mode boot configuration" condition="contains">bcdedit /set safeboot</CommandLine>
         <!-- Defender/security tool disablement (T1562.001) -->
-        <CommandLine name="Ransomware: Defender realtime disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
-        <CommandLine name="Ransomware: Defender drive exclusion" condition="contains">ExclusionPath</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender realtime monitoring disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender path exclusion added" condition="contains">ExclusionPath</CommandLine>
       </ProcessCreate>
     </RuleGroup>
 
@@ -142,10 +164,10 @@
     -->
     <RuleGroup name="FileCreateTime" groupRelation="or">
       <FileCreateTime onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
-        <Image condition="end with">\Chrome\Application\chrome.exe</Image>
-        <Image condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
+        <Image name="exclude=svchost timestamp updates" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image name="exclude=msiexec install timestamp updates" condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image name="exclude=Chrome browser timestamp updates" condition="end with">\Chrome\Application\chrome.exe</Image>
+        <Image name="exclude=Edge browser timestamp updates" condition="end with">\Microsoft\Edge\Application\msedge.exe</Image>
       </FileCreateTime>
     </RuleGroup>
 
@@ -159,9 +181,9 @@
     <RuleGroup name="NetworkConnect" groupRelation="or">
       <NetworkConnect onmatch="exclude">
         <!-- Windows system noise -->
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image name="exclude=svchost network noise" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image name="exclude=Windows Defender MsMpEng network" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng network" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
         <!-- IMPORTANT: Add exclusions for approved enterprise network software here -->
       </NetworkConnect>
     </RuleGroup>
@@ -174,9 +196,9 @@
     -->
     <RuleGroup name="ProcessTerminate" groupRelation="or">
       <ProcessTerminate onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
-        <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=Background Task Host termination" condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+        <Image name="exclude=Runtime Broker termination" condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+        <Image name="exclude=conhost termination noise" condition="is">C:\Windows\System32\conhost.exe</Image>
       </ProcessTerminate>
     </RuleGroup>
 
@@ -189,8 +211,8 @@
     -->
     <RuleGroup name="DriverLoad" groupRelation="or">
       <DriverLoad onmatch="exclude">
-        <Signature condition="contains">Microsoft</Signature>
-        <Signature condition="contains">Windows</Signature>
+        <Signature name="exclude=Microsoft signed driver" condition="contains">Microsoft</Signature>
+        <Signature name="exclude=Windows signed driver" condition="contains">Windows</Signature>
       </DriverLoad>
     </RuleGroup>
 
@@ -215,12 +237,12 @@
     <RuleGroup name="CreateRemoteThread" groupRelation="or">
       <CreateRemoteThread onmatch="exclude">
         <!-- Legitimate system processes that create remote threads -->
-        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+        <SourceImage name="exclude=csrss legitimate remote thread" condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage name="exclude=wininit legitimate remote thread" condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage name="exclude=winlogon legitimate remote thread" condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage name="exclude=services legitimate remote thread" condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage name="exclude=lsass legitimate remote thread" condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage name="exclude=svchost legitimate remote thread" condition="is">C:\Windows\System32\svchost.exe</SourceImage>
       </CreateRemoteThread>
     </RuleGroup>
 
@@ -235,16 +257,14 @@
     </RuleGroup>
 
     <!--
-    ================================================================
-    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
-    Detects credential dumping (lsass.exe access).
-    MITRE ATT&CK: T1003 (OS Credential Dumping)
-    Include only - monitors access to sensitive processes.
-    ================================================================
+      T1003.001 LSASS Memory
+      Detect any process accessing lsass.exe. The classic credential dumping target.
+      Investigate every match: check the source process, command line, and parent.
+      Reference: https://attack.mitre.org/techniques/T1003/001/
     -->
     <RuleGroup name="ProcessAccess" groupRelation="or">
       <ProcessAccess onmatch="include">
-        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+        <TargetImage name="technique_id=T1003.001,technique=LSASS Memory,detection=Process accessing lsass.exe" condition="is">C:\Windows\System32\lsass.exe</TargetImage>
       </ProcessAccess>
     </RuleGroup>
 
@@ -257,31 +277,52 @@
     -->
     <RuleGroup name="FileCreate" groupRelation="or">
       <FileCreate onmatch="include">
-        <!-- Startup and persistence locations -->
-        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
-        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
-        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
-        <!-- Executable and script file types -->
-        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
-        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
-        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
-        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
-        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
-        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
-        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
-        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
-        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
-        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
-        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
-        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
-        <!-- User download/temp locations -->
-        <TargetFilename name="Downloads folder" condition="contains">\Downloads\</TargetFilename>
-        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
-        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
-        <!-- Recycle Bin - executables, scripts, and archives (malware staging/hiding) -->
-        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
-        <!-- Group Policy changes (includes AppLocker policy updates) -->
-        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+        <!--
+          T1547.001 Registry Run Keys / Startup Folder + T1053.005 Scheduled Task
+          Persistence locations. Files written here run automatically.
+          References:
+            https://attack.mitre.org/techniques/T1547/001/
+            https://attack.mitre.org/techniques/T1053/005/
+        -->
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Start Menu" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task XML created in Tasks directory" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!--
+          Executable and script file types. Each technique tag identifies the
+          interpreter or execution mechanism the file targets.
+          References: https://attack.mitre.org/techniques/T1204/002/, T1059/, T1218/
+        -->
+        <TargetFilename name="technique_id=T1204.002,technique=Malicious File,detection=Executable file created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1574.002,technique=DLL Side-Loading,detection=DLL file created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1543.003|T1014,technique=Windows Service,detection=System driver (.sys) file created" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Batch script created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Command script created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1059.001,technique=PowerShell,detection=PowerShell script created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=VBScript file created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1059.007,technique=JavaScript,detection=JavaScript file created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=Windows Script File created" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="technique_id=T1218.005,technique=Mshta,detection=HTML Application file created" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="technique_id=T1546.002,technique=Screensaver,detection=Screensaver executable created" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="technique_id=T1218.007,technique=Msiexec,detection=MSI installer file created" condition="end with">.msi</TargetFilename>
+        <!--
+          T1105 Ingress Tool Transfer
+          User-accessible locations are common malware drop targets after a delivery vector.
+          Reference: https://attack.mitre.org/techniques/T1105/
+        -->
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in user Downloads folder" condition="contains">\Downloads\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in user AppData Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in ProgramData folder" condition="contains">\ProgramData\</TargetFilename>
+        <!--
+          T1564.001 Hidden Files and Directories
+          Recycle Bin is a common malware staging and hiding location.
+          Reference: https://attack.mitre.org/techniques/T1564/001/
+        -->
+        <TargetFilename name="technique_id=T1564.001,technique=Hidden Files and Directories,detection=File staged in Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <!--
+          T1484.001 Group Policy Modification
+          Reference: https://attack.mitre.org/techniques/T1484/001/
+        -->
+        <TargetFilename name="technique_id=T1484.001,technique=Group Policy Modification,detection=Group Policy file modified" condition="contains">\GroupPolicy\</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
@@ -294,29 +335,58 @@
     -->
     <RuleGroup name="RegistryEvent" groupRelation="or">
       <RegistryEvent onmatch="include">
-        <!-- Autostart locations -->
-        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
-        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
-        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
-        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
-        <!-- Services -->
-        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
-        <!-- Scheduled tasks -->
-        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
-        <!-- AppInit DLLs (DLL injection via registry) -->
-        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
-        <!-- Image File Execution Options (debugger attachment for persistence) -->
-        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
-        <!-- Winlogon -->
-        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
-        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
-        <!-- AppLocker policy changes (application whitelisting) -->
-        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
-        <!-- Ransomware-relevant registry changes -->
-        <TargetObject name="Ransomware: SafeBoot config" condition="contains">\Control\SafeBoot</TargetObject>
-        <TargetObject name="Ransomware: WDigest credential caching" condition="contains">\SecurityProviders\WDigest</TargetObject>
-        <TargetObject name="Ransomware: Defender policy" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
-        <TargetObject name="Ransomware: Sysmon Autologger" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
+        <!--
+          T1547.001 Registry Run Keys / Startup Folder
+          Run/RunOnce registry keys are the most common Windows persistence locations.
+          Reference: https://attack.mitre.org/techniques/T1547/001/
+        -->
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry Run key modified" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry RunOnce key modified" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=RunServices key modified" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Explorer Policies Run key modified" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <!--
+          T1543.003 Windows Service
+          Reference: https://attack.mitre.org/techniques/T1543/003/
+        -->
+        <TargetObject name="technique_id=T1543.003,technique=Windows Service,detection=Windows service registry key modified" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <!--
+          T1053.005 Scheduled Task
+          Reference: https://attack.mitre.org/techniques/T1053/005/
+        -->
+        <TargetObject name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task cache modified" condition="contains">\Schedule\TaskCache</TargetObject>
+        <!--
+          T1546.010 AppInit DLLs
+          Reference: https://attack.mitre.org/techniques/T1546/010/
+        -->
+        <TargetObject name="technique_id=T1546.010,technique=AppInit DLLs,detection=AppInit_DLLs registry value modified" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <!--
+          T1546.012 Image File Execution Options Injection
+          Reference: https://attack.mitre.org/techniques/T1546/012/
+        -->
+        <TargetObject name="technique_id=T1546.012,technique=Image File Execution Options Injection,detection=IFEO registry key modified" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <!--
+          T1547.004 Winlogon Helper DLL
+          Reference: https://attack.mitre.org/techniques/T1547/004/
+        -->
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Shell value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Userinit value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <!--
+          T1562.001 Disable or Modify Tools
+          Reference: https://attack.mitre.org/techniques/T1562/001/
+        -->
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=AppLocker policy modified" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <!--
+          T1490 Inhibit System Recovery + T1112 Modify Registry + T1562.001 Disable or Modify Tools
+          Ransomware-relevant registry changes.
+          References:
+            https://attack.mitre.org/techniques/T1490/
+            https://attack.mitre.org/techniques/T1003/001/
+            https://attack.mitre.org/techniques/T1562/001/
+        -->
+        <TargetObject name="technique_id=T1490,technique=Inhibit System Recovery,detection=SafeBoot configuration modified" condition="contains">\Control\SafeBoot</TargetObject>
+        <TargetObject name="technique_id=T1112|T1003.001,technique=Modify Registry,detection=WDigest credential caching enabled" condition="contains">\SecurityProviders\WDigest</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Windows Defender policy modified" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Sysmon Autologger registry tampering" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
@@ -328,14 +398,21 @@
     -->
     <RuleGroup name="FileCreateStreamHash" groupRelation="or">
       <FileCreateStreamHash onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.vbs</TargetFilename>
-        <TargetFilename condition="end with">.js</TargetFilename>
-        <TargetFilename condition="end with">.hta</TargetFilename>
+        <!--
+          T1564.004 NTFS File Attributes + T1553.005 Mark of the Web Bypass
+          Alternate data streams on executables and scripts indicate downloaded content.
+          References:
+            https://attack.mitre.org/techniques/T1564/004/
+            https://attack.mitre.org/techniques/T1553/005/
+        -->
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Executable Mark of the Web stream created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=DLL Mark of the Web stream created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Batch script Mark of the Web stream created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Command script Mark of the Web stream created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=PowerShell script Mark of the Web stream created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=VBScript Mark of the Web stream created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=JavaScript Mark of the Web stream created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=HTA Mark of the Web stream created" condition="end with">.hta</TargetFilename>
       </FileCreateStreamHash>
     </RuleGroup>
 
@@ -349,35 +426,43 @@
     <RuleGroup name="PipeCreated" groupRelation="or">
       <PipeEvent onmatch="exclude">
         <!-- Known Windows system pipes -->
-        <PipeName condition="is">\lsass</PipeName>
-        <PipeName condition="is">\wkssvc</PipeName>
-        <PipeName condition="is">\srvsvc</PipeName>
-        <PipeName condition="is">\winreg</PipeName>
-        <PipeName condition="is">\spoolss</PipeName>
+        <PipeName name="exclude=lsass system pipe" condition="is">\lsass</PipeName>
+        <PipeName name="exclude=Workstation service pipe" condition="is">\wkssvc</PipeName>
+        <PipeName name="exclude=Server service pipe" condition="is">\srvsvc</PipeName>
+        <PipeName name="exclude=Remote registry pipe" condition="is">\winreg</PipeName>
+        <PipeName name="exclude=Print spooler pipe" condition="is">\spoolss</PipeName>
       </PipeEvent>
     </RuleGroup>
 
     <!--
-    C2 framework and lateral movement named pipe detection.
-    MITRE ATT&CK: T1071 (Application Layer Protocol), T1021 (Remote Services)
-    See: https://icswatchdog.com/ransomware/
+      T1572 Protocol Tunneling + T1021.002 SMB Admin Shares + T1003.001 LSASS Memory
+      C2 framework named pipes and lateral movement tool indicators.
+      Many of these patterns are well-known signatures for Cobalt Strike, PsExec,
+      Mimikatz, and other red team tools commonly used by ransomware affiliates.
+      Investigate every match. Multi-technique mapping reflects that these pipes
+      represent both transport (T1572/T1071) and capability (lateral/credential).
+      References:
+        https://attack.mitre.org/techniques/T1572/
+        https://attack.mitre.org/techniques/T1021/002/
+        https://attack.mitre.org/techniques/T1003/001/
+        https://icswatchdog.com/ransomware/
     -->
     <RuleGroup name="PipeCreated-C2Detection" groupRelation="or">
       <PipeEvent onmatch="include">
         <!-- Cobalt Strike default pipes -->
-        <PipeName name="C2: Cobalt Strike" condition="begin with">\MSSE-</PipeName>
-        <PipeName name="C2: Cobalt Strike postex" condition="begin with">\postex_</PipeName>
-        <PipeName name="C2: Cobalt Strike status" condition="begin with">\status_</PipeName>
-        <PipeName name="C2: Cobalt Strike msagent" condition="begin with">\msagent_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike default named pipe MSSE-" condition="begin with">\MSSE-</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike post-exploitation pipe postex_" condition="begin with">\postex_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike status pipe" condition="begin with">\status_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike msagent pipe" condition="begin with">\msagent_</PipeName>
         <!-- Lateral movement tools -->
-        <PipeName name="Lateral: PsExec" condition="is">\PSEXESVC</PipeName>
-        <PipeName name="Lateral: paexec" condition="begin with">\paexec</PipeName>
-        <PipeName name="Lateral: remcom" condition="begin with">\remcom</PipeName>
-        <PipeName name="Lateral: csexec" condition="begin with">\csexec</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PsExec service pipe PSEXESVC" condition="is">\PSEXESVC</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PAExec lateral movement pipe" condition="begin with">\paexec</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=RemCom lateral movement pipe" condition="begin with">\remcom</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=CSExec lateral movement pipe" condition="begin with">\csexec</PipeName>
         <!-- Credential tools -->
-        <PipeName name="Cred: lsadump" condition="is">\lsadump</PipeName>
-        <PipeName name="Cred: cachedump" condition="is">\cachedump</PipeName>
-        <PipeName name="Cred: wceservicepipe" condition="is">\wceservicepipe</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Mimikatz lsadump named pipe" condition="is">\lsadump</PipeName>
+        <PipeName name="technique_id=T1003.005,technique=Cached Domain Credentials,detection=Cachedump named pipe" condition="is">\cachedump</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Windows Credential Editor service pipe" condition="is">\wceservicepipe</PipeName>
       </PipeEvent>
     </RuleGroup>
 
@@ -401,11 +486,11 @@
     -->
     <RuleGroup name="DnsQuery" groupRelation="or">
       <DnsQuery onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <QueryName condition="end with">.microsoft.com</QueryName>
-        <QueryName condition="end with">.windowsupdate.com</QueryName>
-        <QueryName condition="end with">.windows.com</QueryName>
-        <QueryName condition="end with">.bing.com</QueryName>
+        <Image name="exclude=svchost DNS noise" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <QueryName name="exclude=Microsoft DNS query" condition="end with">.microsoft.com</QueryName>
+        <QueryName name="exclude=Windows Update DNS query" condition="end with">.windowsupdate.com</QueryName>
+        <QueryName name="exclude=Windows DNS query" condition="end with">.windows.com</QueryName>
+        <QueryName name="exclude=Bing DNS query" condition="end with">.bing.com</QueryName>
       </DnsQuery>
     </RuleGroup>
 
@@ -439,18 +524,29 @@
     -->
     <RuleGroup name="FileDeleteDetected" groupRelation="or">
       <FileDeleteDetected onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.sys</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
-        <!-- Backup and database file deletion (ransomware indicator, T1490) -->
-        <TargetFilename name="Ransomware: backup deletion" condition="end with">.bak</TargetFilename>
-        <TargetFilename name="Ransomware: VHD deletion" condition="end with">.vhd</TargetFilename>
-        <TargetFilename name="Ransomware: VHDX deletion" condition="end with">.vhdx</TargetFilename>
-        <TargetFilename name="Ransomware: SQL data deletion" condition="end with">.mdf</TargetFilename>
-        <TargetFilename name="Ransomware: SQL log deletion" condition="end with">.ldf</TargetFilename>
+        <!--
+          T1070.004 File Deletion
+          Deletion of executables and scripts may indicate evidence cleanup after execution.
+          Reference: https://attack.mitre.org/techniques/T1070/004/
+        -->
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Executable file deleted" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=DLL file deleted" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=System driver deleted" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=PowerShell script deleted" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Batch script deleted" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Command script deleted" condition="end with">.cmd</TargetFilename>
+        <!--
+          T1490 Inhibit System Recovery + T1485 Data Destruction
+          Backup and database file deletion is a strong ransomware indicator.
+          References:
+            https://attack.mitre.org/techniques/T1490/
+            https://attack.mitre.org/techniques/T1485/
+        -->
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Backup file (.bak) deletion" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhd) deletion" condition="end with">.vhd</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhdx) deletion" condition="end with">.vhdx</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server data file (.mdf) deletion" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server log file (.ldf) deletion" condition="end with">.ldf</TargetFilename>
       </FileDeleteDetected>
     </RuleGroup>
 

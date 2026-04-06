@@ -84,19 +84,16 @@ Before moving to the next phase:
 
 ## Code Quality Standards
 
-### XML (Sysmon Configs)
+### XML (Sysmon Configs and Modules)
 
-- Configs must be well-formed and valid against Sysmon schema
-- All rules must include descriptive `name` attributes (RuleName) for log traceability
-- Config headers must include version, author, project, and license attribution
-- SwiftOnSecurity-derived configs must retain source attribution
-- Document minimum Sysmon version required in each config header
+All Sysmon XML files (curated configs, modules, community contributions) MUST follow `claude-dev/SYSMON_CODING_STANDARD.md`. That document is the single source of truth for file structure, header blocks, schema versions, meta configuration, RuleGroup conventions, rule naming (ATT&CK tagging), comment conventions, validation requirements, and attribution. Do not duplicate Sysmon-specific rules in other documents -- reference the standard.
 
 ### Markdown / Jekyll
 
 - Standard Markdown conventions
 - No vendored theme files -- use remote_theme only
 - Keep custom overrides minimal
+- See `claude-dev/html-css-jekyll.md` for HTML/CSS/Jekyll standards
 
 ---
 
@@ -108,14 +105,20 @@ Before moving to the next phase:
 - Standalone use-case configs (e.g., file-create-only) for specific monitoring needs
 - Documentation: deployment guides, config selection, customization, advancement
 - GitHub Pages website with config descriptions and download links
-- Attribution and references to source projects (SwiftOnSecurity, Microsoft)
+- Attribution and references to source projects (SwiftOnSecurity, Microsoft, sysmon-modular)
+- Module library: vendor (OT and IT), sector, protocol, cloud-storage, and remote-access XML fragments
+- PowerShell merge tooling (PS 3+, no external dependencies) bounded to merging modules into a base curated config
+- Per-rule MITRE ATT&CK technique tagging in rule `name` attributes (include rules only)
+- Test harness for validating module merge tooling output
 
 ### Out of Scope
 
-- Scripting or tooling for config generation (future consideration)
+- Automated config generation from threat intel feeds, vulnerability scans, or asset inventories
 - SIEM integration or log analysis tools
+- Automated deployment of configs to endpoints
 - Non-Windows platforms
-- Vendor-specific ICS application rulesets (guidance provided, not configs)
+- Schema validation against an XSD (Sysmon's XSD is not public)
+- Adversary emulation or red team tooling
 
 ---
 

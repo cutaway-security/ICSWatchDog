@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 7 - Efficacy Testing
-**Status**: Phase 7a complete (research). Phase 7b next (script design and implementation).
-**Focus**: PowerShell validation script for Sysmon config efficacy testing.
+**Phase**: Phase 8 - ATT&CK Technique Tagging
+**Status**: Phase 8a, 8b, and 8c documentation complete. New website page (attack-tagging.html) published. README updated with brief reference to public page. Nav updated. Jekyll build verified. Awaiting release approval.
+**Focus**: Phase 8c release (merge to main, deploy site, tag v3.0).
 
 ## Phases
 
@@ -320,6 +320,26 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-03-17 | System-modifying tests require -AllowSystemChanges flag | OT admins are change-averse; registry and WMI modifications must be explicitly opted into |
 | 2026-03-23 | Replace self-closing CheckRevocation with explicit boolean values | User feedback: self-closing `<CheckRevocation/>` fails Sysmon config validation in some versions. Also, CRL checking requires network access incompatible with air-gapped OT systems. IT configs default True, OT configs default False. |
 | 2026-03-23 | OT configs default CheckRevocation to False | OT systems are frequently air-gapped or network-restricted; CRL/OCSP checking causes timeouts and adds network dependency to security monitoring |
+| 2026-04-06 | Adopt per-rule ATT&CK technique tagging in rule name attributes | Borrowed from sysmon-modular and SwiftOnSecurity convention; carries ATT&CK context into Sysmon log lines (RuleName field), enabling SIEM-side ATT&CK correlation without external lookups; was already a separate user request |
+| 2026-04-06 | Tag only include rules with ATT&CK; exclude rules get plain descriptive names | Exclude rules are noise reduction, not detection; ATT&CK tagging on excludes would be misleading |
+| 2026-04-06 | Add modular library layer alongside curated configs | Curated configs remain primary supported deployment artifact; modules are opt-in for advanced users; addresses vendor/sector/protocol customization without proliferating curated configs |
+| 2026-04-06 | Modules are XML fragments, not complete configs | Match sysmon-modular's pattern; merged into a base config at build time via PowerShell script; no <Sysmon> root element in modules |
+| 2026-04-06 | Dual-use cloud-storage and remote-access modules (exclude vs include) | Sanctioned and unsanctioned use cases require different rule sets; admins pick exactly one per tool based on site policy; naming convention: exclude_<tool>.xml and include_<tool>.xml |
+| 2026-04-06 | Include IT-vendor modules (browsers, Adobe, Office, cloud storage, etc.) | These tools are present in OT environments (engineering workstations, vendor portals, PDF manuals, tag list spreadsheets, IT/OT file transfer); admins must be able to opt in to noise reduction or detection per site policy |
+| 2026-04-06 | Remote-access tool detection: keep inline in curated configs AND provide modules | Inline detection in curated configs covers the common case for default deployment; modules provide finer-grained per-tool tuning for advanced users (option c from review) |
+| 2026-04-06 | Modules default to schema 4.50 | Broadest compatibility with legacy OT systems; 4.90 features only when essential, with header note explaining the requirement |
+| 2026-04-06 | Sector modules expand incrementally | Sector content requires deep domain expertise per sector; ship initial set (electric, water, oil/gas, manufacturing, pharma) and grow over time |
+| 2026-04-06 | PowerShell merge script with separate test harness | Same constraints as efficacy script (PS 3+, no dependencies, pure .NET XML); test harness uses fixture-based diff comparison; can run on Linux since pure XML manipulation |
+| 2026-04-06 | Update CLAUDE.md scope: config generation tooling moves from out-of-scope to in-scope, bounded to module merging | Modular layer requires merge tooling; bounded scope prevents drift into general config generation, threat intel ingestion, or asset-based config generation |
+| 2026-04-06 | Sysmon name field is the only labeling mechanism; no description or alias attributes exist | Verified against Microsoft Sysmon documentation (March 2026 revision); name is the only attribute that reaches the event log RuleName field |
+| 2026-04-06 | Adopt extended structured naming convention superseding sysmon-modular's minimum format | Existing ICS Watch Dog rules already use descriptive prefixes (DC:, Ransomware:) carrying valuable detection context; replacing with sysmon-modular's pure technique_id+technique_name format would discard this context. Extended format adds optional detection field while remaining a strict superset. |
+| 2026-04-06 | Convention field names: technique_id, technique, detection | Use shorter `technique` rather than `technique_name` for less verbose names; technique_id matches sysmon-modular for parser interop; detection field is new and optional |
+| 2026-04-06 | Multiple ATT&CK techniques: pipe-delimited in technique_id field | Pipe is visually distinct, does not conflict with comma (field separator) or semicolon (Sysmon's `is any` delimiter) |
+| 2026-04-06 | Composite `<Rule>` elements: tag parent only, not inner field conditions | Avoids duplicate names in event logs; the parent Rule name is what reaches the RuleName field for composite rule matches |
+| 2026-04-06 | Migrate all existing descriptive prefixes into the detection field for consistency | Eliminates inconsistency between tagged and untagged rules; preserves the context already encoded in current rule names |
+| 2026-04-06 | XML comment block above each tagged include rule | Maintainer-facing documentation for ATT&CK reference, purpose, and investigation guidance; comments do not reach event logs but reduce future maintenance burden and aid contributors |
+| 2026-04-06 | Hard limit 250 chars per name attribute, no commas or pipes in field values | Elasticsearch default keyword field `ignore_above` is 256 chars; values exceeding this are silently dropped from the index. Comma is field separator, pipe is multi-technique separator -- collisions break SIEM parsing. Explicit rules prevent future drift. All current worksheet names compliant (longest 152 chars). |
+| 2026-04-06 | Create Sysmon Coding Standard as single source of truth | Sysmon-specific rules were scattered across CLAUDE.md, ARCHITECTURE.md, and PLAN.md decision log. Consolidating into SYSMON_CODING_STANDARD.md prevents drift, simplifies cross-reference, and matches the existing pattern set by html-css-jekyll.md. Other planning documents now reference the standard rather than duplicate its content. |
 
 ### Phase 7: Efficacy Testing
 
@@ -408,11 +428,200 @@ Key findings:
 - [x] Verify Jekyll build (0.015s, 8 pages, no errors)
 - [ ] Merge and release
 
+### Phase 8: ATT&CK Technique Tagging
+
+**Status**: Planned (next phase)
+
+Tag every detection (include) rule across the 8 curated configs with MITRE ATT&CK technique metadata in the rule `name` attribute. Carries ATT&CK context, ATT&CK technique name, and site-specific detection intent directly into Sysmon log lines (RuleName field), enabling SIEM-side ATT&CK correlation without external lookups. Convention is a strict superset of sysmon-modular's format.
+
+**Convention** (full spec in ARCHITECTURE.md ATT&CK Technique Tagging Convention section):
+
+Format: `technique_id=<ID>[|<ID2>...],technique=<ATT&CK Name>[,detection=<Site Context>]`
+
+Single technique:
+```xml
+<Image name="technique_id=T1003.003,technique=NTDS Credential Dumping,detection=DC ntdsutil execution"
+       condition="end with">\ntdsutil.exe</Image>
+```
+
+Multiple techniques (pipe-delimited):
+```xml
+<CommandLine name="technique_id=T1059.001|T1027|T1140,technique=PowerShell Encoded Command,detection=Encoded PowerShell suggests obfuscation"
+             condition="contains">-encodedcommand</CommandLine>
+```
+
+Composite rules (parent `<Rule>` element only, no inner field tags):
+```xml
+<Rule name="technique_id=T1003.003,technique=NTDS Credential Dumping,detection=Shadow copy NTDS extraction" groupRelation="and">
+  <Image condition="end with">\vssadmin.exe</Image>
+  <CommandLine condition="contains">create shadow</CommandLine>
+</Rule>
+```
+
+Exclude rules use simpler convention: `name="exclude=<Site-Specific Context>"`. Existing descriptive prefixes (`DC:`, `Ransomware:`) migrate into the `detection` field for include rules, or into the `exclude=` field for exclude rules. Each tagged include rule is preceded by an XML comment block documenting the ATT&CK reference, purpose, and investigation guidance (maintainer-facing only -- comments do not reach event logs).
+
+#### Phase 8a: Inventory and Mapping
+
+**Status**: Complete. Worksheet at claude-dev/PHASE8A_TAGGING_WORKSHEET.md awaiting review.
+
+- [x] Document the tagging convention in ARCHITECTURE.md (extended structured format with technique_id, technique, optional detection)
+- [x] Inventory all rules across the 8 curated configs (170 RuleGroups, 1224 field conditions, 747 currently named, 0 composite Rule elements)
+- [x] Confirm zero composite `<Rule>` elements -- simplifies Phase 8b (no parent-only tagging logic required)
+- [x] Map each unique include rule pattern to ATT&CK techniques (used config header ATT&CK references plus MITRE ATT&CK matrix; includes ICS ATT&CK T0xxx techniques for industrial protocols and firmware)
+- [x] Draft technique_id, technique, and detection field values for every include rule pattern
+- [x] Identify rules with multiple applicable techniques and pre-list pipe-delimited technique_id values (13 multi-technique patterns identified)
+- [x] Migrate existing descriptive prefixes (`DC:`, `Ransomware:`, `Web:`, `DB:`, `ICS:`) into planned detection field values
+- [x] Draft XML comment block templates (4 templates: single rule, grouped set, multi-technique, ICS ATT&CK)
+- [x] Produce per-config tagging worksheet for review (claude-dev/PHASE8A_TAGGING_WORKSHEET.md)
+- [x] Document exclude rule renaming convention (`exclude=<context>`) with examples
+- [x] List rules excluded from ATT&CK tagging (noise reduction, system filters, etc.)
+- [x] Document Phase 8b execution workflow (per-config: read, tag, comment, validate, diff-check)
+- [x] List 6 open issues for review before Phase 8b begins
+
+#### Phase 8b: Apply Tags
+
+**Status**: Complete. All 8 curated configs tagged with ATT&CK convention. 1213 rules preserved exactly. Max name length 139 chars (under 250 limit). All configs pass xmllint validation.
+
+- [x] Update sysmonconfig-jumphost.xml (122 names: 80 include, 21 exclude)
+- [x] Update sysmonconfig-baseline-it-workstation.xml (139 names: 74 include, 45 exclude)
+- [x] Update sysmonconfig-baseline-it-server.xml (135 names: 77 include, 38 exclude)
+- [x] Update sysmonconfig-baseline-ot.xml (165 names: 103 include, 42 exclude)
+- [x] Update sysmonconfig-server-ad.xml (181 names: 104 include, 55 exclude; high ATT&CK density: T1003.003, T1003.006, T1003.002, T1003.004, T1484.001, T1087.002, T1556)
+- [x] Update sysmonconfig-server-services.xml (210 names: 131 include, 57 exclude; T1059, T1505.001/003/004, T1053.005, T1005, T1190)
+- [x] Update sysmonconfig-enhanced-ot.xml (206 names: 143 include, 42 exclude)
+- [x] Update sysmonconfig-advanced-ot.xml (225 names: 159 include, 42 exclude)
+- [x] After each config: validate well-formed XML (xmllint) and diff-check that only `name` attributes and surrounding XML comments changed
+- [x] After all 8: verify no rule logic regressions (1213 rules total, all condition values, element tags, and field text values identical to originals)
+- [x] Confirmed composite `<Rule>` elements: zero exist across all configs (workflow simplification confirmed during Phase 8a)
+- [x] All 871 tagged include rule names and 342 tagged exclude rule names compliant with field constraints (no commas/pipes in values, max 139 chars)
+
+#### Phase 8c: Documentation and Release
+
+**Status**: Documentation complete. Release pending user approval.
+
+- [x] Create new website page docs/_pages/attack-tagging.html (ATT&CK Rule Tagging convention)
+      - Why tag rules with ATT&CK
+      - The Format (field definitions)
+      - Examples (single technique, multi-technique, ICS ATT&CK, composite, exclude rules)
+      - Field constraints (250-char limit, no commas/pipes in values)
+      - Coverage statistics across all 8 curated configs
+      - SIEM parsing examples (Splunk SPL, Elastic ESQL, Microsoft Sentinel KQL)
+      - ATT&CK matrices used (Enterprise + ICS)
+      - Maintainer comment blocks explanation
+      - What rules are NOT tagged
+      - References (MITRE, sysmon-modular, Microsoft Sysmon, Elasticsearch ignore_above)
+- [x] Add ATT&CK Rule Tagging to website navigation Guides dropdown
+- [x] Update README.md with brief ATT&CK tagging section linking to icswatchdog.com/attack-tagging/
+- [x] Verify Jekyll build (0.012s, no errors, attack-tagging/index.html generated)
+- [x] No links to claude-dev/ files in any released artifact (per user constraint)
+- [ ] Merge to main (exclude docs/ and claude-dev/)
+- [ ] Deploy site to gh-pages
+- [ ] Verify all site links point to main branch
+- [ ] Tag release (v3.0 candidate)
+
+### Phase 9: Module Library
+
+**Status**: Planned (follows Phase 8)
+
+Provide an opt-in library of focused XML fragments for vendor-specific, sector-specific, protocol-specific, and software-specific monitoring. Curated configs remain the primary supported deployment artifact; modules layer on top for advanced users. Pattern borrowed from sysmon-modular but scoped to ICS/OT and IT-software-in-OT-environments.
+
+Module file format: each module is a partial Sysmon XML fragment containing one or more `<RuleGroup>` elements. NOT a complete Sysmon config -- no `<Sysmon>` root element. Schema 4.50 by default; 4.90 only when essential, with a header note.
+
+Dual-use convention for cloud-storage and remote-access modules:
+- `exclude_<tool>.xml` -- assumes tool is sanctioned, suppresses noise
+- `include_<tool>.xml` -- assumes tool is unsanctioned, generates detection events
+- Admins pick exactly one per tool based on site policy
+
+#### Phase 9a: Module Library Structure and Initial Modules
+
+Ship initial release with all categories. Sector modules expand incrementally over time.
+
+- [ ] Create sysmon-configs/modules/ directory structure
+- [ ] Create modules/README.md explaining module format, usage, and dual-use convention
+- [ ] Create modules/INDEX.md listing every module with description, category, ATT&CK refs, schema compatibility
+- [ ] Build vendor-ot/ modules:
+      - siemens-tia-portal.xml, siemens-wincc.xml
+      - rockwell-studio5000.xml, rockwell-factorytalk.xml
+      - schneider-ecostruxure.xml, schneider-citect.xml
+      - aveva-system-platform.xml, aveva-pi-system.xml
+      - ignition-gateway.xml, sel-acselerator.xml
+      - codesys.xml, kepware-kepserverex.xml
+      - ge-ifix.xml, honeywell-experion.xml, emerson-deltav.xml
+- [ ] Build vendor-it/ modules (IT software present in OT environments):
+      - exclude_google_chrome.xml, exclude_microsoft_edge.xml, exclude_mozilla_firefox.xml
+      - exclude_adobe_acrobat.xml, exclude_adobe_reader.xml
+      - exclude_microsoft_office.xml, exclude_microsoft_teams.xml
+      - exclude_zoom.xml, exclude_webex.xml
+      - exclude_notepad_plus_plus.xml, exclude_7zip.xml, exclude_winrar.xml
+- [ ] Build cloud-storage/ modules (dual-use, exclude and include variants):
+      - dropbox, box, onedrive, google_drive, icloud (each as exclude_ and include_)
+      - mega, wetransfer, anonfile_tempsh (include only -- generally not sanctioned in OT)
+- [ ] Build sector/ modules (initial set, expand incrementally):
+      - electric-utility.xml (NERC CIP relevant patterns)
+      - water-wastewater.xml
+      - oil-gas-pipeline.xml (TSA pipeline directive patterns)
+      - manufacturing.xml
+      - pharmaceutical-gxp.xml (21 CFR Part 11 audit trail relevant)
+      - transportation-rail.xml, chemical.xml (lower priority)
+- [ ] Build protocol/ modules:
+      - modbus-tcp.xml, opc-ua.xml, opc-da-dcom.xml, ethernet-ip.xml
+      - dnp3.xml, s7comm.xml, bacnet.xml
+      - iec-61850-mms.xml, iec-60870-5-104.xml, mqtt.xml, profinet.xml
+- [ ] Build remote-access/ modules (dual-use, granular per-tool versions of curated config rules):
+      - teamviewer, anydesk, screenconnect, bomgar, splashtop, dameware, rustdesk, meshagent, ammyy
+      - vnc variants (tightvnc, realvnc, ultravnc)
+      - Each as exclude_ and include_ pair
+      - Curated configs RETAIN inline detection (option c from review)
+- [ ] Validate all modules are well-formed XML fragments (xmllint or equivalent)
+- [ ] Tag all include rules in modules with ATT&CK technique IDs (Phase 8 convention)
+
+#### Phase 9b: Merge Tooling
+
+- [ ] Implement tools/Merge-SysmonModules.ps1 (PowerShell 3+, no external dependencies)
+      - Parameters: -BaseConfig, -Modules (array), -OutputPath, -VerboseLogging
+      - Reads base config XML via [xml] cast
+      - For each module, parses RuleGroup elements and inserts into base config EventFiltering
+      - Preserves base config meta section (HashAlgorithms, CheckRevocation)
+      - Detects schema mismatches (4.90-only modules into 4.50 base) and warns
+      - Validates output XML well-formedness before writing
+      - Reports manifest of merged modules and any conflicts
+      - Conflict handling: warn on differing groupRelation in same RuleGroup; otherwise append
+- [ ] Document script usage in tools/ README and on website
+
+#### Phase 9c: Test Harness
+
+- [ ] Implement tools/Test-MergeSysmonModules.ps1 (or .sh -- can run on Linux since pure XML)
+      - Sample base configs and module sets in tools/test-fixtures/
+      - Expected output XML in tools/test-fixtures/expected/
+      - Test runner: merges sample inputs, diffs against expected output
+      - Tests: single module merge, multi-module merge, dual-use conflict, schema mismatch warning, malformed module rejection, base config preservation
+- [ ] Run test harness and verify all tests pass
+
+#### Phase 9d: Documentation
+
+- [ ] New website page: docs/_pages/modules.html (module library overview, dual-use convention, build script usage)
+- [ ] New website page: docs/_pages/related-projects.html (sysmon-modular, SwiftOnSecurity, MITRE ATT&CK, when each is appropriate)
+- [ ] Update docs/_pages/configurations.html with module library reference
+- [ ] Update docs/_pages/deployment.html with ATT&CK tagging note and module mention
+- [ ] Update docs/_includes/nav.html (Modules, Related Projects)
+- [ ] Update README.md with module library section and merge script usage
+- [ ] Update ARCHITECTURE.md with Module Architecture section and dual-use convention documentation
+- [ ] Verify Jekyll build
+
+#### Phase 9e: Release
+
+- [ ] Final review of modules, tooling, tests, and documentation
+- [ ] Merge to main (include sysmon-configs/modules/, tools/Merge-SysmonModules.ps1, tools/Test-MergeSysmonModules.ps1, tools/test-fixtures/)
+- [ ] Deploy site to gh-pages
+- [ ] Verify all site links
+- [ ] Tag release (v4.x candidate)
+
 ## Out of Scope
 
-- Automated config generation tooling
+- Automated config generation from threat intel feeds, vulnerability scans, or asset inventories
 - SIEM-specific integration guides
+- Automated deployment of configs to endpoints
 - Non-Windows endpoint monitoring
-- Comprehensive vendor-specific ICS application rule sets (examples and guidance provided, not exhaustive configs)
+- Schema validation against an XSD (Sysmon's XSD is not public)
 - Industrial protocol content inspection (Sysmon monitors process-to-port connections, not protocol payloads)
 - Adversary emulation or red team tooling (references provided for external tools)

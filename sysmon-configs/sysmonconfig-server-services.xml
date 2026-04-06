@@ -1,6 +1,6 @@
 <!--
   ICS Watch Dog - Server Services Sysmon Configuration (Database + Web Server)
-  Version:      v2.0
+  Version:      v2.1
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
@@ -20,18 +20,26 @@
     Extends Section 17 (Advanced Audit Policy) with process-level telemetry
 
   MITRE ATT&CK Coverage:
-    T1059       - Command execution via database engine (xp_cmdshell, COPY PROGRAM, UDF)
-    T1505.001   - SQL Stored Procedures abuse
-    T1505.003   - Webshell deployment and execution
-    T1505.004   - IIS native module backdoors
-    T1053.005   - SQL Agent job abuse
-    T1005       - Database backup exfiltration
-    T1190       - Exploit public-facing application (SQL injection, web exploitation)
+    T1003.001 - LSASS Memory
+    T1005     - Data from Local System (database backup exfiltration)
+    T1059     - Command and Scripting Interpreter (database engine command execution)
+    T1190     - Exploit Public-Facing Application
+    T1490     - Inhibit System Recovery
+    T1505.001 - SQL Stored Procedures
+    T1505.003 - Server Software Component: Web Shell
+    T1505.004 - IIS Components
+    T1547.001 - Registry Run Keys / Startup Folder
+    T1556     - Modify Authentication Process
+    T1562.001 - Disable or Modify Tools
+    T1572     - Protocol Tunneling
 
   DESCRIPTION:
     This is the SERVER SERVICES configuration for servers running database engines,
     web servers, or both. It is self-contained (includes server baseline rules)
     and covers ALL common database and web server engines in a single file.
+
+    All include rules use the ATT&CK structured tagging convention.
+    See https://icswatchdog.com/attack-tagging/ for the full specification.
 
     Rules for services that are not installed have zero cost (they never match,
     generate no noise, and have no performance impact). This means you can deploy
@@ -66,13 +74,10 @@
     - AVEVA Historian = SQL Server + IIS
     - Many SCADA dashboards = PostgreSQL/MySQL + Apache/Nginx
     This config covers all combinations without modification.
-    For OT vendor directory monitoring, add rules from the OT configs or
-    see tuning guidance at icswatchdog.com.
 
   TUNING:
     Administrators MUST review and tune this configuration for their environment.
     - Uncomment the NetworkConnect exclusion for your specific database process
-      (see Event ID 3 section for labeled exclusion entries)
     - Add your web root directory path if it differs from the defaults
     - Add exclusions for your server management and monitoring software
     - Review remote access tool rules and exclude sanctioned tools
@@ -92,10 +97,6 @@
     - Microsoft Sysmon: https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
     - CIS Benchmarks: https://www.cisecurity.org/benchmark/microsoft_windows_server
     - CISA Ransomware Guide: https://www.cisa.gov/stopransomware/ransomware-guide
-
-  Ransomware Detection (added in v3.0):
-    T1490     - Inhibit System Recovery (shadow copy deletion, bcdedit, wbadmin)
-    T1562.001 - Disable or Modify Tools (Defender tampering, Sysmon tampering)
 -->
 
 <Sysmon schemaversion="4.50">
@@ -116,278 +117,208 @@
     -->
     <RuleGroup name="ProcessCreate-Exclude" groupRelation="or">
       <ProcessCreate onmatch="exclude">
-        <!-- Server baseline exclusions -->
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
-        <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
-        <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
-        <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
-        <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
-        <!-- Windows Defender noise -->
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
-        <!-- .NET compilation -->
-        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
-        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ngen.exe</Image>
-        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorsvw.exe</Image>
-        <Image condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\ngen.exe</Image>
+        <Image name="exclude=conhost system noise" condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=Windows Error Reporting" condition="is">C:\Windows\System32\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting (32-bit)" condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+        <Image name="exclude=Windows Error Reporting manager" condition="is">C:\Windows\System32\wermgr.exe</Image>
+        <Image name="exclude=Software Protection Platform" condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+        <Image name="exclude=Compatibility Telemetry" condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+        <Image name="exclude=Windows Defender MsMpEng" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender NisSrv" condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+        <Image name="exclude=Windows Defender MpCmdRun" condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image name="exclude=NET 4.0 64-bit mscorsvw" condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <Image name="exclude=NET 4.0 64-bit ngen" condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ngen.exe</Image>
+        <Image name="exclude=NET 4.0 32-bit mscorsvw" condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\mscorsvw.exe</Image>
+        <Image name="exclude=NET 4.0 32-bit ngen" condition="is">C:\Windows\Microsoft.NET\Framework\v4.0.30319\ngen.exe</Image>
       </ProcessCreate>
     </RuleGroup>
 
     <!--
-    DATABASE + WEB SERVER: Parent-child process detection.
-    If a database engine or web server process spawns a command shell,
-    it almost always indicates compromise (xp_cmdshell, webshell, etc.).
-    The detection pattern is identical across all engines.
+      T1059 Command and Scripting Interpreter + T1505.001 SQL Stored Procedures
+      Database engines spawning child processes is almost always malicious.
+      The detection pattern is identical across all engines: a database server
+      should NEVER spawn cmd.exe, powershell.exe, or other shells. Common attack
+      vectors: xp_cmdshell (SQL Server), COPY PROGRAM (PostgreSQL), UDF execution
+      (MySQL/Oracle), JavaScript engine abuse (MongoDB).
+      References:
+        https://attack.mitre.org/techniques/T1059/
+        https://attack.mitre.org/techniques/T1505/001/
     -->
     <RuleGroup name="ProcessCreate-ServiceDetection" groupRelation="or">
       <ProcessCreate onmatch="include">
-        <!--
-        ================================================================
-        DATABASE ENGINE SPAWNING SHELL (T1059, T1505.001)
-        Any database process spawning cmd/powershell = suspicious
-        ================================================================
-        -->
-        <!-- Microsoft SQL Server -->
-        <ParentImage name="DB: SQL Server spawned process" condition="end with">\sqlservr.exe</ParentImage>
-        <ParentImage name="DB: SQL Agent spawned process" condition="end with">\sqlagent.exe</ParentImage>
-        <!-- PostgreSQL -->
-        <ParentImage name="DB: PostgreSQL spawned process" condition="end with">\postgres.exe</ParentImage>
-        <!-- MySQL / MariaDB -->
-        <ParentImage name="DB: MySQL spawned process" condition="end with">\mysqld.exe</ParentImage>
-        <ParentImage name="DB: MariaDB spawned process" condition="end with">\mariadbd.exe</ParentImage>
-        <!-- Oracle Database -->
-        <ParentImage name="DB: Oracle spawned process" condition="end with">\oracle.exe</ParentImage>
-        <ParentImage name="DB: Oracle extjob spawned process" condition="end with">\extjob.exe</ParentImage>
-        <ParentImage name="DB: Oracle extproc spawned process" condition="end with">\extproc.exe</ParentImage>
-        <!-- MongoDB (should never spawn shells) -->
-        <ParentImage name="DB: MongoDB spawned process" condition="end with">\mongod.exe</ParentImage>
-        <!-- InfluxDB (should never spawn shells) -->
-        <ParentImage name="DB: InfluxDB spawned process" condition="end with">\influxd.exe</ParentImage>
+        <!-- Database engines (T1059, T1505.001) -->
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=SQL Server (sqlservr.exe) spawned child process" condition="end with">\sqlservr.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=SQL Server Agent spawned child process" condition="end with">\sqlagent.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=PostgreSQL spawned child process" condition="end with">\postgres.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=MySQL spawned child process" condition="end with">\mysqld.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=MariaDB spawned child process" condition="end with">\mariadbd.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=Oracle Database spawned child process" condition="end with">\oracle.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=Oracle external job spawned child process" condition="end with">\extjob.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=Oracle external procedure spawned child process" condition="end with">\extproc.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=MongoDB spawned child process" condition="end with">\mongod.exe</ParentImage>
+        <ParentImage name="technique_id=T1059|T1505.001,technique=Command and Scripting Interpreter,detection=InfluxDB spawned child process" condition="end with">\influxd.exe</ParentImage>
 
         <!--
-        ================================================================
-        WEB SERVER SPAWNING SHELL (T1505.003, T1059)
-        Any web server or interpreter spawning cmd/powershell = webshell
-        ================================================================
+          T1505.003 Server Software Component: Web Shell + T1059
+          Web servers spawning child processes are the textbook web shell signature.
+          Reference: https://attack.mitre.org/techniques/T1505/003/
         -->
-        <!-- IIS -->
-        <ParentImage name="Web: IIS worker spawned process" condition="end with">\w3wp.exe</ParentImage>
-        <!-- Apache httpd -->
-        <ParentImage name="Web: Apache spawned process" condition="end with">\httpd.exe</ParentImage>
-        <!-- Nginx -->
-        <ParentImage name="Web: Nginx spawned process" condition="end with">\nginx.exe</ParentImage>
-        <!-- Apache Tomcat / Java web apps -->
-        <ParentImage name="Web: Tomcat spawned process" condition="end with">\tomcat9.exe</ParentImage>
-        <ParentImage name="Web: Tomcat spawned process" condition="end with">\tomcat10.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=IIS worker (w3wp.exe) spawned child process" condition="end with">\w3wp.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=Apache (httpd.exe) spawned child process" condition="end with">\httpd.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=Nginx spawned child process" condition="end with">\nginx.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=Apache Tomcat 9 spawned child process" condition="end with">\tomcat9.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=Apache Tomcat 10 spawned child process" condition="end with">\tomcat10.exe</ParentImage>
         <!--
         NOTE: java.exe is intentionally NOT included as a ParentImage here because
         many legitimate applications (including OT software like Ignition) run as
-        java.exe and may spawn subprocesses. If you want to monitor java.exe
-        parent-child relationships, add a rule scoped by the java.exe path:
-        <ParentImage name="Web: Java spawned process" condition="is">
-          C:\Program Files\Apache Software Foundation\Tomcat 9.0\bin\java.exe
-        </ParentImage>
+        java.exe and may spawn subprocesses.
         -->
-        <!-- PHP interpreter (used by Apache and Nginx for PHP webshells) -->
-        <ParentImage name="Web: PHP spawned process" condition="end with">\php-cgi.exe</ParentImage>
-        <ParentImage name="Web: PHP spawned process" condition="end with">\php.exe</ParentImage>
-        <!-- Node.js (bonus coverage for Node web apps) -->
-        <ParentImage name="Web: Node.js spawned process" condition="end with">\node.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=PHP-CGI spawned child process" condition="end with">\php-cgi.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=PHP interpreter spawned child process" condition="end with">\php.exe</ParentImage>
+        <ParentImage name="technique_id=T1505.003|T1059,technique=Web Shell,detection=Node.js spawned child process" condition="end with">\node.exe</ParentImage>
 
         <!--
-        ================================================================
-        IIS ADMINISTRATION TOOL (T1505.004)
-        appcmd.exe is used to install IIS modules. Unexpected execution
-        may indicate IIS module backdoor installation.
-        ================================================================
+          T1505.004 IIS Components
+          appcmd.exe is used to install IIS modules. Unexpected execution may
+          indicate IIS native module backdoor installation.
+          Reference: https://attack.mitre.org/techniques/T1505/004/
         -->
-        <Image name="Web: IIS appcmd execution" condition="end with">\inetsrv\appcmd.exe</Image>
+        <Image name="technique_id=T1505.004,technique=IIS Components,detection=IIS appcmd.exe execution (module installation)" condition="end with">\inetsrv\appcmd.exe</Image>
       </ProcessCreate>
     </RuleGroup>
 
     <!--
-    Ransomware indicator detection: recovery inhibition, security tool disablement.
-    These generate named events for SIEM alerting and forensic investigation.
-    MITRE ATT&CK: T1490 (Inhibit System Recovery), T1562.001 (Disable or Modify Tools)
-    See: https://icswatchdog.com/ransomware/
+      T1490 Inhibit System Recovery + T1562.001 Disable or Modify Tools
+      Ransomware indicator detection.
     -->
     <RuleGroup name="ProcessCreate-RansomwareIndicators" groupRelation="or">
       <ProcessCreate onmatch="include">
-        <!-- Recovery inhibition (T1490) -->
-        <CommandLine name="Ransomware: shadow copy deletion" condition="contains">delete shadows</CommandLine>
-        <CommandLine name="Ransomware: shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
-        <CommandLine name="Ransomware: recovery disabled" condition="contains">recoveryenabled no</CommandLine>
-        <CommandLine name="Ransomware: boot status policy" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
-        <CommandLine name="Ransomware: backup catalog deletion" condition="contains">delete catalog</CommandLine>
-        <CommandLine name="Ransomware: safe mode boot" condition="contains">bcdedit /set safeboot</CommandLine>
-        <!-- Defender/security tool disablement (T1562.001) -->
-        <CommandLine name="Ransomware: Defender realtime disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
-        <CommandLine name="Ransomware: Defender drive exclusion" condition="contains">ExclusionPath</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via vssadmin" condition="contains">delete shadows</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware shadow copy deletion via WMI" condition="contains">shadowcopy delete</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows recovery disabled via bcdedit" condition="contains">recoveryenabled no</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware boot status policy bypass via bcdedit" condition="contains">bootstatuspolicy ignoreallfailures</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware Windows backup catalog deletion via wbadmin" condition="contains">delete catalog</CommandLine>
+        <CommandLine name="technique_id=T1490,technique=Inhibit System Recovery,detection=Ransomware safe mode boot configuration" condition="contains">bcdedit /set safeboot</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender realtime monitoring disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
+        <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender path exclusion added" condition="contains">ExclusionPath</CommandLine>
       </ProcessCreate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="FileCreateTime" groupRelation="or">
       <FileCreateTime onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+        <Image name="exclude=svchost timestamp updates" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image name="exclude=msiexec install timestamp updates" condition="is">C:\Windows\System32\msiexec.exe</Image>
       </FileCreateTime>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
-    Server baseline PLUS database/web service exclusions.
-
-    IMPORTANT: Database and web server processes generate HIGH VOLUME
-    network events. Without exclusions, a busy SQL Server or IIS
-    instance can generate millions of events per day.
-
-    The exclusions below are organized by service. Only the services
-    running on your server will generate events, so all exclusions
-    can remain active.
+    Server baseline PLUS database/web service exclusions to manage volume.
     ================================================================
     -->
     <RuleGroup name="NetworkConnect" groupRelation="or">
       <NetworkConnect onmatch="exclude">
-        <!-- Server baseline exclusions -->
-        <Image condition="is">C:\Windows\System32\svchost.exe</Image>
-        <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
-        <Image condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
-        <Image condition="is">C:\Windows\System32\wsmprovhost.exe</Image>
-        <Image condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
-
-        <!--
-        ================================================================
-        DATABASE SERVICE EXCLUSIONS
-        Exclude your database engine to reduce network event noise.
-        These are safe to leave active even if the service is not running.
-        ================================================================
-        -->
-        <!-- Microsoft SQL Server (client connections on 1433) -->
-        <Image condition="end with">\sqlservr.exe</Image>
-        <!-- PostgreSQL (client connections on 5432) -->
-        <Image condition="end with">\postgres.exe</Image>
-        <!-- MySQL / MariaDB (client connections on 3306) -->
-        <Image condition="end with">\mysqld.exe</Image>
-        <Image condition="end with">\mariadbd.exe</Image>
-        <!-- Oracle Database (client connections on 1521) -->
-        <Image condition="end with">\oracle.exe</Image>
-        <Image condition="end with">\TNSLSNR.exe</Image>
-        <!-- MongoDB (client connections on 27017) -->
-        <Image condition="end with">\mongod.exe</Image>
-        <!-- InfluxDB (HTTP API on 8086) -->
-        <Image condition="end with">\influxd.exe</Image>
-
-        <!--
-        ================================================================
-        WEB SERVER EXCLUSIONS
-        Exclude inbound HTTP/HTTPS connections from web worker processes.
-        ================================================================
-        -->
-        <!-- IIS worker process -->
-        <Image condition="end with">\w3wp.exe</Image>
-        <!-- Apache httpd -->
-        <Image condition="end with">\httpd.exe</Image>
-        <!-- Nginx -->
-        <Image condition="end with">\nginx.exe</Image>
-        <!--
-        NOTE: java.exe (Tomcat) and php-cgi.exe are NOT excluded from
-        NetworkConnect because their outbound connections may indicate
-        webshell C2 callbacks. If inbound volume is too high, add:
-        <Image condition="end with">\java.exe</Image>
-        -->
+        <Image name="exclude=svchost network noise" condition="is">C:\Windows\System32\svchost.exe</Image>
+        <Image name="exclude=Windows Defender MsMpEng network" condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+        <Image name="exclude=Windows Defender Platform MsMpEng network" condition="is">C:\ProgramData\Microsoft\Windows Defender\Platform\MsMpEng.exe</Image>
+        <Image name="exclude=WSMan provider host" condition="is">C:\Windows\System32\wsmprovhost.exe</Image>
+        <Image name="exclude=NET 4.0 64-bit mscorsvw network" condition="is">C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorsvw.exe</Image>
+        <!-- Database service network exclusions -->
+        <Image name="exclude=SQL Server client connections" condition="end with">\sqlservr.exe</Image>
+        <Image name="exclude=PostgreSQL client connections" condition="end with">\postgres.exe</Image>
+        <Image name="exclude=MySQL client connections" condition="end with">\mysqld.exe</Image>
+        <Image name="exclude=MariaDB client connections" condition="end with">\mariadbd.exe</Image>
+        <Image name="exclude=Oracle client connections" condition="end with">\oracle.exe</Image>
+        <Image name="exclude=Oracle TNS Listener" condition="end with">\TNSLSNR.exe</Image>
+        <Image name="exclude=MongoDB client connections" condition="end with">\mongod.exe</Image>
+        <Image name="exclude=InfluxDB HTTP API" condition="end with">\influxd.exe</Image>
+        <!-- Web server network exclusions -->
+        <Image name="exclude=IIS worker inbound" condition="end with">\w3wp.exe</Image>
+        <Image name="exclude=Apache httpd inbound" condition="end with">\httpd.exe</Image>
+        <Image name="exclude=Nginx inbound" condition="end with">\nginx.exe</Image>
       </NetworkConnect>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="ProcessTerminate" groupRelation="or">
       <ProcessTerminate onmatch="exclude">
-        <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+        <Image name="exclude=conhost termination noise" condition="is">C:\Windows\System32\conhost.exe</Image>
       </ProcessTerminate>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 6: DRIVER LOADED [DriverLoad]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="DriverLoad" groupRelation="or">
       <DriverLoad onmatch="exclude">
-        <Signature condition="contains">Microsoft</Signature>
-        <Signature condition="contains">Windows</Signature>
+        <Signature name="exclude=Microsoft signed driver" condition="contains">Microsoft</Signature>
+        <Signature name="exclude=Windows signed driver" condition="contains">Windows</Signature>
       </DriverLoad>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 7: IMAGE LOADED [ImageLoad]
-    SERVICE-SPECIFIC: ENABLED scoped to web worker processes.
-
-    This is a STRUCTURAL CHANGE from the baseline (where ImageLoad
-    is disabled). It detects malicious DLLs/modules loaded into web
-    server processes (IIS native module backdoors, T1505.004).
-
-    Known system DLL paths are excluded to manage volume. Only
-    unsigned or out-of-path DLLs generate events.
+    SERVICE-SPECIFIC: ENABLED scoped to web worker processes for IIS
+    native module backdoor detection (T1505.004).
     ================================================================
     -->
     <RuleGroup name="ImageLoad" groupRelation="or">
       <ImageLoad onmatch="include">
-        <!-- Monitor DLL loading in IIS worker processes -->
-        <Image name="Web: IIS DLL load" condition="end with">\w3wp.exe</Image>
-        <!-- Monitor DLL loading in Apache -->
-        <Image name="Web: Apache DLL load" condition="end with">\httpd.exe</Image>
+        <!--
+          T1505.004 IIS Components
+          DLL loading in web worker processes detects malicious modules and webshells
+          that operate at the native module level. This is the only Sysmon-based
+          method to catch IIS native module backdoors.
+          Reference: https://attack.mitre.org/techniques/T1505/004/
+        -->
+        <Image name="technique_id=T1505.004,technique=IIS Components,detection=DLL loaded into IIS worker (w3wp.exe)" condition="end with">\w3wp.exe</Image>
+        <Image name="technique_id=T1505.004,technique=IIS Components,detection=DLL loaded into Apache (httpd.exe)" condition="end with">\httpd.exe</Image>
       </ImageLoad>
     </RuleGroup>
 
     <RuleGroup name="ImageLoad-Exclude" groupRelation="or">
       <ImageLoad onmatch="exclude">
-        <!-- Exclude known system DLL paths to reduce volume -->
-        <ImageLoaded condition="begin with">C:\Windows\System32\</ImageLoaded>
-        <ImageLoaded condition="begin with">C:\Windows\SysWOW64\</ImageLoaded>
-        <ImageLoaded condition="begin with">C:\Windows\WinSxS\</ImageLoaded>
-        <ImageLoaded condition="begin with">C:\Windows\Microsoft.NET\</ImageLoaded>
-        <!-- IIS known DLL paths -->
-        <ImageLoaded condition="begin with">C:\Windows\System32\inetsrv\</ImageLoaded>
+        <ImageLoaded name="exclude=System32 DLL path" condition="begin with">C:\Windows\System32\</ImageLoaded>
+        <ImageLoaded name="exclude=SysWOW64 DLL path" condition="begin with">C:\Windows\SysWOW64\</ImageLoaded>
+        <ImageLoaded name="exclude=WinSxS DLL path" condition="begin with">C:\Windows\WinSxS\</ImageLoaded>
+        <ImageLoaded name="exclude=Microsoft.NET DLL path" condition="begin with">C:\Windows\Microsoft.NET\</ImageLoaded>
+        <ImageLoaded name="exclude=IIS inetsrv DLL path" condition="begin with">C:\Windows\System32\inetsrv\</ImageLoaded>
       </ImageLoad>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="CreateRemoteThread" groupRelation="or">
       <CreateRemoteThread onmatch="exclude">
-        <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
-        <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+        <SourceImage name="exclude=csrss legitimate remote thread" condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+        <SourceImage name="exclude=wininit legitimate remote thread" condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+        <SourceImage name="exclude=winlogon legitimate remote thread" condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+        <SourceImage name="exclude=services legitimate remote thread" condition="is">C:\Windows\System32\services.exe</SourceImage>
+        <SourceImage name="exclude=lsass legitimate remote thread" condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+        <SourceImage name="exclude=svchost legitimate remote thread" condition="is">C:\Windows\System32\svchost.exe</SourceImage>
       </CreateRemoteThread>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 9: RAW ACCESS READ [RawAccessRead]
-    Disabled by default (same as server baseline).
     ================================================================
     -->
     <RuleGroup name="RawAccessRead" groupRelation="or">
@@ -395,103 +326,86 @@
     </RuleGroup>
 
     <!--
-    ================================================================
-    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
-    Same as server baseline.
-    ================================================================
+      T1003.001 LSASS Memory
     -->
     <RuleGroup name="ProcessAccess" groupRelation="or">
       <ProcessAccess onmatch="include">
-        <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+        <TargetImage name="technique_id=T1003.001,technique=LSASS Memory,detection=Process accessing lsass.exe" condition="is">C:\Windows\System32\lsass.exe</TargetImage>
       </ProcessAccess>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 11: FILE CREATED [FileCreate]
-    Server baseline PLUS database file monitoring and webshell
-    detection (web script file creation in web root directories).
+    Server baseline PLUS database file monitoring and webshell detection.
     ================================================================
     -->
     <RuleGroup name="FileCreate" groupRelation="or">
       <FileCreate onmatch="include">
-        <!-- Startup and persistence locations (server baseline) -->
-        <TargetFilename name="Startup folder" condition="contains">\Start Menu</TargetFilename>
-        <TargetFilename name="Startup folder" condition="contains">\Startup</TargetFilename>
-        <TargetFilename name="Scheduled tasks" condition="contains">\Windows\System32\Tasks</TargetFilename>
-        <!-- Executable and script file types (server baseline) -->
-        <TargetFilename name="Executable" condition="end with">.exe</TargetFilename>
-        <TargetFilename name="DLL" condition="end with">.dll</TargetFilename>
-        <TargetFilename name="System driver" condition="end with">.sys</TargetFilename>
-        <TargetFilename name="Batch script" condition="end with">.bat</TargetFilename>
-        <TargetFilename name="Command script" condition="end with">.cmd</TargetFilename>
-        <TargetFilename name="PowerShell script" condition="end with">.ps1</TargetFilename>
-        <TargetFilename name="VBScript" condition="end with">.vbs</TargetFilename>
-        <TargetFilename name="JavaScript" condition="end with">.js</TargetFilename>
-        <TargetFilename name="WSF script" condition="end with">.wsf</TargetFilename>
-        <TargetFilename name="HTA application" condition="end with">.hta</TargetFilename>
-        <TargetFilename name="SCR screensaver" condition="end with">.scr</TargetFilename>
-        <TargetFilename name="MSI installer" condition="end with">.msi</TargetFilename>
-        <!-- Temp and staging locations (server baseline) -->
-        <TargetFilename name="Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
-        <TargetFilename name="ProgramData" condition="contains">\ProgramData\</TargetFilename>
-        <TargetFilename name="Windows Temp" condition="contains">\Windows\Temp\</TargetFilename>
-        <TargetFilename name="Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
-        <TargetFilename name="Group Policy" condition="contains">\GroupPolicy\</TargetFilename>
+        <!-- Persistence locations -->
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Start Menu" condition="contains">\Start Menu</TargetFilename>
+        <TargetFilename name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=File created in Startup folder" condition="contains">\Startup</TargetFilename>
+        <TargetFilename name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task XML created in Tasks directory" condition="contains">\Windows\System32\Tasks</TargetFilename>
+        <!-- Executable and script file types -->
+        <TargetFilename name="technique_id=T1204.002,technique=Malicious File,detection=Executable file created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1574.002,technique=DLL Side-Loading,detection=DLL file created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1543.003|T1014,technique=Windows Service,detection=System driver (.sys) file created" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Batch script created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1059.003,technique=Windows Command Shell,detection=Command script created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1059.001,technique=PowerShell,detection=PowerShell script created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=VBScript file created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1059.007,technique=JavaScript,detection=JavaScript file created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1059.005,technique=Visual Basic,detection=Windows Script File created" condition="end with">.wsf</TargetFilename>
+        <TargetFilename name="technique_id=T1218.005,technique=Mshta,detection=HTML Application file created" condition="end with">.hta</TargetFilename>
+        <TargetFilename name="technique_id=T1546.002,technique=Screensaver,detection=Screensaver executable created" condition="end with">.scr</TargetFilename>
+        <TargetFilename name="technique_id=T1218.007,technique=Msiexec,detection=MSI installer file created" condition="end with">.msi</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in user AppData Temp folder" condition="contains">\AppData\Local\Temp\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in ProgramData folder" condition="contains">\ProgramData\</TargetFilename>
+        <TargetFilename name="technique_id=T1105,technique=Ingress Tool Transfer,detection=File created in Windows Temp folder" condition="contains">\Windows\Temp\</TargetFilename>
+        <TargetFilename name="technique_id=T1564.001,technique=Hidden Files and Directories,detection=File staged in Recycle Bin" condition="contains">\$Recycle.Bin\</TargetFilename>
+        <TargetFilename name="technique_id=T1484.001,technique=Group Policy Modification,detection=Group Policy file modified" condition="contains">\GroupPolicy\</TargetFilename>
 
         <!--
-        ================================================================
-        DATABASE FILE MONITORING (T1005)
-        Monitor creation of database backup and data files outside
-        normal data directories. May indicate data exfiltration.
-        ================================================================
+          T1005 Data from Local System + T1213 Data from Information Repositories
+          Database backup and data files outside normal directories may indicate
+          data exfiltration staging. Note that legitimate backups will also match;
+          tune by excluding your backup tool paths.
+          References:
+            https://attack.mitre.org/techniques/T1005/
+            https://attack.mitre.org/techniques/T1213/
         -->
-        <!-- SQL Server -->
-        <TargetFilename name="DB: SQL Server backup" condition="end with">.bak</TargetFilename>
-        <TargetFilename name="DB: SQL Server data" condition="end with">.mdf</TargetFilename>
-        <TargetFilename name="DB: SQL Server log" condition="end with">.ldf</TargetFilename>
-        <TargetFilename name="DB: SQL Server secondary" condition="end with">.ndf</TargetFilename>
-        <TargetFilename name="DB: SQL Server bacpac" condition="end with">.bacpac</TargetFilename>
-        <TargetFilename name="DB: SQL Server dacpac" condition="end with">.dacpac</TargetFilename>
-        <TargetFilename name="DB: Transaction log backup" condition="end with">.trn</TargetFilename>
-        <!-- PostgreSQL -->
-        <TargetFilename name="DB: PostgreSQL dump" condition="end with">.dump</TargetFilename>
-        <!-- Oracle -->
-        <TargetFilename name="DB: Oracle data file" condition="end with">.dbf</TargetFilename>
-        <TargetFilename name="DB: Oracle Data Pump" condition="end with">.dmp</TargetFilename>
-        <!-- General SQL dumps -->
-        <TargetFilename name="DB: SQL dump" condition="end with">.sql</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server backup (.bak) created" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server data file (.mdf) created" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server log file (.ldf) created" condition="end with">.ldf</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server secondary data file (.ndf) created" condition="end with">.ndf</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server bacpac export created" condition="end with">.bacpac</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server dacpac export created" condition="end with">.dacpac</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=SQL Server transaction log backup (.trn) created" condition="end with">.trn</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=PostgreSQL dump file created" condition="end with">.dump</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=Oracle data file (.dbf) created" condition="end with">.dbf</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=Oracle Data Pump export (.dmp) created" condition="end with">.dmp</TargetFilename>
+        <TargetFilename name="technique_id=T1005|T1213,technique=Data from Local System,detection=Generic SQL dump file created" condition="end with">.sql</TargetFilename>
 
         <!--
-        ================================================================
-        WEB SHELL DETECTION (T1505.003)
-        Monitor creation of web script files. These file types should
-        only be created during planned deployments, not at runtime.
-        ================================================================
+          T1505.003 Server Software Component: Web Shell
+          Web script files should only be created during planned deployments,
+          not at runtime. New web scripts on a running server are a strong webshell signal.
+          Reference: https://attack.mitre.org/techniques/T1505/003/
         -->
-        <!-- ASP.NET / IIS script types -->
-        <TargetFilename name="Web: ASPX file" condition="end with">.aspx</TargetFilename>
-        <TargetFilename name="Web: ASP file" condition="end with">.asp</TargetFilename>
-        <TargetFilename name="Web: ASHX handler" condition="end with">.ashx</TargetFilename>
-        <TargetFilename name="Web: ASMX service" condition="end with">.asmx</TargetFilename>
-        <!-- PHP -->
-        <TargetFilename name="Web: PHP file" condition="end with">.php</TargetFilename>
-        <!-- Java / Tomcat -->
-        <TargetFilename name="Web: JSP file" condition="end with">.jsp</TargetFilename>
-        <TargetFilename name="Web: JSPX file" condition="end with">.jspx</TargetFilename>
-        <TargetFilename name="Web: WAR file" condition="end with">.war</TargetFilename>
-        <!-- ColdFusion -->
-        <TargetFilename name="Web: CFM file" condition="end with">.cfm</TargetFilename>
-        <!-- CGI scripts -->
-        <TargetFilename name="Web: CGI script" condition="end with">.cgi</TargetFilename>
-        <!-- Web configuration files -->
-        <TargetFilename name="Web: web.config" condition="end with">web.config</TargetFilename>
-        <TargetFilename name="Web: .htaccess" condition="end with">.htaccess</TargetFilename>
-
-        <!-- Web root directories (any file creation here is notable) -->
-        <TargetFilename name="Web: IIS web root" condition="contains">\inetpub\wwwroot\</TargetFilename>
-        <!-- ASP.NET temp compilation (webshell compilation artifacts) -->
-        <TargetFilename name="Web: ASP.NET temp" condition="contains">\Temporary ASP.NET Files\</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=ASPX file created (potential webshell)" condition="end with">.aspx</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=ASP file created (potential webshell)" condition="end with">.asp</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=ASHX HTTP handler created (potential webshell)" condition="end with">.ashx</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=ASMX web service created (potential webshell)" condition="end with">.asmx</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=PHP file created (potential webshell)" condition="end with">.php</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=JSP file created (potential webshell)" condition="end with">.jsp</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=JSPX file created (potential webshell)" condition="end with">.jspx</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=Java WAR file created (potential webshell deployment)" condition="end with">.war</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=ColdFusion CFM file created (potential webshell)" condition="end with">.cfm</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=CGI script created (potential webshell)" condition="end with">.cgi</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003|T1574,technique=Web Shell,detection=IIS web.config file modified" condition="end with">web.config</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003|T1574,technique=Web Shell,detection=Apache .htaccess file modified" condition="end with">.htaccess</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=File created in IIS wwwroot directory" condition="contains">\inetpub\wwwroot\</TargetFilename>
+        <TargetFilename name="technique_id=T1505.003,technique=Web Shell,detection=File in ASP.NET Temporary Files (webshell compilation artifact)" condition="contains">\Temporary ASP.NET Files\</TargetFilename>
       </FileCreate>
     </RuleGroup>
 
@@ -503,105 +417,97 @@
     -->
     <RuleGroup name="RegistryEvent" groupRelation="or">
       <RegistryEvent onmatch="include">
-        <!-- Autostart locations (server baseline) -->
-        <TargetObject name="Run key" condition="contains">\CurrentVersion\Run</TargetObject>
-        <TargetObject name="RunOnce key" condition="contains">\CurrentVersion\RunOnce</TargetObject>
-        <TargetObject name="RunServices" condition="contains">\CurrentVersion\RunServices</TargetObject>
-        <TargetObject name="Explorer Run" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
-        <TargetObject name="Services" condition="contains">\CurrentControlSet\Services</TargetObject>
-        <TargetObject name="Task Cache" condition="contains">\Schedule\TaskCache</TargetObject>
-        <TargetObject name="AppInit DLLs" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
-        <TargetObject name="IFEO" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
-        <TargetObject name="Winlogon Shell" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
-        <TargetObject name="Winlogon Userinit" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
-        <TargetObject name="AppLocker policy" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
-        <!-- Server baseline additions -->
-        <TargetObject name="LSA config" condition="contains">\CurrentControlSet\Control\Lsa</TargetObject>
-        <TargetObject name="Security providers" condition="contains">\Control\SecurityProviders</TargetObject>
-        <TargetObject name="LanmanServer" condition="contains">\Services\LanmanServer</TargetObject>
-
-        <!-- Service-specific: IIS configuration (T1505.004) -->
-        <TargetObject name="Web: IIS extensions" condition="contains">\Microsoft\IIS Extensions\</TargetObject>
-        <TargetObject name="Web: W3SVC service" condition="contains">\Services\W3SVC\</TargetObject>
-        <TargetObject name="Web: WAS service" condition="contains">\Services\WAS\</TargetObject>
-        <!-- Service-specific: SQL Server configuration -->
-        <TargetObject name="DB: SQL Server config" condition="contains">\Microsoft\Microsoft SQL Server\</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry Run key modified" condition="contains">\CurrentVersion\Run</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Registry RunOnce key modified" condition="contains">\CurrentVersion\RunOnce</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=RunServices key modified" condition="contains">\CurrentVersion\RunServices</TargetObject>
+        <TargetObject name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=Explorer Policies Run key modified" condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+        <TargetObject name="technique_id=T1543.003,technique=Windows Service,detection=Windows service registry key modified" condition="contains">\CurrentControlSet\Services</TargetObject>
+        <TargetObject name="technique_id=T1053.005,technique=Scheduled Task,detection=Scheduled task cache modified" condition="contains">\Schedule\TaskCache</TargetObject>
+        <TargetObject name="technique_id=T1546.010,technique=AppInit DLLs,detection=AppInit_DLLs registry value modified" condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+        <TargetObject name="technique_id=T1546.012,technique=Image File Execution Options Injection,detection=IFEO registry key modified" condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Shell value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+        <TargetObject name="technique_id=T1547.004,technique=Winlogon Helper DLL,detection=Winlogon Userinit value modified" condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=AppLocker policy modified" condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+        <TargetObject name="technique_id=T1556,technique=Modify Authentication Process,detection=LSA configuration modified" condition="contains">\CurrentControlSet\Control\Lsa</TargetObject>
+        <TargetObject name="technique_id=T1556,technique=Modify Authentication Process,detection=Security providers registry modified" condition="contains">\Control\SecurityProviders</TargetObject>
+        <TargetObject name="technique_id=T1543.003,technique=Windows Service,detection=LanmanServer service configuration modified" condition="contains">\Services\LanmanServer</TargetObject>
+        <!--
+          T1505.004 IIS Components + T1112 Modify Registry
+          Service-specific configuration for IIS and database engines.
+        -->
+        <TargetObject name="technique_id=T1505.004,technique=IIS Components,detection=IIS Extensions registry modified" condition="contains">\Microsoft\IIS Extensions\</TargetObject>
+        <TargetObject name="technique_id=T1505.004,technique=IIS Components,detection=W3SVC service registry modified" condition="contains">\Services\W3SVC\</TargetObject>
+        <TargetObject name="technique_id=T1505.004,technique=IIS Components,detection=WAS service registry modified" condition="contains">\Services\WAS\</TargetObject>
+        <TargetObject name="technique_id=T1112,technique=Modify Registry,detection=SQL Server registry configuration modified" condition="contains">\Microsoft\Microsoft SQL Server\</TargetObject>
         <!-- Ransomware-relevant registry changes -->
-        <TargetObject name="Ransomware: SafeBoot config" condition="contains">\Control\SafeBoot</TargetObject>
-        <TargetObject name="Ransomware: WDigest credential caching" condition="contains">\SecurityProviders\WDigest</TargetObject>
-        <TargetObject name="Ransomware: Defender policy" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
-        <TargetObject name="Ransomware: Sysmon Autologger" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
+        <TargetObject name="technique_id=T1490,technique=Inhibit System Recovery,detection=SafeBoot configuration modified" condition="contains">\Control\SafeBoot</TargetObject>
+        <TargetObject name="technique_id=T1112|T1003.001,technique=Modify Registry,detection=WDigest credential caching enabled" condition="contains">\SecurityProviders\WDigest</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Windows Defender policy modified" condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+        <TargetObject name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Sysmon Autologger registry tampering" condition="contains">\Autologger\EventLog-Microsoft-Windows-Sysmon</TargetObject>
       </RegistryEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="FileCreateStreamHash" groupRelation="or">
       <FileCreateStreamHash onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.vbs</TargetFilename>
-        <TargetFilename condition="end with">.js</TargetFilename>
-        <TargetFilename condition="end with">.hta</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Executable Mark of the Web stream created" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=DLL Mark of the Web stream created" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Batch script Mark of the Web stream created" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=Command script Mark of the Web stream created" condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=PowerShell script Mark of the Web stream created" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=VBScript Mark of the Web stream created" condition="end with">.vbs</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=JavaScript Mark of the Web stream created" condition="end with">.js</TargetFilename>
+        <TargetFilename name="technique_id=T1564.004|T1553.005,technique=NTFS File Attributes,detection=HTA Mark of the Web stream created" condition="end with">.hta</TargetFilename>
       </FileCreateStreamHash>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
-    Server baseline PLUS SQL Server named pipe monitoring.
+    Server baseline PLUS SQL Server named pipe exclusions.
     ================================================================
     -->
     <RuleGroup name="PipeCreated" groupRelation="or">
       <PipeEvent onmatch="exclude">
-        <!-- Known Windows system pipes -->
-        <PipeName condition="is">\lsass</PipeName>
-        <PipeName condition="is">\wkssvc</PipeName>
-        <PipeName condition="is">\srvsvc</PipeName>
-        <PipeName condition="is">\winreg</PipeName>
-        <PipeName condition="is">\spoolss</PipeName>
+        <PipeName name="exclude=lsass system pipe" condition="is">\lsass</PipeName>
+        <PipeName name="exclude=Workstation service pipe" condition="is">\wkssvc</PipeName>
+        <PipeName name="exclude=Server service pipe" condition="is">\srvsvc</PipeName>
+        <PipeName name="exclude=Remote registry pipe" condition="is">\winreg</PipeName>
+        <PipeName name="exclude=Print spooler pipe" condition="is">\spoolss</PipeName>
         <!-- SQL Server named pipes (high volume on busy servers) -->
-        <PipeName condition="begin with">\sql\query</PipeName>
-        <PipeName condition="begin with">\SQLLocal\</PipeName>
-        <PipeName condition="begin with">\MSSQL$</PipeName>
+        <PipeName name="exclude=SQL Server query pipe" condition="begin with">\sql\query</PipeName>
+        <PipeName name="exclude=SQL Server local pipe" condition="begin with">\SQLLocal\</PipeName>
+        <PipeName name="exclude=SQL Server named instance pipe" condition="begin with">\MSSQL$</PipeName>
       </PipeEvent>
     </RuleGroup>
 
     <!--
-    C2 framework and lateral movement named pipe detection.
-    MITRE ATT&CK: T1071 (Application Layer Protocol), T1021 (Remote Services)
-    See: https://icswatchdog.com/ransomware/
+      T1572 Protocol Tunneling + T1021.002 SMB Admin Shares + T1003.001 LSASS Memory
+      C2 framework named pipes and lateral movement tool indicators.
     -->
     <RuleGroup name="PipeCreated-C2Detection" groupRelation="or">
       <PipeEvent onmatch="include">
-        <!-- Cobalt Strike default pipes -->
-        <PipeName name="C2: Cobalt Strike" condition="begin with">\MSSE-</PipeName>
-        <PipeName name="C2: Cobalt Strike postex" condition="begin with">\postex_</PipeName>
-        <PipeName name="C2: Cobalt Strike status" condition="begin with">\status_</PipeName>
-        <PipeName name="C2: Cobalt Strike msagent" condition="begin with">\msagent_</PipeName>
-        <!-- Lateral movement tools -->
-        <PipeName name="Lateral: PsExec" condition="is">\PSEXESVC</PipeName>
-        <PipeName name="Lateral: paexec" condition="begin with">\paexec</PipeName>
-        <PipeName name="Lateral: remcom" condition="begin with">\remcom</PipeName>
-        <PipeName name="Lateral: csexec" condition="begin with">\csexec</PipeName>
-        <!-- Credential tools -->
-        <PipeName name="Cred: lsadump" condition="is">\lsadump</PipeName>
-        <PipeName name="Cred: cachedump" condition="is">\cachedump</PipeName>
-        <PipeName name="Cred: wceservicepipe" condition="is">\wceservicepipe</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike default named pipe MSSE-" condition="begin with">\MSSE-</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike post-exploitation pipe postex_" condition="begin with">\postex_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike status pipe" condition="begin with">\status_</PipeName>
+        <PipeName name="technique_id=T1572|T1071,technique=Protocol Tunneling,detection=Cobalt Strike msagent pipe" condition="begin with">\msagent_</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PsExec service pipe PSEXESVC" condition="is">\PSEXESVC</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=PAExec lateral movement pipe" condition="begin with">\paexec</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=RemCom lateral movement pipe" condition="begin with">\remcom</PipeName>
+        <PipeName name="technique_id=T1021.002|T1570,technique=SMB Admin Shares,detection=CSExec lateral movement pipe" condition="begin with">\csexec</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Mimikatz lsadump named pipe" condition="is">\lsadump</PipeName>
+        <PipeName name="technique_id=T1003.005,technique=Cached Domain Credentials,detection=Cachedump named pipe" condition="is">\cachedump</PipeName>
+        <PipeName name="technique_id=T1003.001,technique=LSASS Memory,detection=Windows Credential Editor service pipe" condition="is">\wceservicepipe</PipeName>
       </PipeEvent>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="WmiEvent" groupRelation="or">
@@ -611,21 +517,19 @@
     <!--
     ================================================================
     EVENT ID 22: DNS QUERY [DnsQuery]
-    Same as server baseline (minimal exclusions).
     ================================================================
     -->
     <RuleGroup name="DnsQuery" groupRelation="or">
       <DnsQuery onmatch="exclude">
-        <QueryName condition="end with">.microsoft.com</QueryName>
-        <QueryName condition="end with">.windowsupdate.com</QueryName>
-        <QueryName condition="end with">.windows.com</QueryName>
+        <QueryName name="exclude=Microsoft DNS query" condition="end with">.microsoft.com</QueryName>
+        <QueryName name="exclude=Windows Update DNS query" condition="end with">.windowsupdate.com</QueryName>
+        <QueryName name="exclude=Windows DNS query" condition="end with">.windows.com</QueryName>
       </DnsQuery>
     </RuleGroup>
 
     <!--
     ================================================================
     EVENT ID 23: FILE DELETE (ARCHIVED) [FileDelete]
-    Disabled by default.
     ================================================================
     -->
     <RuleGroup name="FileDelete" groupRelation="or">
@@ -635,7 +539,6 @@
     <!--
     ================================================================
     EVENT ID 25: PROCESS TAMPERING [ProcessTampering]
-    Same as server baseline.
     ================================================================
     -->
     <RuleGroup name="ProcessTampering" groupRelation="or">
@@ -645,29 +548,29 @@
     <!--
     ================================================================
     EVENT ID 26: FILE DELETE DETECTED [FileDeleteDetected]
-    Server baseline PLUS database file deletion monitoring.
+    Server baseline PLUS database/web file deletion monitoring.
     ================================================================
     -->
     <RuleGroup name="FileDeleteDetected" groupRelation="or">
       <FileDeleteDetected onmatch="include">
-        <TargetFilename condition="end with">.exe</TargetFilename>
-        <TargetFilename condition="end with">.dll</TargetFilename>
-        <TargetFilename condition="end with">.sys</TargetFilename>
-        <TargetFilename condition="end with">.ps1</TargetFilename>
-        <TargetFilename condition="end with">.bat</TargetFilename>
-        <TargetFilename condition="end with">.cmd</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Executable file deleted" condition="end with">.exe</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=DLL file deleted" condition="end with">.dll</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=System driver deleted" condition="end with">.sys</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=PowerShell script deleted" condition="end with">.ps1</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Batch script deleted" condition="end with">.bat</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=Command script deleted" condition="end with">.cmd</TargetFilename>
         <!-- Database backup deletion (evidence of exfiltration cleanup) -->
-        <TargetFilename name="DB: Backup file deletion" condition="end with">.bak</TargetFilename>
-        <TargetFilename name="DB: Dump file deletion" condition="end with">.dmp</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004|T1485,technique=File Deletion,detection=Database backup (.bak) deletion" condition="end with">.bak</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004|T1485,technique=File Deletion,detection=Database dump (.dmp) deletion" condition="end with">.dmp</TargetFilename>
         <!-- Web script deletion (webshell cleanup) -->
-        <TargetFilename name="Web: ASPX deletion" condition="end with">.aspx</TargetFilename>
-        <TargetFilename name="Web: PHP deletion" condition="end with">.php</TargetFilename>
-        <TargetFilename name="Web: JSP deletion" condition="end with">.jsp</TargetFilename>
-        <!-- Backup and database file deletion (ransomware indicator, T1490) -->
-        <TargetFilename name="Ransomware: VHD deletion" condition="end with">.vhd</TargetFilename>
-        <TargetFilename name="Ransomware: VHDX deletion" condition="end with">.vhdx</TargetFilename>
-        <TargetFilename name="Ransomware: SQL data deletion" condition="end with">.mdf</TargetFilename>
-        <TargetFilename name="Ransomware: SQL log deletion" condition="end with">.ldf</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=ASPX file deletion (potential webshell cleanup)" condition="end with">.aspx</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=PHP file deletion (potential webshell cleanup)" condition="end with">.php</TargetFilename>
+        <TargetFilename name="technique_id=T1070.004,technique=File Deletion,detection=JSP file deletion (potential webshell cleanup)" condition="end with">.jsp</TargetFilename>
+        <!-- Backup and database file deletion (ransomware indicator) -->
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhd) deletion" condition="end with">.vhd</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=Virtual hard disk (.vhdx) deletion" condition="end with">.vhdx</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server data file (.mdf) deletion" condition="end with">.mdf</TargetFilename>
+        <TargetFilename name="technique_id=T1490|T1485,technique=Inhibit System Recovery,detection=SQL Server log file (.ldf) deletion" condition="end with">.ldf</TargetFilename>
       </FileDeleteDetected>
     </RuleGroup>
 

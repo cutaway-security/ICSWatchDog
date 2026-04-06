@@ -1,0 +1,233 @@
+---
+layout: default
+title: ATT&CK Rule Tagging
+permalink: /attack-tagging/
+---
+
+<h1>ATT&amp;CK Rule Tagging Convention</h1>
+
+<p>Every detection rule in an ICS Watch Dog curated configuration is tagged with the MITRE ATT&amp;CK technique it is designed to detect. The technique identifier, technique name, and a site-specific detection description are packed into the Sysmon rule <code>name</code> attribute, which Sysmon writes verbatim into the Windows Event Log <code>RuleName</code> field. This page documents the convention so that SOC analysts, SIEM engineers, and threat hunters can extract structured ATT&amp;CK data directly from Sysmon events.</p>
+
+<section class="overview-section">
+  <h2>Why Tag Rules With ATT&amp;CK?</h2>
+  <p>Without tagging, Sysmon events tell you <em>what</em> happened (a process started, a file was created, a registry key was modified) but not <em>why the rule fired</em>. Analysts have to maintain external lookup tables that map rule names to attacker techniques, and the mapping drifts as configs evolve.</p>
+  <p>With ATT&amp;CK tags embedded directly in the rule name:</p>
+  <ul>
+    <li><strong>SIEM correlation is built in</strong> -- query for <code>technique_id=T1003.003</code> across all Sysmon events to find every NTDS credential extraction attempt</li>
+    <li><strong>ATT&amp;CK dashboards are trivial</strong> -- group events by technique to see which attacker behaviors are most active in your environment</li>
+    <li><strong>Investigation is faster</strong> -- the technique name and detection context appear in the event itself, no lookup required</li>
+    <li><strong>Tuning is informed</strong> -- you can see which techniques are over-firing and adjust rules with full context</li>
+  </ul>
+  <p>This convention is a strict superset of the format used by <a href="https://github.com/olafhartong/sysmon-modular" target="_blank" rel="noopener">olafhartong/sysmon-modular</a>. SIEM parsers written for that project will work on ICS Watch Dog tags with one minor change (rename the <code>technique_name</code> field to <code>technique</code>), and can optionally surface the additional <code>detection</code> field.</p>
+</section>
+
+<section class="read-section">
+  <h2>The Format</h2>
+
+  <p>Sysmon supports only one labeling mechanism per rule: the <code>name</code> attribute. There is no <code>description</code> attribute, no aliases, and no multiple <code>name</code> fields. To carry ATT&amp;CK context, the canonical technique name, and site-specific detection intent into a single attribute, ICS Watch Dog uses a structured delimited format:</p>
+
+<pre><code>technique_id=&lt;ID&gt;[|&lt;ID2&gt;...],technique=&lt;ATT&amp;CK Name&gt;[,detection=&lt;Site Context&gt;]</code></pre>
+
+  <h3>Field Definitions</h3>
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Required</th><th>Format</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>technique_id</code></td>
+        <td>Required</td>
+        <td>ATT&amp;CK technique ID such as <code>T1003.003</code>. Pipe-delimited list for multiple techniques: <code>T1003.003|T1003.006</code></td>
+        <td>Machine parseable identifier</td>
+      </tr>
+      <tr>
+        <td><code>technique</code></td>
+        <td>Required</td>
+        <td>Free text using the canonical short ATT&amp;CK technique name</td>
+        <td>Human readable name without requiring an ATT&amp;CK lookup</td>
+      </tr>
+      <tr>
+        <td><code>detection</code></td>
+        <td>Optional but recommended</td>
+        <td>Free text describing what specifically triggered the rule</td>
+        <td>Site-specific detection intent (preserves context like "DC ntdsutil execution" or "Cobalt Strike default named pipe")</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="overview-section">
+  <h2>Examples</h2>
+
+  <h3>Single Technique</h3>
+  <p>A rule that detects ntdsutil execution on a Domain Controller. ntdsutil is the canonical Microsoft tool for AD database manipulation, and one of the most common NTDS.dit credential extraction vectors.</p>
+
+<pre><code>&lt;Image name="technique_id=T1003.003,technique=NTDS,detection=DC ntdsutil execution"
+       condition="end with"&gt;\ntdsutil.exe&lt;/Image&gt;</code></pre>
+
+  <h3>Multiple Techniques</h3>
+  <p>Some detections cleanly map to more than one ATT&amp;CK technique. The <code>technique_id</code> field uses pipe (<code>|</code>) as the delimiter. The <code>technique</code> field carries the primary ATT&amp;CK technique name. The <code>detection</code> field can explain why multiple techniques apply.</p>
+
+<pre><code>&lt;CommandLine name="technique_id=T1059.001|T1027|T1140,technique=PowerShell,detection=Encoded PowerShell suggests obfuscation"
+             condition="contains"&gt;-encodedcommand&lt;/CommandLine&gt;</code></pre>
+
+  <h3>ICS ATT&amp;CK Techniques</h3>
+  <p>OT-focused configs use the MITRE ATT&amp;CK for ICS matrix (<code>T0xxx</code>) for industrial protocol monitoring, firmware files, and OT-specific behaviors. Enterprise ATT&amp;CK techniques (<code>T1xxx</code>) are still used for IT-context detections.</p>
+
+<pre><code>&lt;DestinationPort name="technique_id=T0830|T0855,technique=Adversary-in-the-Middle,detection=Process connecting to Modbus TCP port 502"
+                 condition="is"&gt;502&lt;/DestinationPort&gt;</code></pre>
+
+  <h3>Composite Rule</h3>
+  <p>Composite rules using <code>&lt;Rule&gt;</code> elements with <code>groupRelation="and"</code> tag the parent <code>&lt;Rule&gt;</code> only. Inner field conditions stay untagged to avoid duplicate names in the event log. (Note: as of v3.0 there are no composite rules in the curated configs, but this convention applies if any are added later.)</p>
+
+<pre><code>&lt;Rule name="technique_id=T1003.003,technique=NTDS,detection=Shadow copy NTDS extraction" groupRelation="and"&gt;
+  &lt;Image condition="end with"&gt;\vssadmin.exe&lt;/Image&gt;
+  &lt;CommandLine condition="contains"&gt;create shadow&lt;/CommandLine&gt;
+&lt;/Rule&gt;</code></pre>
+
+  <h3>Exclude Rules</h3>
+  <p>Exclude rules are noise reduction, not detection. They do not receive ATT&amp;CK tags. Instead, they use a simpler convention with the <code>exclude=</code> prefix and a site-specific context. The <code>exclude=</code> prefix makes intent obvious in SIEM queries when filtering exclusion-related events during threat hunting.</p>
+
+<pre><code>&lt;Image name="exclude=Windows Defender MsMpEng" condition="is"&gt;C:\Program Files\Windows Defender\MsMpEng.exe&lt;/Image&gt;
+&lt;Signature name="exclude=Microsoft signed driver" condition="contains"&gt;Microsoft&lt;/Signature&gt;
+&lt;PipeName name="exclude=lsass system pipe" condition="is"&gt;\lsass&lt;/PipeName&gt;</code></pre>
+</section>
+
+<section class="read-section">
+  <h2>Field Constraints</h2>
+
+  <p>Three rules govern the <code>name</code> attribute content. Validation will flag any rule that violates them.</p>
+
+  <h3>Length Limits</h3>
+  <ul>
+    <li><strong>Hard limit: 250 characters</strong> per <code>name</code> value. This stays under the Elasticsearch default <code>keyword</code> field <code>ignore_above: 256</code> setting. Many SIEMs that ingest Sysmon events into Elastic-based stacks (HELK, SOC Prime, Hunting ELK) use the <code>keyword</code> type for <code>winlog.event_data.RuleName</code>. Names exceeding 256 characters are silently dropped from the index and become unsearchable in keyword and term queries (though they remain visible in <code>_source</code>).</li>
+    <li><strong>Target: 80&ndash;180 characters</strong>. Aspirational. Encourages concise detection descriptions. Longer rationale belongs in the maintainer XML comment block above the rule.</li>
+    <li>Across all current curated configs, the longest rule name is <strong>139 characters</strong>, comfortably under both the target and the hard limit.</li>
+  </ul>
+
+  <h3>Forbidden Characters in Field Values</h3>
+  <table>
+    <thead><tr><th>Character</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>,</code> (comma)</td><td>Field separator. Must not appear in <code>technique</code> or <code>detection</code> values.</td></tr>
+      <tr><td><code>|</code> (pipe)</td><td>Multi-technique separator inside <code>technique_id</code>. Must not appear in any other field.</td></tr>
+    </tbody>
+  </table>
+  <p>If a description needs a comma, use a semicolon or "and" instead. If a description needs a pipe, rephrase. Equals sign (<code>=</code>) inside values is permitted but discouraged for parser-simplicity reasons.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Coverage in Curated Configs</h2>
+  <p>As of release v3.0, every detection rule in every curated config is tagged. Statistics across all eight curated configurations:</p>
+
+  <table>
+    <thead>
+      <tr><th>Configuration</th><th>Total Rules</th><th>Include Rules Tagged</th><th>Exclude Rules Tagged</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>IT Workstation Baseline</td><td>119</td><td>74</td><td>45</td></tr>
+      <tr><td>IT Server Baseline</td><td>115</td><td>77</td><td>38</td></tr>
+      <tr><td>Server: AD / Domain Controller</td><td>159</td><td>104</td><td>55</td></tr>
+      <tr><td>Server: Database + Web Services</td><td>188</td><td>131</td><td>57</td></tr>
+      <tr><td>OT Baseline</td><td>145</td><td>103</td><td>42</td></tr>
+      <tr><td>OT Enhanced</td><td>185</td><td>143</td><td>42</td></tr>
+      <tr><td>OT Advanced</td><td>201</td><td>159</td><td>42</td></tr>
+      <tr><td>Jump Host / Bastion</td><td>101</td><td>80</td><td>21</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>1,213</strong></td><td><strong>871</strong></td><td><strong>342</strong></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section">
+  <h2>SIEM Parsing Examples</h2>
+
+  <p>The structured format makes it easy for SIEM platforms to extract ATT&amp;CK data from the Sysmon <code>RuleName</code> field. Examples for common platforms:</p>
+
+  <h3>Splunk SPL</h3>
+<pre><code>index=sysmon
+| rex field=RuleName "technique_id=(?&lt;technique_id&gt;[^,]+),technique=(?&lt;technique&gt;[^,]+)(,detection=(?&lt;detection&gt;.*))?"
+| eval techniques=split(technique_id, "|")
+| stats count by technique_id, technique</code></pre>
+
+  <h3>Elastic / Kibana KQL + ESQL</h3>
+<pre><code>FROM logs-windows-sysmon-*
+| WHERE winlog.event_data.RuleName LIKE "technique_id=*"
+| DISSECT winlog.event_data.RuleName "technique_id=%{tid},technique=%{tname},detection=%{detect}"
+| STATS count = COUNT(*) BY tid, tname</code></pre>
+
+  <h3>Microsoft Sentinel / KQL</h3>
+<pre><code>SysmonEvent
+| where RuleName startswith "technique_id="
+| extend parsed = parse_csv(RuleName)
+| extend technique_id = extract("technique_id=([^,]+)", 1, RuleName)
+| extend technique    = extract("technique=([^,]+)", 1, RuleName)
+| extend detection    = extract("detection=(.+)$", 1, RuleName)
+| summarize count() by technique_id, technique</code></pre>
+
+  <p>Adapt the field separators and regex syntax to match your SIEM. The format is consistent across all ICS Watch Dog curated configs, so a single parser handles every rule.</p>
+</section>
+
+<section class="overview-section">
+  <h2>ATT&amp;CK Matrices Used</h2>
+  <table>
+    <thead><tr><th>Use Case</th><th>Matrix</th><th>ID Format</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>IT and host techniques (process creation, registry, credential dumping, lateral movement)</td>
+        <td><a href="https://attack.mitre.org/matrices/enterprise/" target="_blank" rel="noopener">MITRE ATT&amp;CK Enterprise</a></td>
+        <td><code>T1xxx</code> or <code>T1xxx.xxx</code></td>
+      </tr>
+      <tr>
+        <td>Industrial protocols, ICS firmware, OT-specific behaviors</td>
+        <td><a href="https://attack.mitre.org/matrices/ics/" target="_blank" rel="noopener">MITRE ATT&amp;CK for ICS</a></td>
+        <td><code>T0xxx</code></td>
+      </tr>
+      <tr>
+        <td>Mixed (rule applies to both IT and OT context)</td>
+        <td>Both, pipe-delimited</td>
+        <td><code>T1xxx|T0xxx</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="read-section">
+  <h2>Maintainer Comment Blocks</h2>
+  <p>Each tagged include rule (or logically grouped set of related rules) is preceded by an XML comment block in the source XML file. These comments document the ATT&amp;CK reference, the rule's purpose, and brief investigation guidance. They exist for maintainers and contributors -- XML comments are not written to the event log.</p>
+
+<pre><code>&lt;!--
+  T1003.003 NTDS
+  ntdsutil is the canonical Microsoft tool for AD database manipulation.
+  Legitimate use is rare on DCs and should be auditable. Investigate every match.
+  Reference: https://attack.mitre.org/techniques/T1003/003/
+--&gt;
+&lt;Image name="technique_id=T1003.003,technique=NTDS,detection=DC ntdsutil execution"
+       condition="end with"&gt;\ntdsutil.exe&lt;/Image&gt;</code></pre>
+
+  <p>Read the source XML files to see the full set of comments and the per-rule context they provide.</p>
+</section>
+
+<section class="overview-section">
+  <h2>What Rules Are Not Tagged</h2>
+  <p>The following rule categories intentionally use plain descriptive names rather than ATT&amp;CK structured tags:</p>
+  <ul>
+    <li><strong>Exclude rules</strong>: noise reduction, not detection. Use the <code>exclude=&lt;site context&gt;</code> convention instead.</li>
+    <li><strong>Microsoft/Windows signed driver exclusions</strong>: filter noise from <code>&lt;DriverLoad onmatch="exclude"&gt;</code>.</li>
+    <li><strong>System pipe exclusions</strong>: <code>\lsass</code>, <code>\wkssvc</code>, <code>\srvsvc</code>, <code>\winreg</code>, <code>\spoolss</code>.</li>
+    <li><strong>DNS Microsoft/Windows Update domain exclusions</strong>.</li>
+    <li><strong>DC LSASS ProcessAccess source exclusions</strong>: legitimate AD processes that constantly access LSASS.</li>
+    <li><strong>System DLL path exclusions</strong>: <code>System32</code>, <code>SysWOW64</code>, <code>WinSxS</code> for ImageLoad.</li>
+  </ul>
+</section>
+
+<section class="read-section">
+  <h2>References</h2>
+  <ul>
+    <li><a href="https://attack.mitre.org/" target="_blank" rel="noopener">MITRE ATT&amp;CK</a> -- the canonical source for technique IDs and names</li>
+    <li><a href="https://attack.mitre.org/matrices/enterprise/" target="_blank" rel="noopener">MITRE ATT&amp;CK Enterprise Matrix</a></li>
+    <li><a href="https://attack.mitre.org/matrices/ics/" target="_blank" rel="noopener">MITRE ATT&amp;CK for ICS Matrix</a></li>
+    <li><a href="https://github.com/olafhartong/sysmon-modular" target="_blank" rel="noopener">olafhartong/sysmon-modular</a> -- the source of the structured naming approach this convention extends</li>
+    <li><a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon" target="_blank" rel="noopener">Microsoft Sysmon documentation</a></li>
+    <li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/ignore-above.html" target="_blank" rel="noopener">Elasticsearch <code>ignore_above</code> reference</a> -- background on the 256-character keyword field constraint</li>
+  </ul>
+</section>

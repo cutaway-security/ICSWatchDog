@@ -55,6 +55,12 @@ sysmon.exe -accepteula -i sysmonconfig-baseline-it-workstation.xml
 
 For detailed instructions, see the [Getting Started](https://icswatchdog.com/getting-started/) guide on the project website.
 
+## ATT&CK Rule Tagging
+
+Every detection rule in the curated configurations is tagged with the MITRE ATT&CK technique it is designed to detect. The technique ID, technique name, and a site-specific detection description are embedded in the Sysmon rule `name` attribute, which Sysmon writes to the Windows Event Log `RuleName` field. SIEMs can extract this structured data directly without external lookup tables, enabling ATT&CK correlation and dashboards from raw Sysmon events.
+
+For the full convention, format details, SIEM parsing examples, and field constraints, see the [ATT&CK Rule Tagging](https://icswatchdog.com/attack-tagging/) guide.
+
 ## Efficacy Testing
 
 After deploying Sysmon, validate that your configuration is generating the expected events. The included test script performs safe actions and checks the Sysmon event log for results:

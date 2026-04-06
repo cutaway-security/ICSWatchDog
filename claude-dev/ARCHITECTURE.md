@@ -156,16 +156,55 @@ ICS/OT environments frequently run legacy Windows versions (Server 2008/2012, Wi
 
 Note: Microsoft announced native Sysmon integration in Windows 11 and Server 2025 (expected 2026). This does not affect legacy OT systems but will benefit newer deployments.
 
-## Sysmon Config File Structure
+## Sysmon Config and Module Conventions
 
-Each config XML follows:
-- Disclaimer in header comment block
-- Version, author, attribution, minimum Sysmon version, SANS control mapping
-- `<Sysmon schemaversion="X.XX">` root element
-- `<HashAlgorithms>` and `<CheckRevocation>` meta config (explicit True/False; IT configs default True, OT configs default False for air-gapped environments)
-- `<EventFiltering>` containing `<RuleGroup>` elements per Event ID
-- Each rule uses `onmatch="include"` or `onmatch="exclude"` logic
-- Rules tagged with descriptive `name` attributes for log traceability
+All Sysmon XML files (curated configs, modules, community contributions) follow the conventions defined in `claude-dev/SYSMON_CODING_STANDARD.md`. That document is the single source of truth for:
+
+- File structure and header block requirements
+- Schema version selection (4.50 default, 4.90 when essential)
+- Meta configuration (HashAlgorithms, CheckRevocation defaults by config category)
+- RuleGroup naming and `groupRelation` conventions
+- Rule naming convention (ATT&CK structured tagging for includes, `exclude=` for excludes)
+- Field constraints (250-char hard limit, 80-180 char target, no commas or pipes in field values)
+- ATT&CK technique selection (Enterprise + ICS matrices)
+- XML comment block templates for maintainers
+- Validation requirements (xmllint, name length, diff verification)
+- Module file format and dual-use naming convention
+- Attribution and disclaimer requirements
+
+This section documents the architectural rationale for the module library and merge tooling. Implementation details live in the standard.
+
+## Module Architecture
+
+The module library provides opt-in XML fragments for vendor-specific, sector-specific, protocol-specific, and software-specific monitoring. Modules layer on top of curated configs for advanced users. Curated configs remain the primary supported deployment artifact.
+
+### Module Categories
+
+| Category | Directory | Purpose | Rule Type |
+|----------|-----------|---------|-----------|
+| OT Vendor | modules/vendor-ot/ | OT vendor software monitoring | Include |
+| IT Vendor | modules/vendor-it/ | Common IT software in OT environments | Exclude (noise reduction) |
+| Cloud Storage | modules/cloud-storage/ | External storage clients | Dual-use (exclude or include) |
+| Sector | modules/sector/ | Sector-specific concerns (electric, water, oil/gas, etc.) | Include |
+| Protocol | modules/protocol/ | Industrial protocol port monitoring | Include |
+| Remote Access | modules/remote-access/ | RMM tool detection (granular per-tool) | Dual-use (exclude or include) |
+
+See SYSMON_CODING_STANDARD.md sections 8.1-8.4 for module file format, dual-use naming, schema floor, and header requirements.
+
+### Merge Tooling
+
+`tools/Merge-SysmonModules.ps1` (PowerShell 3+, no external dependencies):
+- Reads a base curated config and a list of module files
+- Inserts module RuleGroup elements into the base config's EventFiltering section
+- Preserves base config meta section (HashAlgorithms, CheckRevocation)
+- Validates output XML well-formedness before writing
+- Reports merged manifest and any conflicts
+
+Bounded scope: this tooling exists only to merge ICS Watch Dog modules into ICS Watch Dog base configs. It is not a general-purpose Sysmon config generator.
+
+### Test Harness
+
+`tools/Test-MergeSysmonModules.ps1` validates the merge script via fixture-based diff comparison. Sample inputs and expected outputs live in `tools/test-fixtures/`. Tests cover single/multi-module merges, dual-use conflict warnings, schema mismatch warnings, malformed module rejection, and base config preservation. The harness can run on Linux since it is pure XML manipulation.
 
 ## File Structure
 
@@ -189,12 +228,27 @@ ICSWatchDog/
             sysmonconfig-filecreate-only.xml
         reference/                                 # Reference configs for learning
             sysmonconfig-swiftonsecurity-v74.xml
+        modules/                                   # Opt-in module library (Phase 9)
+            README.md, INDEX.md
+            vendor-ot/                             # OT vendor software (include rules)
+            vendor-it/                             # IT software in OT (exclude/noise reduction)
+            cloud-storage/                         # Dual-use exclude/include per tool
+            sector/                                # Sector-specific (electric, water, oil/gas, etc.)
+            protocol/                              # Industrial protocol port monitoring
+            remote-access/                         # Granular per-tool RMM modules
+    tools/                                         # Helper scripts
+        Test-SysmonConfig.ps1                      # Efficacy testing (Phase 7)
+        Merge-SysmonModules.ps1                    # Module merge tooling (Phase 9)
+        Test-MergeSysmonModules.ps1                # Merge tooling test harness (Phase 9)
+        test-fixtures/                             # Sample inputs and expected outputs
     claude-dev/                                    # Development planning (dev only)
         ARCHITECTURE.md                            # This file
         PLAN.md
         RESUME.md
         GIT_RELEASE_STEPS.md
-        html-css-jekyll.md                         # Code standard
+        SYSMON_CODING_STANDARD.md                  # Sysmon XML and rule conventions
+        html-css-jekyll.md                         # HTML/CSS/Jekyll code standard
+        PHASE8A_TAGGING_WORKSHEET.md               # Phase 8a deliverable
     docs/                                          # Jekyll website source (dev only)
         _config.yml
         _layouts/default.html
