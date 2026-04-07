@@ -1,0 +1,62 @@
+<!--
+  ICS Watch Dog Module: .NET Unmanaged Code Abuse
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1218 System Binary Proxy Execution, T1127 Trusted Developer Utilities,
+                T1218.004 InstallUtil, T1218.009 Regsvcs Regasm
+
+  PURPOSE:
+    Detect abuse of .NET runtime tools and unmanaged code execution paths.
+    These tools are bundled with the .NET Framework or .NET Core SDK and can
+    execute arbitrary managed code, bypassing application allowlisting.
+
+  WHEN TO USE:
+    Environments where .NET tools may be present (Windows with .NET Framework,
+    or .NET SDK installed). Particularly important for engineering workstations
+    that have developer tools installed.
+
+  FALSE POSITIVE RISK:
+    Moderate. Some development workflows legitimately use these tools. Tune
+    by excluding specific developer paths or service contexts.
+
+  REFERENCES:
+    https://lolbas-project.github.io/
+    https://attack.mitre.org/techniques/T1218/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-DotNet-Unmanaged" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1218.001 Compiled HTML File - csi.exe (Roslyn C# Interactive REPL) -->
+    <Image name="technique_id=T1059|T1127,technique=Command and Scripting Interpreter,detection=Roslyn C# Interactive (csi.exe) execution" condition="end with">\csi.exe</Image>
+    <!-- T1218: Microsoft.Workflow.Compiler.exe arbitrary unsigned XAML execution -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Microsoft.Workflow.Compiler.exe execution (XAML code execution)" condition="end with">\Microsoft.Workflow.Compiler.exe</Image>
+    <!-- T1059.007 JScript - jsc.exe JScript compiler -->
+    <Image name="technique_id=T1059.007|T1127,technique=JavaScript,detection=JScript compiler (jsc.exe) execution" condition="end with">\jsc.exe</Image>
+    <!-- T1218: dotnet.exe with .dll from temp directory -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=dotnet.exe loading DLL from temp directory" groupRelation="and">
+      <Image condition="end with">\dotnet.exe</Image>
+      <CommandLine condition="contains">\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1218: dotnet.exe with .dll from public directories -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=dotnet.exe loading DLL from Public directory" groupRelation="and">
+      <Image condition="end with">\dotnet.exe</Image>
+      <CommandLine condition="contains">\Users\Public\</CommandLine>
+    </Rule>
+    <!-- T1218.004 InstallUtil from non-standard path (not in Windows or Visual Studio) -->
+    <Rule name="technique_id=T1218.004,technique=InstallUtil,detection=InstallUtil from temp or user directory" groupRelation="and">
+      <Image condition="end with">\InstallUtil.exe</Image>
+      <CommandLine condition="contains">\AppData\</CommandLine>
+    </Rule>
+    <!-- T1218.009 RegSvcs from non-standard path -->
+    <Rule name="technique_id=T1218.009,technique=Regsvcs Regasm,detection=RegSvcs from temp or user directory" groupRelation="and">
+      <Image condition="end with">\RegSvcs.exe</Image>
+      <CommandLine condition="contains">\AppData\</CommandLine>
+    </Rule>
+    <!-- T1218.009 RegAsm from non-standard path -->
+    <Rule name="technique_id=T1218.009,technique=Regsvcs Regasm,detection=RegAsm from temp or user directory" groupRelation="and">
+      <Image condition="end with">\RegAsm.exe</Image>
+      <CommandLine condition="contains">\AppData\</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

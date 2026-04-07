@@ -1,6 +1,6 @@
 <!--
   ICS Watch Dog - Jump Host / Bastion Host Sysmon Configuration
-  Version:      v1.1
+  Version:      v1.3
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
@@ -28,6 +28,10 @@
     T1547     - Boot or Logon Autostart Execution (registry monitoring)
     T1490     - Inhibit System Recovery (shadow copy deletion, bcdedit, wbadmin)
     T1562.001 - Disable or Modify Tools (Defender tampering, Sysmon tampering)
+    LOLBAS Tier 1 (v1.2): T1027, T1047, T1059.001, T1059.007, T1105, T1140,
+      T1197, T1218, T1218.005, T1218.010, T1218.011, T1220, T1021.003
+    LOLBAS Tier 2 (v1.3): T1027.004, T1055.001, T1059.003, T1059.005, T1127.001,
+      T1132, T1218.003, T1218.004, T1218.009, T1564.001, T1564.003, T1562.001
 
   DESCRIPTION:
     Jump hosts and bastion hosts are the primary controlled entry point into OT networks.
@@ -123,6 +127,413 @@
         <!-- Defender/security tool disablement (T1562.001) -->
         <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender realtime monitoring disabled" condition="contains">DisableRealtimeMonitoring $true</CommandLine>
         <CommandLine name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=Ransomware Defender path exclusion added" condition="contains">ExclusionPath</CommandLine>
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    LOLBAS-CORE: Tier 1 Living off the Land Binaries and Scripts detection.
+
+    Each rule uses composite Rule logic (binary + command-line pattern) to
+    minimize false positives. These detections should rarely or never fire
+    in stable OT environments; every match warrants investigation.
+
+    See https://icswatchdog.com/lolbas-detection/ for the full strategy
+    and tuning guidance.
+
+    References:
+      https://lolbas-project.github.io
+      https://attack.mitre.org/matrices/enterprise/
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate-LOLBAS-Core" groupRelation="or">
+      <ProcessCreate onmatch="include">
+
+        <!--
+          T1105 Ingress Tool Transfer + T1140 Deobfuscate Decode Files
+          certutil's -urlcache argument downloads files from a URL. There is no
+          legitimate administrative use case in OT environments. Any match indicates
+          either malicious download staging or admin testing tools (investigate user).
+          certutil's -decode argument decodes base64-encoded files, used to decode
+          dropped payloads after staging encoded blobs to disk to evade content inspection.
+          OT tuning: No known legitimate OT use. Vendor scripts using certutil for
+          certificate operations use -addstore or -importpfx, not -urlcache or -decode.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+        -->
+        <Rule name="technique_id=T1105|T1140,technique=Ingress Tool Transfer,detection=certutil download via urlcache argument" groupRelation="and">
+          <Image condition="end with">\certutil.exe</Image>
+          <CommandLine condition="contains">urlcache</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1140,technique=Deobfuscate Decode Files,detection=certutil base64 decode of staged payload" groupRelation="and">
+          <Image condition="end with">\certutil.exe</Image>
+          <CommandLine condition="contains">-decode</CommandLine>
+        </Rule>
+
+        <!--
+          T1218.005 Mshta + T1105 Ingress Tool Transfer
+          mshta.exe loading an HTML application from an HTTP/HTTPS URL is the classic
+          mshta abuse pattern. There is no legitimate use case for mshta loading remote
+          content in OT environments. Investigate every match.
+          OT tuning: Some legacy enterprise apps used mshta for local HTA wrapping, but
+          those reference local file paths, not HTTP URLs.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Mshta/
+        -->
+        <Rule name="technique_id=T1218.005|T1105,technique=Mshta,detection=Mshta loading remote HTA over HTTP/HTTPS" groupRelation="and">
+          <Image condition="end with">\mshta.exe</Image>
+          <CommandLine condition="contains">http</CommandLine>
+        </Rule>
+
+        <!--
+          T1218.010 Regsvr32
+          regsvr32 with /i:http loads a remote COM scriptlet (the Squiblydoo technique
+          published by Casey Smith / @subTee in 2017). There is no legitimate use case.
+          Any match indicates malicious activity.
+          OT tuning: No legitimate use. The /i:http pattern is the canonical Squiblydoo
+          signature. A separate Tier 2 rule will catch scrobj.dll patterns more broadly.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Regsvr32/
+        -->
+        <Rule name="technique_id=T1218.010,technique=Regsvr32,detection=Squiblydoo regsvr32 remote scriptlet load" groupRelation="and">
+          <Image condition="end with">\regsvr32.exe</Image>
+          <CommandLine condition="contains">/i:http</CommandLine>
+        </Rule>
+
+        <!--
+          T1197 BITS Jobs + T1105 Ingress Tool Transfer
+          bitsadmin /transfer creates a BITS job to download a file. While bitsadmin has
+          legitimate uses for software deployment, the /transfer mode is heavily abused
+          and rarely used in modern admin workflows (replaced by PowerShell BITS module).
+          OT tuning: Some legacy SCCM and Windows Update operations use bitsadmin
+          internally, but they invoke it via service, not as a child of cmd/powershell.
+          Manual /transfer invocations from interactive shells warrant investigation.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+        -->
+        <Rule name="technique_id=T1197|T1105,technique=BITS Jobs,detection=bitsadmin transfer mode for file download" groupRelation="and">
+          <Image condition="end with">\bitsadmin.exe</Image>
+          <CommandLine condition="contains">/transfer</CommandLine>
+        </Rule>
+
+        <!--
+          T1059.001 PowerShell + T1027 Obfuscated Files or Information
+          PowerShell -encodedcommand (or -enc) executes a base64-encoded script.
+          Encoding is overwhelmingly used to evade command-line logging and content
+          inspection. Legitimate admin scripts almost never use encoded commands.
+          Covers powershell.exe, pwsh.exe (PS Core), and powershell_ise.exe (ISE).
+          Two rules cover -encodedcommand (long form) and -enc (short form).
+          OT tuning: SCCM and some monitoring agents may use encoded PowerShell for
+          command marshaling. If you see consistent encoded commands from a service
+          account, identify the calling agent and exclude that specific service path.
+          Reference: https://attack.mitre.org/techniques/T1059/001/
+        -->
+        <Rule name="technique_id=T1059.001|T1027,technique=PowerShell,detection=PowerShell encoded command long form on any PowerShell binary" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">-encodedcommand</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1059.001|T1027,technique=PowerShell,detection=PowerShell encoded command short -enc form on any PowerShell binary" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains"> -enc </CommandLine>
+        </Rule>
+
+        <!--
+          T1059.001 PowerShell + T1105 Ingress Tool Transfer
+          System.Net.WebClient.DownloadString is the classic PowerShell stager pattern,
+          commonly preceded by IEX or piped to Invoke-Expression. The string DownloadString
+          appearing in a PowerShell command line is a high-confidence stager indicator.
+          Covers powershell.exe, pwsh.exe, and powershell_ise.exe.
+          OT tuning: Almost no legitimate admin script uses DownloadString. Modern
+          alternatives use Invoke-WebRequest with explicit error handling.
+          Reference: https://attack.mitre.org/techniques/T1059/001/
+        -->
+        <Rule name="technique_id=T1059.001|T1105,technique=PowerShell,detection=PowerShell Net.WebClient DownloadString stager on any PowerShell binary" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">downloadstring</CommandLine>
+        </Rule>
+
+        <!--
+          T1059.001 PowerShell
+          Invoke-Expression (or its IEX alias) chained with New-Object is the classic
+          PowerShell in-memory execution cradle. This rule catches the pattern where IEX
+          is used with New-Object in the same command line, the canonical web cradle form.
+          Covers powershell.exe, pwsh.exe, and powershell_ise.exe.
+          Two rules cover IEX and full Invoke-Expression forms.
+          OT tuning: Highest-confidence PowerShell stager pattern. Almost zero legitimate
+          use. May be triggered by some red team training or pen test tools.
+          Reference: https://attack.mitre.org/techniques/T1059/001/
+        -->
+        <Rule name="technique_id=T1059.001,technique=PowerShell,detection=PowerShell IEX New-Object web cradle" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">iex(new-object</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1059.001,technique=PowerShell,detection=PowerShell Invoke-Expression New-Object web cradle" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">invoke-expression(new-object</CommandLine>
+        </Rule>
+
+        <!--
+          T1220 XSL Script Processing
+          wmic with /format: pointing to an XSL stylesheet executes the stylesheet as code.
+          This is the canonical T1220 abuse pattern, used to bypass application allowlisting.
+          There is no legitimate admin use case.
+          Two rules cover slash-format and quoted-format invocation forms.
+          OT tuning: No legitimate use. wmic.exe is being deprecated in newer Windows versions.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Wmic/
+        -->
+        <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL stylesheet from URL via slash-format" groupRelation="and">
+          <Image condition="end with">\wmic.exe</Image>
+          <CommandLine condition="contains">/format:http</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL stylesheet from URL via format colon" groupRelation="and">
+          <Image condition="end with">\wmic.exe</Image>
+          <CommandLine condition="contains">format:"http</CommandLine>
+        </Rule>
+
+        <!--
+          T1047 Windows Management Instrumentation + T1021.003 Distributed Component Object Model
+          wmic /node: process call create is the classic WMIC lateral movement pattern.
+          An attacker uses WMIC to spawn a process on a remote system. There is no
+          legitimate interactive admin use case in OT environments.
+          Two rules cover /node: and process call create patterns independently.
+          OT tuning: SCCM, monitoring agents, and inventory tools may use WMIC, but
+          typically without /node: or process call create. If you have legitimate
+          management tools that use these patterns, identify the parent process and
+          exclude by parent.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Wmic/
+        -->
+        <Rule name="technique_id=T1047|T1021.003,technique=Windows Management Instrumentation,detection=WMIC remote target via /node: argument" groupRelation="and">
+          <Image condition="end with">\wmic.exe</Image>
+          <CommandLine condition="contains">/node:</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1047,technique=Windows Management Instrumentation,detection=WMIC process call create command" groupRelation="and">
+          <Image condition="end with">\wmic.exe</Image>
+          <CommandLine condition="contains">process call create</CommandLine>
+        </Rule>
+
+        <!--
+          T1218.011 Rundll32 + T1059.007 JavaScript
+          rundll32 with javascript: in the command line executes JavaScript via the
+          rundll32 proxy mechanism. There is no legitimate use case. Always investigate.
+          OT tuning: No legitimate use. The pattern rundll32 javascript: is the canonical
+          signature for Cobalt Strike and Metasploit JavaScript payloads.
+          Reference: https://lolbas-project.github.io/lolbas/Binaries/Rundll32/
+        -->
+        <Rule name="technique_id=T1218.011|T1059.007,technique=Rundll32,detection=Rundll32 JavaScript URL handler execution" groupRelation="and">
+          <Image condition="end with">\rundll32.exe</Image>
+          <CommandLine condition="contains">javascript:</CommandLine>
+        </Rule>
+
+        <!--
+          T1218 System Binary Proxy Execution
+          Microsoft Diagnostic Tool (msdt.exe) was abused in CVE-2022-30190 (Follina) to
+          execute arbitrary code via crafted ms-msdt: URIs in Office documents. Patched
+          in 2022, but the binary remains a high-confidence detection target.
+          Two rules cover the PCWDiagnostic exploit pattern and the ms-msdt: URI scheme.
+          OT tuning: msdt.exe is used by Windows troubleshooters. Legitimate launches do
+          not contain PCWDiagnostic with crafted parameters.
+          Reference: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2022-30190
+        -->
+        <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Follina msdt PCWDiagnostic exploit pattern" groupRelation="and">
+          <Image condition="end with">\msdt.exe</Image>
+          <CommandLine condition="contains">PCWDiagnostic</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Follina ms-msdt URI scheme pattern" groupRelation="and">
+          <Image condition="end with">\msdt.exe</Image>
+          <CommandLine condition="contains">ms-msdt:</CommandLine>
+        </Rule>
+
+      </ProcessCreate>
+    </RuleGroup>
+
+    <!--
+    ================================================================
+    LOLBAS-ADVANCED: Tier 2 LOLBAS detection.
+
+    Broader coverage with moderate false positive risk. Tier 2 rules may match
+    on binary execution alone (without command-line scoping) and may trigger on
+    legitimate admin scripting in some environments. Acceptable in advanced
+    configs where the operator has a mature tuning program.
+
+    This RuleGroup is added to advanced configs only:
+      enhanced-ot, advanced-ot, server-ad, server-services, jumphost.
+
+    Baseline configs (workstation, IT server, OT baseline) stay at Tier 1
+    only to protect their false positive profile.
+
+    See https://icswatchdog.com/lolbas-detection/ for the full strategy.
+    ================================================================
+    -->
+    <RuleGroup name="ProcessCreate-LOLBAS-Advanced" groupRelation="or">
+      <ProcessCreate onmatch="include">
+
+        <!--
+          T1132 Data Encoding + T1027 Obfuscated Files or Information
+          certutil -encode encodes a file as base64. Often used by attackers to
+          prepare data for exfiltration over channels that don't tolerate binary.
+          OT tuning: No legitimate certificate operation uses -encode.
+        -->
+        <Rule name="technique_id=T1132|T1027,technique=Data Encoding,detection=certutil base64 encode of file (potential exfil staging)" groupRelation="and">
+          <Image condition="end with">\certutil.exe</Image>
+          <CommandLine condition="contains">-encode</CommandLine>
+        </Rule>
+
+        <!--
+          T1218.005 Mshta + T1059.005/T1059.007
+          Mshta executing inline VBScript or JavaScript without a remote URL.
+          Less common abuse pattern but still high-signal.
+        -->
+        <Rule name="technique_id=T1218.005|T1059.005,technique=Mshta,detection=Mshta inline VBScript execution" groupRelation="and">
+          <Image condition="end with">\mshta.exe</Image>
+          <CommandLine condition="contains">vbscript:</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1218.005|T1059.007,technique=Mshta,detection=Mshta inline JavaScript execution" groupRelation="and">
+          <Image condition="end with">\mshta.exe</Image>
+          <CommandLine condition="contains">javascript:</CommandLine>
+        </Rule>
+
+        <!--
+          Generic LOLBAS binary execution. Catches abuse modes that don't match
+          the more specific Tier 1 patterns. Higher false positive risk; some
+          legacy apps may bundle these binaries.
+        -->
+        <Image name="technique_id=T1218.005,technique=Mshta,detection=Generic mshta.exe execution (binary-only detection)" condition="end with">\mshta.exe</Image>
+        <Image name="technique_id=T1197,technique=BITS Jobs,detection=Generic bitsadmin.exe execution" condition="end with">\bitsadmin.exe</Image>
+
+        <!--
+          T1059.001 PowerShell + T1564.003 Hidden Window
+          PowerShell with -w hidden combined with -nop is the classic offensive
+          PowerShell launcher pattern. Almost no legitimate admin script needs both.
+          Covers powershell.exe, pwsh.exe, and powershell_ise.exe.
+        -->
+        <Rule name="technique_id=T1059.001|T1564.003,technique=PowerShell,detection=PowerShell hidden window with no profile flag" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">-w hidden -nop</CommandLine>
+        </Rule>
+
+        <!--
+          T1059.001 PowerShell + T1562.001 Disable or Modify Tools
+          PowerShell -ep bypass disables the execution policy for the current session.
+          Legitimate but rarely used by sanctioned admin scripts.
+          Covers powershell.exe, pwsh.exe, and powershell_ise.exe.
+        -->
+        <Rule name="technique_id=T1059.001|T1562.001,technique=PowerShell,detection=PowerShell execution policy bypass" groupRelation="and">
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+          <CommandLine condition="contains">-ep bypass</CommandLine>
+        </Rule>
+
+        <!--
+          T1059.001 PowerShell + T1564.001 Hidden Files and Directories
+          PowerShell binary executing from the user temp directory. Some malware
+          copies powershell.exe to a temp location to evade simple AV.
+          Two Image conditions in composite Rule require both: Temp path AND
+          PowerShell binary name in the same image path.
+        -->
+        <Rule name="technique_id=T1059.001|T1564.001,technique=PowerShell,detection=PowerShell launched from AppData Temp directory" groupRelation="and">
+          <Image condition="contains">\AppData\Local\Temp\</Image>
+          <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+        </Rule>
+
+        <!--
+          T1218.004 InstallUtil
+          InstallUtil with /U argument executes uninstall code. Squiblytwo
+          abuse pattern.
+        -->
+        <Rule name="technique_id=T1218.004,technique=InstallUtil,detection=InstallUtil uninstall mode (Squiblytwo abuse)" groupRelation="and">
+          <Image condition="end with">\InstallUtil.exe</Image>
+          <CommandLine condition="contains">/U</CommandLine>
+        </Rule>
+
+        <!--
+          T1218.009 Regsvcs Regasm
+          Regasm and regsvcs are .NET utilities that can execute managed code
+          and bypass application allowlisting. Generic execution detection.
+        -->
+        <Image name="technique_id=T1218.009,technique=Regsvcs Regasm,detection=Generic regasm.exe execution" condition="end with">\RegAsm.exe</Image>
+        <Image name="technique_id=T1218.009,technique=Regsvcs Regasm,detection=Generic regsvcs.exe execution" condition="end with">\RegSvcs.exe</Image>
+
+        <!--
+          T1220 XSL Script Processing
+          msxsl.exe is a standalone XSL transformation utility. Used to bypass
+          AppLocker. Not a default Windows binary; presence indicates intentional
+          install (admin or attacker).
+        -->
+        <Image name="technique_id=T1220,technique=XSL Script Processing,detection=Generic msxsl.exe execution" condition="end with">\msxsl.exe</Image>
+
+        <!--
+          T1218.003 CMSTP
+          cmstp.exe with /au (auto update) or /s (silent) is used to install
+          malicious connection manager profiles that execute code.
+        -->
+        <Rule name="technique_id=T1218.003,technique=CMSTP,detection=CMSTP installation with auto-update mode" groupRelation="and">
+          <Image condition="end with">\cmstp.exe</Image>
+          <CommandLine condition="contains">/au</CommandLine>
+        </Rule>
+        <Rule name="technique_id=T1218.003,technique=CMSTP,detection=CMSTP silent installation mode" groupRelation="and">
+          <Image condition="end with">\cmstp.exe</Image>
+          <CommandLine condition="contains">/s</CommandLine>
+        </Rule>
+
+        <!--
+          T1218 System Binary Proxy Execution
+          wuauclt with /UpdateDeploymentProvider loads an arbitrary DLL via the
+          Windows Update client. Used as a stealthy sideload technique.
+        -->
+        <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=wuauclt UpdateDeploymentProvider DLL sideload" groupRelation="and">
+          <Image condition="end with">\wuauclt.exe</Image>
+          <CommandLine condition="contains">/UpdateDeploymentProvider</CommandLine>
+        </Rule>
+
+        <!--
+          T1127.001 MSBuild
+          msbuild.exe execution from any path may indicate inline task abuse.
+          Tune by excluding your specific Visual Studio install path if developers
+          use the engineering workstation legitimately.
+        -->
+        <Image name="technique_id=T1127.001,technique=MSBuild,detection=Generic msbuild.exe execution (tune for VS install paths)" condition="end with">\MSBuild.exe</Image>
+
+        <!--
+          T1027.004 Compile After Delivery
+          C# compiler csc.exe spawned by powershell.exe or cmd.exe indicates
+          inline compilation, a common compile-after-delivery pattern.
+        -->
+        <Rule name="technique_id=T1027.004,technique=Compile After Delivery,detection=csc.exe spawned by PowerShell parent process" groupRelation="and">
+          <Image condition="end with">\csc.exe</Image>
+          <ParentImage condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</ParentImage>
+        </Rule>
+        <Rule name="technique_id=T1027.004,technique=Compile After Delivery,detection=csc.exe spawned by cmd.exe parent process" groupRelation="and">
+          <Image condition="end with">\csc.exe</Image>
+          <ParentImage condition="end with">\cmd.exe</ParentImage>
+        </Rule>
+
+        <!--
+          T1055.001 Process Injection: DLL Injection
+          mavinject.exe is a Microsoft App-V utility that can inject DLLs into
+          arbitrary processes. Heavily abused for code injection.
+        -->
+        <Image name="technique_id=T1055.001,technique=DLL Injection,detection=mavinject.exe DLL injection utility execution" condition="end with">\mavinject.exe</Image>
+
+        <!--
+          T1218 System Binary Proxy Execution
+          pcalua.exe (Program Compatibility Assistant) can be used to launch
+          arbitrary executables and bypass application allowlisting.
+        -->
+        <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=pcalua.exe Program Compatibility Assistant execution" condition="end with">\pcalua.exe</Image>
+
+        <!--
+          T1059.003 Windows Command Shell + T1218 System Binary Proxy Execution
+          forfiles.exe with cmd in the command line is a process execution proxy
+          pattern. forfiles can iterate files and execute arbitrary commands per match.
+        -->
+        <Rule name="technique_id=T1059.003|T1218,technique=Windows Command Shell,detection=forfiles invoking cmd via command argument" groupRelation="and">
+          <Image condition="end with">\forfiles.exe</Image>
+          <CommandLine condition="contains">cmd</CommandLine>
+        </Rule>
+
+        <!--
+          T1105 Ingress Tool Transfer
+          finger.exe is a legacy Unix protocol client included in Windows but
+          rarely used legitimately. Has been abused as an exfiltration / download
+          channel via the finger protocol.
+        -->
+        <Image name="technique_id=T1105,technique=Ingress Tool Transfer,detection=finger.exe execution (rare legacy binary)" condition="end with">\finger.exe</Image>
+
       </ProcessCreate>
     </RuleGroup>
 

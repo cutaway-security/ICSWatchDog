@@ -1,0 +1,91 @@
+<!--
+  ICS Watch Dog Module: Discovery and Reconnaissance Commands
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1033 System Owner/User Discovery, T1069 Permission Groups,
+                T1087 Account Discovery, T1018 Remote System Discovery,
+                T1057 Process Discovery, T1082 System Information Discovery,
+                T1016 System Network Configuration
+
+  PURPOSE:
+    Detect command-line discovery and reconnaissance patterns commonly run by
+    attackers during the situational awareness phase of an intrusion.
+
+  WHEN TO USE:
+    Any environment that wants visibility into recon command activity. Some
+    of these commands have routine admin uses but the volume in normal
+    operations is low and an attacker burst is distinguishable.
+
+  FALSE POSITIVE RISK:
+    Moderate to high. Sysadmins routinely run whoami, net group, tasklist,
+    systeminfo, etc. The value is in correlation: a single recon command is
+    routine; a burst of 10+ recon commands from one process in 30 seconds
+    is not. Pair this module with SIEM correlation rules for best effect.
+
+  REFERENCES:
+    https://attack.mitre.org/tactics/TA0007/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-Discovery" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1033 System Owner/User Discovery -->
+    <Rule name="technique_id=T1033,technique=System Owner/User Discovery,detection=whoami /all enumeration" groupRelation="and">
+      <Image condition="end with">\whoami.exe</Image>
+      <CommandLine condition="contains">/all</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1033,technique=System Owner/User Discovery,detection=whoami /priv privilege enumeration" groupRelation="and">
+      <Image condition="end with">\whoami.exe</Image>
+      <CommandLine condition="contains">/priv</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1033,technique=System Owner/User Discovery,detection=whoami /groups enumeration" groupRelation="and">
+      <Image condition="end with">\whoami.exe</Image>
+      <CommandLine condition="contains">/groups</CommandLine>
+    </Rule>
+    <!-- T1087.002 Domain Account Discovery -->
+    <Rule name="technique_id=T1087.002,technique=Domain Account,detection=net group Domain Admins enumeration" groupRelation="and">
+      <Image condition="end with">\net.exe</Image>
+      <CommandLine condition="contains">domain admins</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1087.002,technique=Domain Account,detection=net group Enterprise Admins enumeration" groupRelation="and">
+      <Image condition="end with">\net.exe</Image>
+      <CommandLine condition="contains">enterprise admins</CommandLine>
+    </Rule>
+    <!-- T1087.001 Local Account Discovery -->
+    <Rule name="technique_id=T1087.001,technique=Local Account,detection=net localgroup administrators enumeration" groupRelation="and">
+      <Image condition="end with">\net.exe</Image>
+      <CommandLine condition="contains all">localgroup;administrators</CommandLine>
+    </Rule>
+    <!-- T1018 Remote System Discovery via nltest -->
+    <Rule name="technique_id=T1018,technique=Remote System Discovery,detection=nltest dclist domain controller enumeration" groupRelation="and">
+      <Image condition="end with">\nltest.exe</Image>
+      <CommandLine condition="contains">/dclist</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1482,technique=Domain Trust Discovery,detection=nltest domain_trusts enumeration" groupRelation="and">
+      <Image condition="end with">\nltest.exe</Image>
+      <CommandLine condition="contains">/domain_trusts</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1018,technique=Remote System Discovery,detection=nltest dsgetdc domain controller lookup" groupRelation="and">
+      <Image condition="end with">\nltest.exe</Image>
+      <CommandLine condition="contains">/dsgetdc</CommandLine>
+    </Rule>
+    <!-- T1033 / T1057 Session and process enumeration -->
+    <Image name="technique_id=T1033,technique=System Owner/User Discovery,detection=quser session enumeration" condition="end with">\quser.exe</Image>
+    <Image name="technique_id=T1033,technique=System Owner/User Discovery,detection=qwinsta session enumeration" condition="end with">\qwinsta.exe</Image>
+    <Rule name="technique_id=T1057,technique=Process Discovery,detection=tasklist /svc service enumeration" groupRelation="and">
+      <Image condition="end with">\tasklist.exe</Image>
+      <CommandLine condition="contains">/svc</CommandLine>
+    </Rule>
+    <!-- T1082 System Information Discovery -->
+    <Image name="technique_id=T1082,technique=System Information Discovery,detection=systeminfo enumeration" condition="end with">\systeminfo.exe</Image>
+    <!-- T1016 System Network Configuration Discovery -->
+    <Rule name="technique_id=T1016,technique=System Network Configuration Discovery,detection=route print network table enumeration" groupRelation="and">
+      <Image condition="end with">\route.exe</Image>
+      <CommandLine condition="contains">print</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1016,technique=System Network Configuration Discovery,detection=arp -a ARP cache enumeration" groupRelation="and">
+      <Image condition="end with">\arp.exe</Image>
+      <CommandLine condition="contains">-a</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

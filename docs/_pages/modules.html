@@ -64,6 +64,12 @@ permalink: /modules/
         <td>Dual-use</td>
         <td>Per-tool RMM detection or noise reduction (TeamViewer, AnyDesk, ScreenConnect, RustDesk)</td>
       </tr>
+      <tr>
+        <td>LOLBAS</td>
+        <td><code>lolbas/</code></td>
+        <td>Include (Tier 3 comprehensive)</td>
+        <td>Comprehensive Living off the Land Binaries and Scripts detection (T1218 family, T1059.001 offensive PowerShell, T1047 WMIC, T1140/T1105 certutil, T1197 BITS, T1220 XSL, T1127 trusted developer utilities, persistence/discovery patterns, T1562.001 AMSI bypass, .NET unmanaged abuse, long-tail rare LOLBAS including WSL). See the <a href="{{ site.baseurl }}/lolbas-detection/">LOLBAS Detection</a> page for the full strategy.</td>
+      </tr>
     </tbody>
   </table>
 </section>
@@ -156,7 +162,7 @@ permalink: /modules/
 
 <section class="overview-section">
   <h2>Available Modules</h2>
-  <p>The initial release ships with 35 modules across all six categories. See the module library on GitHub for the full list with descriptions and ATT&amp;CK references.</p>
+  <p>The current release ships with 48 modules across all seven categories. See the module library on GitHub for the full list with descriptions and ATT&amp;CK references.</p>
 
   <p>Module library will grow over time as community contributions are accepted and additional vendors, sectors, and tools are added.</p>
 
@@ -214,6 +220,24 @@ permalink: /modules/
     <li>AnyDesk (include)</li>
     <li>ConnectWise ScreenConnect (include)</li>
     <li>RustDesk (include)</li>
+  </ul>
+
+  <h3>LOLBAS (13 modules, 153 rules)</h3>
+  <p>Comprehensive Living off the Land Binaries and Scripts detection. Tier 3 of the three-tier LOLBAS strategy. See the <a href="{{ site.baseurl }}/lolbas-detection/">LOLBAS Detection</a> page for full details.</p>
+  <ul>
+    <li><code>include_signed_binary_proxy.xml</code> (25 rules) -- T1218 family comprehensive</li>
+    <li><code>include_powershell_offensive.xml</code> (15 rules) -- T1059.001 offensive patterns</li>
+    <li><code>include_wmic_abuse.xml</code> (10 rules) -- T1047 / T1021.003 / T1220</li>
+    <li><code>include_certutil_abuse.xml</code> (8 rules) -- All certutil abuse modes</li>
+    <li><code>include_bitsadmin_abuse.xml</code> (6 rules) -- T1197 BITS abuse</li>
+    <li><code>include_script_host_abuse.xml</code> (10 rules) -- cscript/wscript/jscript</li>
+    <li><code>include_trusted_developer_utilities.xml</code> (12 rules) -- T1127</li>
+    <li><code>include_xsl_script_processing.xml</code> (6 rules) -- T1220</li>
+    <li><code>include_persistence_via_lolbas.xml</code> (10 rules) -- at, schtasks, sc, reg add</li>
+    <li><code>include_discovery_recon.xml</code> (15 rules) -- whoami, net group, nltest, etc.</li>
+    <li><code>include_amsi_bypass_patterns.xml</code> (8 rules) -- T1562.001 AMSI bypass</li>
+    <li><code>include_dotnet_unmanaged_abuse.xml</code> (8 rules) -- csi, jsc, dotnet abuse</li>
+    <li><code>include_uncommon_lolbas.xml</code> (20 rules) -- Long-tail rare LOLBAS plus WSL detection</li>
   </ul>
 </section>
 

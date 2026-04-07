@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 9 - Module Library
-**Status**: Phase 9a-9d complete. 35 modules across 6 categories, merge tool, test harness, test fixtures, and 2 new documentation pages (modules.html, related-projects.html) all published. Jekyll build verified. Awaiting Phase 9e release approval.
-**Focus**: Phase 9e release (merge to main, deploy site, tag v4.0). Phase 8c release also still pending (can be combined with 9e or shipped separately).
+**Phase**: Phase 10 - LOLBAS Detection Coverage
+**Status**: Phase 10a-10e complete. New LOLBAS Detection website page published. README, modules.html, configurations.html, and nav.html all updated. Jekyll build verified (0.018s, no errors). Phase 10f (combined v4.0 release) ready to begin.
+**Focus**: Phase 10f -- combined v4.0 release (Phase 8 + 9 + 10).
 
 ## Phases
 
@@ -340,6 +340,15 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-04-06 | XML comment block above each tagged include rule | Maintainer-facing documentation for ATT&CK reference, purpose, and investigation guidance; comments do not reach event logs but reduce future maintenance burden and aid contributors |
 | 2026-04-06 | Hard limit 250 chars per name attribute, no commas or pipes in field values | Elasticsearch default keyword field `ignore_above` is 256 chars; values exceeding this are silently dropped from the index. Comma is field separator, pipe is multi-technique separator -- collisions break SIEM parsing. Explicit rules prevent future drift. All current worksheet names compliant (longest 152 chars). |
 | 2026-04-06 | Create Sysmon Coding Standard as single source of truth | Sysmon-specific rules were scattered across CLAUDE.md, ARCHITECTURE.md, and PLAN.md decision log. Consolidating into SYSMON_CODING_STANDARD.md prevents drift, simplifies cross-reference, and matches the existing pattern set by html-css-jekyll.md. Other planning documents now reference the standard rather than duplicate its content. |
+| 2026-04-06 | Phase 10 LOLBAS detection: three-tier strategy (core/advanced/comprehensive) | User direction: high-signal LOLBAS in all configs, broader coverage in advanced configs, Sigma-level in modules. Mirrors how SwiftOnSecurity (inline) and sysmon-modular (modules) handle LOLBAS, but adds the OT-friendly three-tier separation to manage false positives. |
+| 2026-04-06 | Tier 1 LOLBAS in all 8 configs including OT baseline | OT baseline gets Tier 1 (12 high-signal rules) because the rules are command-line scoped and should rarely or never fire in OT environments. The detection value outweighs the small false positive risk. |
+| 2026-04-06 | Tier 2 LOLBAS in advanced-ot, enhanced-ot, server-ad, server-services, jumphost only | Workstation and IT/OT baselines stay at Tier 1 to protect their false positive profile. Advanced configs assume mature tuning programs. |
+| 2026-04-06 | Tier 3 LOLBAS module category named lolbas/ | Matches the canonical project name (LOLBAS Project at lolbas-project.github.io) and is the most recognized term in the security community. |
+| 2026-04-06 | Tier 3 ships ~13 modules with ~150 rules from day one (Sigma-level) | User opted for full coverage rather than incremental rollout. Provides immediate value to advanced users with mature tuning programs. |
+| 2026-04-06 | Composite Rule (groupRelation=and) introduced for first time in Phase 10 | Tier 1 LOLBAS rules require binary + command-line pattern AND logic to minimize false positives. Schema 4.50 (Sysmon v13+) supports composite Rule elements (introduced in schema 4.20). First use in ICS Watch Dog; documented in SYSMON_CODING_STANDARD.md section 5.3. |
+| 2026-04-06 | Conservative Tier 1, broader Tier 2, comprehensive Tier 3 false positive philosophy | Balances OT operational sensitivity (Tier 1 must be near-zero FP) with detection completeness (Tier 3 prioritizes coverage over noise). Each tier opts users in further as they mature their monitoring program. |
+| 2026-04-06 | Dedicated lolbas-detection.html website page | LOLBAS detection is a focused effort for some teams (per user). Deserves its own page rather than a section within attack-tagging.html. Includes high-level OT tuning guidance; per-rule tuning lives in XML maintainer comments. |
+| 2026-04-06 | Combine Phase 8c, 9e, 10f into a single v4.0 release (Option B) | Per user direction. Phase 8 (ATT&CK tagging) and Phase 9 (module library) deferred from individual releases and combined with Phase 10 into one large v4.0 release. Cleaner narrative ("comprehensive detection update") and one coordinated test/deploy effort. |
 
 ### Phase 7: Efficacy Testing
 
@@ -618,7 +627,134 @@ Dual-use convention for cloud-storage and remote-access modules:
 - [ ] Merge to main (include sysmon-configs/modules/, tools/Merge-SysmonModules.ps1, tools/Test-MergeSysmonModules.ps1, tools/test-fixtures/)
 - [ ] Deploy site to gh-pages
 - [ ] Verify all site links
-- [ ] Tag release (v4.0 candidate)
+- [ ] Tag release (deferred and combined with Phase 10 into single v4.0 release per user direction)
+
+### Phase 10: LOLBAS Detection Coverage
+
+**Status**: Planned. Awaiting approval to begin development.
+
+Add Living off the Land Binaries and Scripts (LOLBAS) detection coverage in three tiers: core inline rules in all curated configs, advanced inline rules in select configs, and comprehensive Sigma-level coverage in a new module category. Brings ICS Watch Dog to industry parity with SwiftOnSecurity and olafhartong/sysmon-modular for LOLBAS detection while preserving the OT-friendly false positive profile.
+
+Convention: see SYSMON_CODING_STANDARD.md section 6.6 (LOLBAS Detection Three-Tier Strategy) and section 5.3 (Composite Rules with groupRelation=and).
+
+Versioning: Phase 10 ships combined with Phase 8 (ATT&CK tagging) and Phase 9 (module library) as a single v4.0 release per user direction (Option B).
+
+#### Phase 10a: Research and Worksheet
+
+**Status**: Complete. Worksheet at claude-dev/PHASE10A_LOLBAS_WORKSHEET.md awaiting review.
+
+- [x] Define final list of Tier 1 rules (12 detections, 19 XML Rules) with command-line patterns and ATT&CK mapping
+- [x] Define final list of Tier 2 rules (20 detections, 22 XML Rules)
+- [x] Define final list of Tier 3 modules (13 modules, ~153 rules total)
+- [x] Cross-reference LOLBAS Project (lolbas-project.github.io) and Sigma rules for command-line patterns
+- [x] Identify high-confidence detection patterns with low OT false positive risk
+- [x] Produce Phase 10a tagging worksheet (claude-dev/PHASE10A_LOLBAS_WORKSHEET.md)
+- [x] Confirm composite Rule (groupRelation=and) compatibility with schema 4.50 baseline (Sysmon v8+ supports it; baseline v13+ confirmed)
+- [x] Document per-config impact (Tier 1 only: +19 rules; Tier 1+2: +41 rules)
+- [x] Document Phase 10b/c/d implementation workflow
+- [x] List 10 open issues for review before Phase 10b begins
+
+#### Phase 10b: Tier 1 Core Rules (all 8 configs)
+
+**Status**: Complete. All 8 configs have ProcessCreate-LOLBAS-Core RuleGroup with 17 composite Rules each (12 detections consolidated via `contains any` for PowerShell binary variants). 136 total composite Rules added across project.
+
+- [x] Build composite-rule-aware diff-check tool (`tools/check-rule-preservation.py`) to validate edits preserve existing rule logic while allowing composite Rule additions
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-jumphost.xml (validation target, smallest config)
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-baseline-it-workstation.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-baseline-it-server.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-server-ad.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-server-services.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-baseline-ot.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-enhanced-ot.xml
+- [x] Add ProcessCreate-LOLBAS-Core RuleGroup to sysmonconfig-advanced-ot.xml
+- [x] Each rule uses composite `<Rule groupRelation="and">` with binary + command-line pattern
+- [x] PowerShell rules cover all 3 binaries (powershell.exe, pwsh.exe, powershell_ise.exe) via `contains any` operator
+- [x] Each rule (or grouped set) preceded by maintainer XML comment block with ATT&CK reference, purpose, OT tuning notes, investigation guidance
+- [x] Update each config header MITRE ATT&CK Coverage section with concise LOLBAS Tier 1 line (single 2-line entry to avoid header bloat)
+- [x] Bump each config version: jumphost v1.1->v1.2, baseline-ot v1.1->v1.2, others v2.1->v2.2
+- [x] Per-config validation: xmllint pass (8/8), composite-aware diff-check (8/8 PASS), field constraint compliance (0 violations, max name 139 chars)
+- [x] PowerShell test harness (`tools/Test-MergeSysmonModules.ps1`) still 7/7 passing after edits, confirming merge tool compatibility with composite Rules in base configs
+
+#### Phase 10c: Tier 2 Advanced Rules (5 configs)
+
+**Status**: Complete. 5 advanced configs have ProcessCreate-LOLBAS-Advanced RuleGroup with 22 rules each (13 composite Rules + 9 flat Image-only rules). Total composite Rules per advanced config now 30 (17 Tier 1 + 13 Tier 2).
+
+- [x] Add ProcessCreate-LOLBAS-Advanced RuleGroup to sysmonconfig-jumphost.xml (validation target)
+- [x] Add ProcessCreate-LOLBAS-Advanced RuleGroup to sysmonconfig-server-ad.xml
+- [x] Add ProcessCreate-LOLBAS-Advanced RuleGroup to sysmonconfig-server-services.xml
+- [x] Add ProcessCreate-LOLBAS-Advanced RuleGroup to sysmonconfig-enhanced-ot.xml
+- [x] Add ProcessCreate-LOLBAS-Advanced RuleGroup to sysmonconfig-advanced-ot.xml
+- [x] Tier 2 rules use mix of composite (binary + command-line) and flat Image-only detection
+- [x] PowerShell rules cover all 3 binaries via `contains any` operator (consistent with Tier 1)
+- [x] Maintainer comments include false positive expectations and OT tuning guidance
+- [x] Per-config validation: xmllint pass (5/5), composite-aware diff-check (8/8 PASS), field constraint compliance (0 violations, max 139 chars)
+- [x] Bump versions: jumphost v1.2->v1.3, others v2.2->v2.3
+- [x] Add LOLBAS Tier 2 entry to MITRE ATT&CK Coverage section in each header
+- [x] PowerShell test harness still 7/7 passing after Tier 2 additions
+
+#### Phase 10d: Tier 3 Comprehensive Module Library
+
+**Status**: Complete. 13 modules built with 153 rules total, matching worksheet target exactly.
+
+- [x] Create sysmon-configs/modules/lolbas/ directory
+- [x] Build modules/lolbas/include_signed_binary_proxy.xml (T1218 family, 25 rules: 21 composite + 4 flat)
+- [x] Build modules/lolbas/include_powershell_offensive.xml (T1059.001, 15 composite rules)
+- [x] Build modules/lolbas/include_wmic_abuse.xml (T1047, 10 composite rules)
+- [x] Build modules/lolbas/include_certutil_abuse.xml (T1140/T1105/T1132, 8 composite rules)
+- [x] Build modules/lolbas/include_bitsadmin_abuse.xml (T1197/T1105, 6 composite rules)
+- [x] Build modules/lolbas/include_script_host_abuse.xml (T1059.005/T1059.007, 10 rules: 9 composite + 1 flat)
+- [x] Build modules/lolbas/include_trusted_developer_utilities.xml (T1127/T1218.x, 12 rules: 4 composite + 8 flat)
+- [x] Build modules/lolbas/include_xsl_script_processing.xml (T1220, 6 rules: 5 composite + 1 flat)
+- [x] Build modules/lolbas/include_persistence_via_lolbas.xml (T1547/T1053/T1543, 10 rules: 9 composite + 1 flat)
+- [x] Build modules/lolbas/include_discovery_recon.xml (T1033/T1069/T1087/T1018/T1057/T1082, 15 rules: 12 composite + 3 flat)
+- [x] Build modules/lolbas/include_amsi_bypass_patterns.xml (T1562.001, 8 composite rules)
+- [x] Build modules/lolbas/include_dotnet_unmanaged_abuse.xml (T1218, 8 rules: 5 composite + 3 flat)
+- [x] Build modules/lolbas/include_uncommon_lolbas.xml (T1218 family long tail including WSL, 20 rules: 8 composite + 12 flat)
+- [x] Update sysmon-configs/modules/README.md to add lolbas as 7th category
+- [x] Update sysmon-configs/modules/INDEX.md with all 13 new modules and the new LOLBAS category section
+- [x] Validate all new modules with xmllint (13/13 pass when wrapped in synthetic root)
+- [x] All modules use Phase 8 ATT&CK structured tagging convention
+- [x] End-to-end merge test passes with LOLBAS modules (baseline-ot + 3 LOLBAS modules merged via PowerShell merge tool)
+- [x] PowerShell test harness still 7/7 passing after Phase 10d additions
+- [x] Field constraint compliance: 0 violations, max name length 132 chars in lolbas modules
+
+#### Phase 10e: Documentation
+
+**Status**: Complete. All documentation deliverables created and Jekyll build verified.
+
+- [x] Create new website page docs/_pages/lolbas-detection.html
+      - What LOLBAS is and why it matters in OT
+      - The three-tier strategy explanation
+      - Tier 1 rule list (12 detections, 17 XML Rules, ATT&CK mapping)
+      - Tier 2 rule list (20 detections, 22 XML Rules, ATT&CK mapping)
+      - Tier 3 module list (13 modules, 153 rules) with technique focus per module
+      - AMSI bypass limitation note
+      - OT false positive tuning guide (common FP sources, tuning approach, per-rule notes)
+      - Composite Rule logic explanation
+      - Comparison table: SwiftOnSecurity, sysmon-modular, SigmaHQ, ICS Watch Dog
+      - References to LOLBAS Project, MITRE ATT&CK, SigmaHQ, LOLRMM
+- [x] Update docs/_pages/modules.html to add lolbas as 7th category in categories table
+- [x] Update docs/_pages/modules.html available modules list with all 13 lolbas modules
+- [x] Update docs/_pages/modules.html statistics from 35 to 48 modules
+- [x] Update docs/_pages/configurations.html to add LOLBAS Detection overview block at top of curated configurations section
+- [x] Update docs/_includes/nav.html to add LOLBAS Detection link to Guides dropdown
+- [x] Update README.md with LOLBAS section explaining three-tier strategy, linking to icswatchdog.com/lolbas-detection/
+- [x] Verify Jekyll build (0.018s, no errors, _site/lolbas-detection/index.html generated)
+
+#### Phase 10f: Combined v4.0 Release
+
+Combined release of Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phase 10 (LOLBAS detection).
+
+- [ ] Run PowerShell test harness on Windows or pwsh-equipped Linux: `tools/Test-MergeSysmonModules.ps1`
+- [ ] Run xmllint validation on all 8 modified configs and all modules (~48 modules total after Phase 10)
+- [ ] Run rule logic preservation diff-check on all 8 modified configs (verify only LOLBAS RuleGroups added in Phase 10b/10c)
+- [ ] Final review of all Phase 8/9/10 deliverables
+- [ ] Commit all changes on claude-dev branch
+- [ ] Merge to main (exclude docs/ and claude-dev/ per release process)
+- [ ] Deploy site to gh-pages
+- [ ] Verify all site links point to main branch
+- [ ] Tag release v4.0 on main
+- [ ] Optional: create GitHub release notes summarizing Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phase 10 (LOLBAS) as a major release
 
 ## Out of Scope
 

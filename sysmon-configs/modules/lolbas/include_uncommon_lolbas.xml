@@ -1,0 +1,94 @@
+<!--
+  ICS Watch Dog Module: Uncommon LOLBAS (Long Tail)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1218 System Binary Proxy Execution, T1059 Command and Scripting,
+                T1546.012 IFEO, T1559 Inter-Process Communication
+
+  PURPOSE:
+    Detect long-tail rare LOLBAS techniques. These binaries are obscure or
+    uncommon enough that any execution warrants investigation. Includes WSL
+    detection (T1202 Indirect Command Execution).
+
+  WHEN TO USE:
+    Environments that want full LOLBAS Project coverage including rare
+    techniques. Especially valuable for high-security environments and
+    threat-hunting use cases.
+
+  FALSE POSITIVE RISK:
+    Generally low because these binaries are rarely used in normal admin
+    workflows. WSL is increasingly common on developer workstations but
+    rare on OT systems.
+
+  REFERENCES:
+    https://lolbas-project.github.io/
+    https://attack.mitre.org/techniques/T1218/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-Uncommon" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1218: replace.exe file replacement utility -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=replace.exe file overwrite utility" groupRelation="and">
+      <Image condition="end with">\replace.exe</Image>
+      <CommandLine condition="contains">/A</CommandLine>
+    </Rule>
+    <!-- T1218 runscripthelper.exe (sdiagnhost child) -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=runscripthelper.exe sdiagnhost child execution" condition="end with">\runscripthelper.exe</Image>
+    <!-- T1218 AgentExecutor.exe (Intune) -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Intune AgentExecutor.exe execution" condition="end with">\AgentExecutor.exe</Image>
+    <!-- T1218 AppInstaller.exe -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=AppInstaller.exe (msix install) execution" condition="end with">\AppInstaller.exe</Image>
+    <!-- T1218 ConfigSecurityPolicy.exe (Defender) -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=ConfigSecurityPolicy.exe Defender policy tool" condition="end with">\ConfigSecurityPolicy.exe</Image>
+    <!-- T1546.012: dnscmd /serverlevelplugindll DLL load via DNS service -->
+    <Rule name="technique_id=T1546.012|T1574.002,technique=Windows Service,detection=dnscmd serverlevelplugindll DLL injection (DNSAdmin abuse)" groupRelation="and">
+      <Image condition="end with">\dnscmd.exe</Image>
+      <CommandLine condition="contains">/serverlevelplugindll</CommandLine>
+    </Rule>
+    <!-- T1218 gpscript.exe (also in signed_binary_proxy module; here for completeness) -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=gpscript.exe Group Policy script execution" condition="end with">\gpscript.exe</Image>
+    <!-- T1218.001 hh.exe with HTTP URL -->
+    <Rule name="technique_id=T1218.001|T1105,technique=Compiled HTML File,detection=hh.exe loading remote CHM via HTTP" groupRelation="and">
+      <Image condition="end with">\hh.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <!-- T1218 ie4uinit.exe -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=ie4uinit.exe IE per-user install execution" condition="end with">\ie4uinit.exe</Image>
+    <!-- T1218 ieexec.exe with HTTP URL -->
+    <Rule name="technique_id=T1218|T1105,technique=System Binary Proxy Execution,detection=ieexec.exe loading remote .NET application from URL" groupRelation="and">
+      <Image condition="end with">\ieexec.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <!-- T1218 ttdinject.exe Time Travel Debug DLL injection -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=ttdinject.exe Time Travel Debug DLL inject" condition="end with">\ttdinject.exe</Image>
+    <!-- T1218 wuauclt /UpdateDeploymentProvider DLL sideload -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=wuauclt UpdateDeploymentProvider DLL sideload" groupRelation="and">
+      <Image condition="end with">\wuauclt.exe</Image>
+      <CommandLine condition="contains">/UpdateDeploymentProvider</CommandLine>
+    </Rule>
+    <!-- T1218 OfflineScannerShell.exe -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=OfflineScannerShell.exe Defender offline scanner" condition="end with">\OfflineScannerShell.exe</Image>
+    <!-- T1218 MSDeploy.exe abuse -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=MSDeploy.exe Web Deploy execution" condition="end with">\MSDeploy.exe</Image>
+    <!-- T1218 Squirrel.exe (Update.exe sideload, used in Slack/Teams/etc.) -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Squirrel.exe update framework execution" condition="end with">\Squirrel.exe</Image>
+    <!-- T1218 Update.exe Squirrel framework variant -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=Update.exe Squirrel sideload pattern" groupRelation="and">
+      <Image condition="end with">\Update.exe</Image>
+      <CommandLine condition="contains">--processStart</CommandLine>
+    </Rule>
+    <!-- T1218 WorkFolders.exe abuse -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=WorkFolders.exe execution (rare LOLBAS)" condition="end with">\WorkFolders.exe</Image>
+    <!-- T1202 Indirect Command Execution: WSL execution patterns -->
+    <Image name="technique_id=T1202,technique=Indirect Command Execution,detection=wsl.exe Windows Subsystem for Linux execution" condition="end with">\wsl.exe</Image>
+    <Rule name="technique_id=T1202|T1059.004,technique=Indirect Command Execution,detection=wsl bash command execution" groupRelation="and">
+      <Image condition="end with">\wsl.exe</Image>
+      <CommandLine condition="contains all">-e;bash</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1202|T1059.004,technique=Indirect Command Execution,detection=wsl explicit command execution via -e" groupRelation="and">
+      <Image condition="end with">\wsl.exe</Image>
+      <CommandLine condition="contains">--exec</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

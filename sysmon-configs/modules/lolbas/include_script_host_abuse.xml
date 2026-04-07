@@ -1,0 +1,78 @@
+<!--
+  ICS Watch Dog Module: Script Host Abuse (cscript / wscript / jscript)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1059.005 Visual Basic, T1059.007 JavaScript
+
+  PURPOSE:
+    Detect Windows script host abuse via cscript.exe, wscript.exe, and
+    jscript.exe (deprecated). These execute VBScript and JScript files,
+    commonly used by malware delivered via email or USB.
+
+  WHEN TO USE:
+    Any environment that wants comprehensive script host abuse detection.
+    Particularly important for environments with engineering workstations
+    that may receive vendor scripts via email.
+
+  FALSE POSITIVE RISK:
+    Moderate. Some legacy enterprise apps and OT vendor tools use VBScript
+    or JScript for installation, configuration, or maintenance. Tune by
+    excluding specific vendor script paths.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1059/005/
+    https://attack.mitre.org/techniques/T1059/007/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-ScriptHost" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1059.005: cscript with .vbs from Recycle Bin -->
+    <Rule name="technique_id=T1059.005,technique=Visual Basic,detection=cscript executing .vbs from Recycle Bin" groupRelation="and">
+      <Image condition="end with">\cscript.exe</Image>
+      <CommandLine condition="contains all">.vbs;\$Recycle.Bin\</CommandLine>
+    </Rule>
+    <!-- T1059.005: cscript with .vbs from temp -->
+    <Rule name="technique_id=T1059.005,technique=Visual Basic,detection=cscript executing .vbs from AppData Temp" groupRelation="and">
+      <Image condition="end with">\cscript.exe</Image>
+      <CommandLine condition="contains all">.vbs;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1059.005: wscript with .vbs from temp -->
+    <Rule name="technique_id=T1059.005,technique=Visual Basic,detection=wscript executing .vbs from AppData Temp" groupRelation="and">
+      <Image condition="end with">\wscript.exe</Image>
+      <CommandLine condition="contains all">.vbs;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1059.007: cscript with .js from temp -->
+    <Rule name="technique_id=T1059.007,technique=JavaScript,detection=cscript executing .js from AppData Temp" groupRelation="and">
+      <Image condition="end with">\cscript.exe</Image>
+      <CommandLine condition="contains all">.js;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1059.007: wscript with .js from temp -->
+    <Rule name="technique_id=T1059.007,technique=JavaScript,detection=wscript executing .js from AppData Temp" groupRelation="and">
+      <Image condition="end with">\wscript.exe</Image>
+      <CommandLine condition="contains all">.js;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1059.005|T1105: cscript with HTTP URL -->
+    <Rule name="technique_id=T1059.005|T1105,technique=Visual Basic,detection=cscript executing remote script via HTTP URL" groupRelation="and">
+      <Image condition="end with">\cscript.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <!-- T1566.001 Spearphishing Attachment: wscript spawned by Word -->
+    <Rule name="technique_id=T1566.001,technique=Spearphishing Attachment,detection=wscript spawned by Microsoft Word (DOC macro)" groupRelation="and">
+      <Image condition="end with">\wscript.exe</Image>
+      <ParentImage condition="end with">\WINWORD.EXE</ParentImage>
+    </Rule>
+    <!-- T1566.001: wscript spawned by Excel -->
+    <Rule name="technique_id=T1566.001,technique=Spearphishing Attachment,detection=wscript spawned by Microsoft Excel (XLS macro)" groupRelation="and">
+      <Image condition="end with">\wscript.exe</Image>
+      <ParentImage condition="end with">\EXCEL.EXE</ParentImage>
+    </Rule>
+    <!-- T1566.001: wscript spawned by Outlook -->
+    <Rule name="technique_id=T1566.001,technique=Spearphishing Attachment,detection=wscript spawned by Microsoft Outlook" groupRelation="and">
+      <Image condition="end with">\wscript.exe</Image>
+      <ParentImage condition="end with">\OUTLOOK.EXE</ParentImage>
+    </Rule>
+    <!-- T1059.007: jscript.exe (deprecated) execution -->
+    <Image name="technique_id=T1059.007,technique=JavaScript,detection=jscript.exe deprecated JScript host execution" condition="end with">\jscript.exe</Image>
+  </ProcessCreate>
+</RuleGroup>

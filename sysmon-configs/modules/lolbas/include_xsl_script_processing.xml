@@ -1,0 +1,58 @@
+<!--
+  ICS Watch Dog Module: XSL Script Processing (T1220)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1220 XSL Script Processing
+
+  PURPOSE:
+    Detect XSL script processing abuse via WMIC and msxsl.exe. The XSL script
+    processing technique uses XSL stylesheet execution as a code execution
+    vector that bypasses application allowlisting (T1220).
+
+  WHEN TO USE:
+    Any environment that wants comprehensive XSL script processing detection
+    beyond the Tier 1 inline WMIC rules.
+
+  FALSE POSITIVE RISK:
+    Very low. XSL script processing has essentially no legitimate use in
+    enterprise or OT environments. msxsl.exe is not a default Windows binary;
+    its presence indicates intentional install (admin or attacker).
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1220/
+    https://lolbas-project.github.io/lolbas/Binaries/Wmic/
+    https://lolbas-project.github.io/lolbas/OtherMSBinaries/Msxsl/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-XSL" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1220: WMIC /format with HTTP URL XSL -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL stylesheet from URL via slash-format" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">/format:http</CommandLine>
+    </Rule>
+    <!-- T1220: WMIC format quoted form -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL stylesheet from URL via format colon" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">format:"http</CommandLine>
+    </Rule>
+    <!-- T1220: WMIC /format pointing to .xsl local file -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL stylesheet from local file via slash-format" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">/format:&quot;.xsl</CommandLine>
+    </Rule>
+    <!-- T1220: msxsl.exe with HTTP URL -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=msxsl.exe transformation with HTTP URL source" groupRelation="and">
+      <Image condition="end with">\msxsl.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <!-- T1220: msxsl.exe with .xsl file -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=msxsl.exe transformation with local XSL file" groupRelation="and">
+      <Image condition="end with">\msxsl.exe</Image>
+      <CommandLine condition="contains">.xsl</CommandLine>
+    </Rule>
+    <!-- T1220: Generic msxsl execution (rare binary, presence is significant) -->
+    <Image name="technique_id=T1220,technique=XSL Script Processing,detection=Generic msxsl.exe execution (rare standalone XSL utility)" condition="end with">\msxsl.exe</Image>
+  </ProcessCreate>
+</RuleGroup>

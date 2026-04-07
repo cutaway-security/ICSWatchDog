@@ -1,0 +1,73 @@
+<!--
+  ICS Watch Dog Module: certutil Abuse (Comprehensive)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1140 Deobfuscate/Decode Files, T1105 Ingress Tool Transfer,
+                T1132 Data Encoding
+
+  PURPOSE:
+    Comprehensive detection of certutil.exe abuse modes. certutil is a Windows
+    signed binary intended for certificate management but heavily abused for
+    file download, base64/hex encoding, file decoding, and certificate store
+    manipulation. This module covers all known certutil abuse patterns.
+
+  WHEN TO USE:
+    Any environment that wants Sigma-level coverage of certutil abuse beyond
+    the Tier 1/Tier 2 inline rules in the curated configs.
+
+  FALSE POSITIVE RISK:
+    Low to moderate. Some certificate management workflows use certutil
+    -addstore for legitimate certificate installation. The -urlcache, -decode,
+    -encode, -ping, -verifyctl modes have no legitimate routine use.
+
+  REFERENCES:
+    https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+    https://attack.mitre.org/techniques/T1140/
+    https://attack.mitre.org/techniques/T1105/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-Certutil" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1105 Ingress Tool Transfer + T1140: certutil download via -urlcache -->
+    <Rule name="technique_id=T1105|T1140,technique=Ingress Tool Transfer,detection=certutil URL cache download" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-urlcache</CommandLine>
+    </Rule>
+    <!-- T1140: certutil base64 decode -->
+    <Rule name="technique_id=T1140,technique=Deobfuscate Decode Files,detection=certutil base64 decode operation" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-decode</CommandLine>
+    </Rule>
+    <!-- T1132 Data Encoding: certutil base64 encode -->
+    <Rule name="technique_id=T1132|T1027,technique=Data Encoding,detection=certutil base64 encode operation" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-encode</CommandLine>
+    </Rule>
+    <!-- T1140: certutil hex decode -->
+    <Rule name="technique_id=T1140,technique=Deobfuscate Decode Files,detection=certutil hex decode operation" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-decodehex</CommandLine>
+    </Rule>
+    <!-- T1132: certutil hex encode -->
+    <Rule name="technique_id=T1132,technique=Data Encoding,detection=certutil hex encode operation" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-encodehex</CommandLine>
+    </Rule>
+    <!-- T1018 Remote System Discovery: certutil ping reachability test -->
+    <Rule name="technique_id=T1018,technique=Remote System Discovery,detection=certutil ping reachability test" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-ping</CommandLine>
+    </Rule>
+    <!-- T1218: certutil verifyctl can fetch CTL from URL (proxy) -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=certutil verifyctl proxy fetch" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains">-verifyctl</CommandLine>
+    </Rule>
+    <!-- T1553.004 Subvert Trust Controls: certutil install certificate to trust store -->
+    <Rule name="technique_id=T1553.004,technique=Install Root Certificate,detection=certutil add to root certificate store" groupRelation="and">
+      <Image condition="end with">\certutil.exe</Image>
+      <CommandLine condition="contains all">-addstore;root</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

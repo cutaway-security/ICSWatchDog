@@ -1,0 +1,68 @@
+<!--
+  ICS Watch Dog Module: Trusted Developer Utilities Proxy Execution
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1127 Trusted Developer Utilities Proxy Execution,
+                T1127.001 MSBuild
+
+  PURPOSE:
+    Detect abuse of Visual Studio and .NET SDK developer utilities for code
+    execution. These utilities are signed by Microsoft, making them trusted
+    by application allowlisting and EDR products.
+
+  WHEN TO USE:
+    Particularly important for engineering workstations and any system that
+    may have Visual Studio or .NET SDK installed. OT engineering workstations
+    often have these tools for vendor SDK development.
+
+  FALSE POSITIVE RISK:
+    Moderate to high on developer workstations. Tune by excluding the
+    Visual Studio install path. Lower FP on production OT systems where
+    developer tools should not be running interactively.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1127/
+    https://lolbas-project.github.io/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-TrustedDeveloper" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1127.001 Generic msbuild execution -->
+    <Image name="technique_id=T1127.001,technique=MSBuild,detection=Generic msbuild.exe execution" condition="end with">\MSBuild.exe</Image>
+    <!-- T1127.001: msbuild with .csproj from temp -->
+    <Rule name="technique_id=T1127.001,technique=MSBuild,detection=msbuild loading csproj from temp directory" groupRelation="and">
+      <Image condition="end with">\MSBuild.exe</Image>
+      <CommandLine condition="contains all">.csproj;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1127.001: msbuild with .xml from temp -->
+    <Rule name="technique_id=T1127.001,technique=MSBuild,detection=msbuild loading XML project from temp directory" groupRelation="and">
+      <Image condition="end with">\MSBuild.exe</Image>
+      <CommandLine condition="contains all">.xml;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1127 csc.exe -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=Generic csc.exe (C# compiler) execution" condition="end with">\csc.exe</Image>
+    <!-- T1127 vbc.exe -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=Generic vbc.exe (VB.NET compiler) execution" condition="end with">\vbc.exe</Image>
+    <!-- T1127 jsc.exe -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=Generic jsc.exe (JScript compiler) execution" condition="end with">\jsc.exe</Image>
+    <!-- T1127 ilasm.exe -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=Generic ilasm.exe (IL Assembler) execution" condition="end with">\ilasm.exe</Image>
+    <!-- T1127 tracker.exe with /d argument -->
+    <Rule name="technique_id=T1127,technique=Trusted Developer Utilities,detection=tracker.exe /d DLL load proxy" groupRelation="and">
+      <Image condition="end with">\tracker.exe</Image>
+      <CommandLine condition="contains">/d</CommandLine>
+    </Rule>
+    <!-- T1127 dnx.exe (.NET execution environment) -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=dnx.exe .NET execution environment" condition="end with">\dnx.exe</Image>
+    <!-- T1127 rcsi.exe (Roslyn C# REPL) -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=rcsi.exe Roslyn C# REPL execution" condition="end with">\rcsi.exe</Image>
+    <!-- T1127 csi.exe (Roslyn C# Interactive) -->
+    <Image name="technique_id=T1127,technique=Trusted Developer Utilities,detection=csi.exe Roslyn C# Interactive execution" condition="end with">\csi.exe</Image>
+    <!-- T1218.004 ngen.exe with non-NET context (less common but present in LOLBAS) -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=ngen.exe execution from non-standard parent" groupRelation="and">
+      <Image condition="end with">\ngen.exe</Image>
+      <ParentImage condition="contains any">\powershell.exe;\cmd.exe;\pwsh.exe</ParentImage>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

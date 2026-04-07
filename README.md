@@ -61,6 +61,18 @@ Every detection rule in the curated configurations is tagged with the MITRE ATT&
 
 For the full convention, format details, SIEM parsing examples, and field constraints, see the [ATT&CK Rule Tagging](https://icswatchdog.com/attack-tagging/) guide.
 
+## LOLBAS Detection
+
+Living off the Land Binaries and Scripts (LOLBAS) detection is built into the curated configurations using a three-tier strategy that balances high-signal coverage with the false positive sensitivity of OT environments:
+
+- **Tier 1 (Core)**: 12 high-signal detections in all 8 curated configs. Each rule scoped by binary + command-line pattern. Should rarely or never fire in stable OT environments.
+- **Tier 2 (Advanced)**: 20 broader detections in 5 advanced configs (jumphost, server-ad, server-services, enhanced-ot, advanced-ot). Accepts moderate false positives in exchange for broader coverage.
+- **Tier 3 (Comprehensive)**: 13 opt-in modules in [`sysmon-configs/modules/lolbas/`](sysmon-configs/modules/lolbas/) providing 153 rules of Sigma-level coverage organized by ATT&CK technique family.
+
+Tier 1 and Tier 2 use Sysmon composite `<Rule groupRelation="and">` logic for high-precision detection. All rules use the ATT&CK structured tagging convention.
+
+For the three-tier strategy, full rule lists, OT tuning guide, and comparison with other Sysmon projects, see the [LOLBAS Detection](https://icswatchdog.com/lolbas-detection/) guide.
+
 ## Module Library
 
 Advanced users can customize their Sysmon configuration by merging opt-in modules from the [`sysmon-configs/modules/`](sysmon-configs/modules/) directory into a curated base config. Modules are focused XML fragments organized into six categories: OT vendor (Siemens, Rockwell, Schneider, AVEVA, Ignition), IT vendor noise reduction (Chrome, Edge, Firefox, Adobe, Office), cloud storage (Dropbox, OneDrive, Google Drive, Box, MEGA), sector (electric, water, oil/gas, manufacturing), industrial protocol (Modbus, OPC-UA, DNP3, S7comm, EtherNet/IP, BACnet, IEC 60870-5-104, MQTT), and remote access (TeamViewer, AnyDesk, ScreenConnect, RustDesk).

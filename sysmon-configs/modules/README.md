@@ -26,6 +26,7 @@ The base config's meta configuration (HashAlgorithms, CheckRevocation, schemaver
 | Sector | [sector/](sector/) | Include | Sector-specific monitoring (electric, water, oil/gas, manufacturing, pharma) |
 | Protocol | [protocol/](protocol/) | Include | Industrial protocol port monitoring (Modbus, OPC-UA, DNP3, S7comm, etc.) |
 | Remote Access | [remote-access/](remote-access/) | Dual-use | Per-tool RMM detection or noise reduction (TeamViewer, AnyDesk, ScreenConnect, etc.) |
+| LOLBAS | [lolbas/](lolbas/) | Include (Tier 3 comprehensive) | Comprehensive Living off the Land Binaries and Scripts detection (T1218 family, T1059.001 offensive PowerShell, T1047 WMIC, T1140/T1105 certutil, T1197 BITS, T1059.005/007 script hosts, T1127 trusted developer, T1220 XSL, T1547/T1053/T1543 persistence, discovery/recon, T1562.001 AMSI bypass, .NET unmanaged abuse, long-tail rare LOLBAS including WSL) |
 
 ## Dual-Use Convention (cloud-storage, remote-access)
 

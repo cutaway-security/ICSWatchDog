@@ -78,6 +78,17 @@ permalink: /configurations/
 
 <p>These configs are maintained by the ICS Watch Dog project. Start with the baseline that matches your system role (workstation or server), then progress to OT-specific configs as your monitoring program matures.</p>
 
+<section class="overview-section">
+  <h3>LOLBAS Detection Across All Curated Configs</h3>
+  <p>All eight curated configs include built-in <strong>Living off the Land Binaries and Scripts (LOLBAS)</strong> detection:</p>
+  <ul>
+    <li><strong>All 8 configs</strong> include <strong>Tier 1 Core LOLBAS</strong>: 12 high-signal detections covering certutil download/decode, mshta http, regsvr32 Squiblydoo, bitsadmin transfer, encoded PowerShell, PowerShell DownloadString/IEX cradle, WMIC XSL/lateral movement, rundll32 javascript, and msdt Follina pattern. Each detection uses composite Rule logic (binary + command-line pattern) for low false positive rate.</li>
+    <li><strong>5 advanced configs</strong> (jumphost, server-ad, server-services, enhanced-ot, advanced-ot) additionally include <strong>Tier 2 Advanced LOLBAS</strong>: 20 broader detections including generic mshta/bitsadmin, PowerShell stealth flag combos, .NET utility abuse, msbuild/csc compile-after-delivery, and rare binary execution.</li>
+    <li>Advanced users can additionally merge <strong>Tier 3 LOLBAS modules</strong> from <code>modules/lolbas/</code> for Sigma-level coverage (153 rules across 13 modules).</li>
+  </ul>
+  <p>See the <a href="{{ site.baseurl }}/lolbas-detection/">LOLBAS Detection</a> guide for the full three-tier strategy, rule lists, and OT tuning guidance.</p>
+</section>
+
 <section class="read-section" id="it-workstation-baseline">
   <h3>IT Workstation Baseline</h3>
   <p><strong>Minimum Sysmon:</strong> v13+ (schema 4.50)<br>

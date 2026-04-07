@@ -1,0 +1,107 @@
+<!--
+  ICS Watch Dog Module: Offensive PowerShell Patterns
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1059.001 PowerShell, T1027 Obfuscated Files or Information,
+                T1140 Deobfuscate/Decode Files, T1105 Ingress Tool Transfer,
+                T1562.001 Disable or Modify Tools
+
+  PURPOSE:
+    Detect offensive PowerShell patterns commonly used by attackers, red teams,
+    and pen testers. This module covers obfuscation, in-memory execution,
+    reflective loading, common offensive framework signatures, and download
+    cradles beyond what Tier 1 detects.
+
+  WHEN TO USE:
+    Any environment that wants Sigma-level coverage of offensive PowerShell
+    beyond the Tier 1 -enc / DownloadString / IEX patterns.
+
+  FALSE POSITIVE RISK:
+    Low to moderate. Some patterns (FromBase64String, Set-MpPreference) have
+    rare legitimate uses. Most patterns in this module have no legitimate use.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1059/001/
+    https://github.com/SigmaHQ/sigma/tree/master/rules/windows/process_creation
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-PowerShell-Offensive" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1059.001 + T1564.003: -nop -w hidden -ep bypass triple combo -->
+    <Rule name="technique_id=T1059.001|T1564.003,technique=PowerShell,detection=PowerShell triple stealth flag combo (-nop -w hidden -ep bypass)" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">-nop;-w hidden;-ep bypass</CommandLine>
+    </Rule>
+    <!-- T1027 + T1140: FromBase64String inline decoding -->
+    <Rule name="technique_id=T1027|T1140,technique=Obfuscated Files or Information,detection=PowerShell FromBase64String inline base64 decode" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">frombase64string</CommandLine>
+    </Rule>
+    <!-- T1620 Reflective Code Loading -->
+    <Rule name="technique_id=T1620,technique=Reflective Code Loading,detection=PowerShell Reflection.Assembly Load reflective loading" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">reflection.assembly;load</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1071.001: PowerShell TCPClient (reverse shell) -->
+    <Rule name="technique_id=T1059.001|T1071.001,technique=PowerShell,detection=PowerShell TCPClient reverse shell pattern" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">net.sockets.tcpclient</CommandLine>
+    </Rule>
+    <!-- T1003.001 LSASS Memory: Mimikatz indicator -->
+    <Rule name="technique_id=T1003.001,technique=LSASS Memory,detection=PowerShell Invoke-Mimikatz function name reference" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">invoke-mimikatz</CommandLine>
+    </Rule>
+    <!-- T1558.003 Kerberoasting: Invoke-Kerberoast indicator -->
+    <Rule name="technique_id=T1558.003,technique=Kerberoasting,detection=PowerShell Invoke-Kerberoast function name reference" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">invoke-kerberoast</CommandLine>
+    </Rule>
+    <!-- T1087.002 Domain Account Discovery: BloodHound indicator -->
+    <Rule name="technique_id=T1087.002|T1482,technique=Domain Account,detection=PowerShell Invoke-BloodHound enumeration" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">invoke-bloodhound</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1027: Double-IEX nested execution -->
+    <Rule name="technique_id=T1059.001|T1027,technique=PowerShell,detection=PowerShell nested IEX(IEX( double-evaluation pattern" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">iex(iex(</CommandLine>
+    </Rule>
+    <!-- T1562.001 Disable or Modify Tools: Set-MpPreference disabling Defender -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell Set-MpPreference DisableRealtimeMonitoring" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">set-mppreference;disablerealtime</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1105: Invoke-WebRequest stager -->
+    <Rule name="technique_id=T1059.001|T1105,technique=PowerShell,detection=PowerShell Invoke-WebRequest stager pattern" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">invoke-webrequest;-outfile</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1105: Start-BitsTransfer download -->
+    <Rule name="technique_id=T1059.001|T1105|T1197,technique=PowerShell,detection=PowerShell Start-BitsTransfer download" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">start-bitstransfer</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1105: iwr alias download -->
+    <Rule name="technique_id=T1059.001|T1105,technique=PowerShell,detection=PowerShell iwr alias web request download" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">iwr;-outfile</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1027.010: PowerShell Get-Content piped to IEX -->
+    <Rule name="technique_id=T1059.001|T1027.010,technique=PowerShell,detection=PowerShell Get-Content piped to IEX (file-based stager)" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">get-content;|iex</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1027: PowerShell string concatenation evasion -->
+    <Rule name="technique_id=T1059.001|T1027,technique=PowerShell,detection=PowerShell string concatenation evasion pattern (in plus voke)" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">'in'+'voke'</CommandLine>
+    </Rule>
+    <!-- T1059.001 + T1620: Reflective Assembly load from URL via Invoke-Expression web cradle variant -->
+    <Rule name="technique_id=T1059.001|T1620,technique=PowerShell,detection=PowerShell System.Reflection.Assembly Load with URL" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">[reflection.assembly]::load;http</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

@@ -1,0 +1,136 @@
+<!--
+  ICS Watch Dog Module: Signed Binary Proxy Execution (T1218 family)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1218 System Binary Proxy Execution and sub-techniques
+
+  PURPOSE:
+    Comprehensive coverage of T1218 (System Binary Proxy Execution) family.
+    These signed Microsoft binaries can execute arbitrary code, libraries, or
+    scripts, bypassing application allowlisting and trust controls.
+
+  WHEN TO USE:
+    Any environment that wants Sigma-level coverage of signed binary proxy
+    execution beyond Tier 1 (mshta, regsvr32, msdt) and Tier 2 (cmstp, wuauclt)
+    inline rules.
+
+  FALSE POSITIVE RISK:
+    Moderate. Some legitimate Windows components and installers use these
+    proxies internally. Tune by excluding service-account contexts.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1218/
+    https://lolbas-project.github.io/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-SignedBinaryProxy" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1218.005 Mshta -->
+    <Rule name="technique_id=T1218.005|T1105,technique=Mshta,detection=Mshta loading remote HTA over HTTP" groupRelation="and">
+      <Image condition="end with">\mshta.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.005|T1059.005,technique=Mshta,detection=Mshta inline VBScript" groupRelation="and">
+      <Image condition="end with">\mshta.exe</Image>
+      <CommandLine condition="contains">vbscript:</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.005|T1059.007,technique=Mshta,detection=Mshta inline JavaScript" groupRelation="and">
+      <Image condition="end with">\mshta.exe</Image>
+      <CommandLine condition="contains">javascript:</CommandLine>
+    </Rule>
+    <!-- T1218.010 Regsvr32 -->
+    <Rule name="technique_id=T1218.010,technique=Regsvr32,detection=Squiblydoo regsvr32 remote scriptlet" groupRelation="and">
+      <Image condition="end with">\regsvr32.exe</Image>
+      <CommandLine condition="contains">/i:http</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.010,technique=Regsvr32,detection=regsvr32 scrobj.dll COM scriptlet" groupRelation="and">
+      <Image condition="end with">\regsvr32.exe</Image>
+      <CommandLine condition="contains">scrobj.dll</CommandLine>
+    </Rule>
+    <!-- T1218.011 Rundll32 -->
+    <Rule name="technique_id=T1218.011|T1059.007,technique=Rundll32,detection=Rundll32 javascript URL handler" groupRelation="and">
+      <Image condition="end with">\rundll32.exe</Image>
+      <CommandLine condition="contains">javascript:</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.011,technique=Rundll32,detection=Rundll32 url.dll FileProtocolHandler proxy" groupRelation="and">
+      <Image condition="end with">\rundll32.exe</Image>
+      <CommandLine condition="contains">url.dll,FileProtocolHandler</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.011,technique=Rundll32,detection=Rundll32 shell32 control_rundll proxy" groupRelation="and">
+      <Image condition="end with">\rundll32.exe</Image>
+      <CommandLine condition="contains">shell32,control_rundll</CommandLine>
+    </Rule>
+    <!-- T1218.003 CMSTP -->
+    <Rule name="technique_id=T1218.003,technique=CMSTP,detection=cmstp auto-update mode abuse" groupRelation="and">
+      <Image condition="end with">\cmstp.exe</Image>
+      <CommandLine condition="contains">/au</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.003,technique=CMSTP,detection=cmstp silent install mode abuse" groupRelation="and">
+      <Image condition="end with">\cmstp.exe</Image>
+      <CommandLine condition="contains">/s</CommandLine>
+    </Rule>
+    <!-- T1218.007 Msiexec -->
+    <Rule name="technique_id=T1218.007|T1105,technique=Msiexec,detection=msiexec installing MSI from HTTP URL" groupRelation="and">
+      <Image condition="end with">\msiexec.exe</Image>
+      <CommandLine condition="contains">/i http</CommandLine>
+    </Rule>
+    <!-- T1218.008 Odbcconf -->
+    <Rule name="technique_id=T1218.008,technique=Odbcconf,detection=odbcconf REGSVR DLL registration" groupRelation="and">
+      <Image condition="end with">\odbcconf.exe</Image>
+      <CommandLine condition="contains">REGSVR</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1218.008,technique=Odbcconf,detection=odbcconf RECONFIG with response file" groupRelation="and">
+      <Image condition="end with">\odbcconf.exe</Image>
+      <CommandLine condition="contains all">/f;.rsp</CommandLine>
+    </Rule>
+    <!-- T1218 control.exe with .cpl from temp -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=control.exe loading .cpl from temp directory" groupRelation="and">
+      <Image condition="end with">\control.exe</Image>
+      <CommandLine condition="contains all">.cpl;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1218 dfsvc.exe ClickOnce abuse -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=dfsvc.exe ClickOnce launcher (rare in OT)" condition="end with">\dfsvc.exe</Image>
+    <!-- T1218 gpscript.exe Group Policy script execution -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=gpscript.exe Group Policy script execution" condition="end with">\gpscript.exe</Image>
+    <!-- T1218 ie4uinit.exe -basesettings -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=ie4uinit basesettings INF parser abuse" groupRelation="and">
+      <Image condition="end with">\ie4uinit.exe</Image>
+      <CommandLine condition="contains">-basesettings</CommandLine>
+    </Rule>
+    <!-- T1218 mmc.exe with .msc from temp -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=mmc.exe loading .msc snap-in from temp" groupRelation="and">
+      <Image condition="end with">\mmc.exe</Image>
+      <CommandLine condition="contains all">.msc;\AppData\Local\Temp\</CommandLine>
+    </Rule>
+    <!-- T1218 msconfig.exe abuse -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=msconfig.exe execution (rare on production OT)" condition="end with">\msconfig.exe</Image>
+    <!-- T1218 pcwrun Program Compatibility Wizard -->
+    <Image name="technique_id=T1218,technique=System Binary Proxy Execution,detection=pcwrun.exe Program Compatibility wrapper" condition="end with">\pcwrun.exe</Image>
+    <!-- T1218 presentationhost.exe with HTTP URL -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=presentationhost.exe loading XBAP from URL" groupRelation="and">
+      <Image condition="end with">\presentationhost.exe</Image>
+      <CommandLine condition="contains">http</CommandLine>
+    </Rule>
+    <!-- T1218 rasautou.exe with -d -p -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=rasautou DLL load via -d -p arguments" groupRelation="and">
+      <Image condition="end with">\rasautou.exe</Image>
+      <CommandLine condition="contains all">-d;-p</CommandLine>
+    </Rule>
+    <!-- T1218 runonce /AlternateShellStartup -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=runonce alternate shell startup abuse" groupRelation="and">
+      <Image condition="end with">\runonce.exe</Image>
+      <CommandLine condition="contains">/AlternateShellStartup</CommandLine>
+    </Rule>
+    <!-- T1218 verclsid.exe COM CLSID verification proxy -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=verclsid.exe CLSID verification COM proxy" groupRelation="and">
+      <Image condition="end with">\verclsid.exe</Image>
+      <CommandLine condition="contains">/S</CommandLine>
+    </Rule>
+    <!-- T1218 xwizard.exe with custom .x -->
+    <Rule name="technique_id=T1218,technique=System Binary Proxy Execution,detection=xwizard.exe RunWizard CLSID abuse" groupRelation="and">
+      <Image condition="end with">\xwizard.exe</Image>
+      <CommandLine condition="contains">RunWizard</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

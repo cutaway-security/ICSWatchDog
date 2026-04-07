@@ -1,0 +1,74 @@
+<!--
+  ICS Watch Dog Module: AMSI Bypass Patterns
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1562.001 Disable or Modify Tools
+
+  PURPOSE:
+    Detect AMSI (Antimalware Scan Interface) bypass patterns in PowerShell
+    command lines. AMSI is the Windows component that allows AV/EDR to inspect
+    PowerShell scripts at runtime; bypassing it is a near-universal step in
+    PowerShell-based intrusions.
+
+  WHEN TO USE:
+    Any environment running Windows 10/11 or Server 2016+ where AMSI is
+    available, and you want to detect PowerShell-based attacks attempting
+    to disable AMSI.
+
+  FALSE POSITIVE RISK:
+    Very low. The strings in this module are specific to known AMSI bypass
+    techniques and have no legitimate use. THREAT ACTORS ROTATE STRINGS:
+    determined attackers will obfuscate or use new bypass techniques not
+    covered here. Treat this module as one signal among many.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1562/001/
+    https://github.com/S3cur3Th1sSh1t/Amsi-Bypass-Powershell
+    https://amsi.fail/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-AMSI-Bypass" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- The classic amsiInitFailed flag bypass (Matt Graeber technique) -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell AMSI amsiInitFailed flag bypass" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsiinitfailed</CommandLine>
+    </Rule>
+    <!-- AmsiScanBuffer patching -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell AMSI AmsiScanBuffer reference" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsiscanbuffer</CommandLine>
+    </Rule>
+    <!-- AmsiContext manipulation -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell AMSI context manipulation" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsicontext</CommandLine>
+    </Rule>
+    <!-- Reflection.Assembly + AmsiUtils combo -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell AmsiUtils reflective access" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsiutils</CommandLine>
+    </Rule>
+    <!-- amsi.dll referenced inline -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell amsi.dll inline reference" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsi.dll</CommandLine>
+    </Rule>
+    <!-- Reflection field access pattern -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell Reflection field SetValue with AMSI context" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">setvalue;amsi</CommandLine>
+    </Rule>
+    <!-- Marshal.WriteByte patching of AMSI bytes -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell Marshal.WriteByte AMSI memory patch" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains all">marshal;writebyte</CommandLine>
+    </Rule>
+    <!-- amsi.fail / amsi-bypass GitHub repos -->
+    <Rule name="technique_id=T1562.001,technique=Disable or Modify Tools,detection=PowerShell amsi-bypass GitHub repository reference" groupRelation="and">
+      <Image condition="contains any">\powershell.exe;\pwsh.exe;\powershell_ise.exe</Image>
+      <CommandLine condition="contains">amsi-bypass</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

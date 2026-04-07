@@ -216,7 +216,37 @@ RuleGroup `name` attributes describe the group's purpose, not ATT&CK technique I
 
 Default `groupRelation="or"` for most RuleGroups. Use `"and"` only when matching multiple field conditions in a single rule (e.g., process name + command line argument together).
 
-### 5.3 RuleGroup Comments
+### 5.3 Composite Rules with `<Rule groupRelation="and">`
+
+Composite rules use the `<Rule>` element with `groupRelation="and"` to require multiple field conditions to match together. This is necessary for high-precision LOLBAS detections that need to scope by both binary name AND command-line pattern to avoid false positives.
+
+**Schema compatibility**: Composite `<Rule>` elements are supported in schema 4.20 and later. The ICS Watch Dog baseline schema 4.50 (Sysmon v13+) supports them.
+
+**Example -- LOLBAS detection requiring binary + command-line pattern**:
+```xml
+<Rule name="technique_id=T1218.005|T1105,technique=Mshta,detection=Mshta executing remote HTA over HTTP"
+      groupRelation="and">
+  <Image condition="end with">\mshta.exe</Image>
+  <CommandLine condition="contains">http</CommandLine>
+</Rule>
+```
+
+This rule fires only when both conditions match: the process is `mshta.exe` AND its command line contains `http`. Either condition alone would not trigger.
+
+**Tagging composite rules**: Per the rule naming convention (Section 6.1), tag the parent `<Rule>` element only. Inner field conditions (`<Image>`, `<CommandLine>`, etc.) inside a composite rule do NOT receive their own `name` attribute. This avoids duplicate names in the event log.
+
+**When to use composite rules**:
+- High-precision LOLBAS detection (binary + specific command-line argument)
+- Process + command-line pattern combinations where individual conditions would be too noisy
+- Parent process + child process combinations
+- File path + extension combinations
+
+**When NOT to use composite rules**:
+- Simple field condition rules (use a flat `<RuleGroup groupRelation="or">` with field-level rules instead)
+- Cases where any one of multiple conditions should fire independently
+- Simple exclusions
+
+### 5.4 RuleGroup Comments
 
 Each RuleGroup is preceded by a section comment block describing the Event ID and purpose:
 
@@ -335,6 +365,54 @@ Existing `DC:`, `Ransomware:`, `Web:`, `DB:`, `ICS:`, `C2:`, `Lateral:`, `Cred:`
 <Image name="technique_id=T1003.003,technique=NTDS,detection=DC ntdsutil execution"
        condition="end with">\ntdsutil.exe</Image>
 ```
+
+### 6.6 LOLBAS Detection Three-Tier Strategy
+
+Living off the Land Binaries and Scripts (LOLBAS) detection is organized into three tiers based on signal-to-noise ratio. The tiering is intentional: it lets baseline configs ship with high-precision detections while allowing advanced configs and modules to add broader, noisier coverage.
+
+#### Tier 1: Core LOLBAS (all 8 curated configs)
+
+Highest signal, lowest false positive. Each rule must satisfy these criteria:
+- The detection corresponds to a behavior that should rarely or never occur in normal admin or OT operations
+- The rule is scoped by **command-line pattern**, not just executable name (use composite `<Rule groupRelation="and">` from Section 5.3)
+- Every match warrants investigation
+- The rule is acceptable in OT environments where false positives are operationally costly
+
+Tier 1 rules live in a `ProcessCreate-LOLBAS-Core` RuleGroup added to all 8 curated configurations. Approximately 12 rules.
+
+#### Tier 2: Advanced LOLBAS (advanced-ot, enhanced-ot, jumphost, server-ad, server-services)
+
+Broader coverage with moderate false positive risk. Tier 2 rules:
+- May match on binary execution alone (without command-line scoping)
+- May trigger on legitimate admin scripting in some environments
+- Are acceptable in configs where the operator has a mature tuning program
+- Are NOT added to baseline configs (`baseline-it-workstation`, `baseline-it-server`, `baseline-ot`) to protect their false positive profile
+
+Tier 2 rules live in a `ProcessCreate-LOLBAS-Advanced` RuleGroup added to the 5 advanced configs. Approximately 20 rules. Tier 2 builds on Tier 1 (configs that have Tier 2 also have Tier 1).
+
+#### Tier 3: Comprehensive (modules/lolbas/)
+
+Sigma-level coverage organized as opt-in modules per ATT&CK sub-technique. Tier 3:
+- Targets users who want full LOLBAS coverage and have time to tune
+- Splits coverage across ~13 modules organized by ATT&CK technique family
+- Includes long-tail rare LOLBAS techniques
+- May produce significant noise without environment-specific tuning
+
+Tier 3 modules live in `sysmon-configs/modules/lolbas/`. Modules are detection-only (include rules); no exclude/dual-use variants.
+
+#### LOLBAS Tuning Guidance
+
+Each LOLBAS rule (Tier 1 and Tier 2) is preceded by an XML maintainer comment block that documents:
+- The ATT&CK technique reference
+- Why the detection is high-signal
+- Known legitimate use cases (and how to suppress them with site-specific exclusions)
+- Investigation guidance
+
+OT-specific tuning notes belong in the maintainer comments. The website [LOLBAS Detection page](https://icswatchdog.com/lolbas-detection/) provides high-level tuning guidance for environments with predictable admin scripting. Detailed per-rule tuning belongs in the XML comments only.
+
+#### Selection Reference
+
+Use the LOLBAS Project (https://lolbas-project.github.io) and the MITRE ATT&CK Enterprise matrix as the canonical sources for technique identification. SwiftOnSecurity sysmon-config and olafhartong/sysmon-modular are reference implementations for enterprise IT environments.
 
 ---
 

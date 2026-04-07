@@ -1,0 +1,79 @@
+<!--
+  ICS Watch Dog Module: WMIC Abuse (Comprehensive)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1047 Windows Management Instrumentation,
+                T1021.003 DCOM, T1220 XSL Script Processing,
+                T1018 Remote System Discovery, T1087 Account Discovery
+
+  PURPOSE:
+    Comprehensive WMIC abuse detection covering lateral movement, XSL processing,
+    and reconnaissance command patterns. WMIC is being deprecated in newer Windows
+    versions but remains available and is heavily abused.
+
+  WHEN TO USE:
+    Any environment that wants comprehensive WMIC detection beyond the Tier 1
+    inline rules (which cover XSL and remote process creation).
+
+  FALSE POSITIVE RISK:
+    Moderate. SCCM, monitoring agents, and inventory tools may use WMIC for
+    legitimate enumeration. Tune by excluding service-account parents.
+
+  REFERENCES:
+    https://lolbas-project.github.io/lolbas/Binaries/Wmic/
+    https://attack.mitre.org/techniques/T1047/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-Wmic" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1047|T1021.003: WMIC remote process creation lateral movement -->
+    <Rule name="technique_id=T1047|T1021.003,technique=Windows Management Instrumentation,detection=WMIC remote target via /node: argument" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">/node:</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1047,technique=Windows Management Instrumentation,detection=WMIC process call create command" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">process call create</CommandLine>
+    </Rule>
+    <!-- T1220: XSL processing via WMIC -->
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL processing via /format:http" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">/format:http</CommandLine>
+    </Rule>
+    <Rule name="technique_id=T1220,technique=XSL Script Processing,detection=WMIC XSL processing via xsl: scheme" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">xsl:</CommandLine>
+    </Rule>
+    <!-- T1518 Software Discovery: WMIC patch enumeration -->
+    <Rule name="technique_id=T1518,technique=Software Discovery,detection=WMIC patch enumeration via qfe" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">qfe</CommandLine>
+    </Rule>
+    <!-- T1082 System Information Discovery -->
+    <Rule name="technique_id=T1082,technique=System Information Discovery,detection=WMIC computer system enumeration" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">computersystem</CommandLine>
+    </Rule>
+    <!-- T1087.001 Local Account Discovery -->
+    <Rule name="technique_id=T1087.001,technique=Local Account,detection=WMIC user account enumeration" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">useraccount</CommandLine>
+    </Rule>
+    <!-- T1069.001 Local Groups Discovery -->
+    <Rule name="technique_id=T1069.001,technique=Local Groups,detection=WMIC group enumeration" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains all">wmic;group</CommandLine>
+    </Rule>
+    <!-- T1007 System Service Discovery -->
+    <Rule name="technique_id=T1007,technique=System Service Discovery,detection=WMIC service enumeration" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains all">wmic;service</CommandLine>
+    </Rule>
+    <!-- T1547.001 startup folder enumeration via WMIC -->
+    <Rule name="technique_id=T1547.001,technique=Registry Run Keys / Startup Folder,detection=WMIC startup item enumeration" groupRelation="and">
+      <Image condition="end with">\wmic.exe</Image>
+      <CommandLine condition="contains">startup</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>

@@ -14,7 +14,8 @@ For module format, dual-use convention, and merge tool usage, see [README.md](RE
 | Sector (`sector/`) | 4 |
 | Protocol (`protocol/`) | 8 |
 | Remote Access (`remote-access/`) | 5 |
-| **Total** | **35** |
+| LOLBAS (`lolbas/`) | 13 |
+| **Total** | **48** |
 
 This is the initial release. The library will grow over time as community contributions are accepted and additional vendors, sectors, and tools are added.
 
@@ -96,6 +97,39 @@ Granular per-tool RMM detection. Pick exactly one variant per tool based on site
 | [include_anydesk.xml](remote-access/include_anydesk.xml) | Unsanctioned | Detect AnyDesk (CISA AA23-025A) | T1219, T1133 | 4.50 |
 | [include_screenconnect.xml](remote-access/include_screenconnect.xml) | Unsanctioned | Detect ConnectWise ScreenConnect (CVE-2024-1709) | T1219, T1133 | 4.50 |
 | [include_rustdesk.xml](remote-access/include_rustdesk.xml) | Unsanctioned | Detect RustDesk (open source self-hostable) | T1219, T1133 | 4.50 |
+
+## LOLBAS Modules (Tier 3 Comprehensive)
+
+Comprehensive Living off the Land Binaries and Scripts detection organized by ATT&CK technique family. Provides Sigma-level coverage for advanced users with mature tuning programs. Tier 3 of the three-tier LOLBAS strategy (Tier 1 and Tier 2 are inline in curated configs).
+
+The modules use composite `<Rule groupRelation="and">` logic where binary + command-line scoping is appropriate, and flat `<Image>` rules where binary execution alone is the detection. All include rules use the ATT&CK structured tagging convention.
+
+See https://icswatchdog.com/lolbas-detection/ for the three-tier strategy and OT tuning guidance.
+
+| Module | Rules | ATT&CK Focus | Schema |
+|--------|-------|--------------|--------|
+| [include_signed_binary_proxy.xml](lolbas/include_signed_binary_proxy.xml) | 25 | T1218 family (mshta, regsvr32, rundll32, cmstp, msiexec, odbcconf, control, dfsvc, gpscript, ie4uinit, mmc, msconfig, pcwrun, presentationhost, rasautou, runonce, verclsid, xwizard) | 4.50 |
+| [include_powershell_offensive.xml](lolbas/include_powershell_offensive.xml) | 15 | T1059.001 PowerShell offensive patterns (-nop -w hidden -ep bypass combo, FromBase64String, Reflection.Assembly Load, TCPClient reverse shell, Invoke-Mimikatz/Kerberoast/BloodHound, IEX(IEX(, Set-MpPreference, Invoke-WebRequest stager, Start-BitsTransfer, Get-Content piped to IEX) | 4.50 |
+| [include_wmic_abuse.xml](lolbas/include_wmic_abuse.xml) | 10 | T1047 WMI / T1021.003 DCOM (process call create, /node:, XSL processing, qfe, computersystem, useraccount, group, service, startup) | 4.50 |
+| [include_certutil_abuse.xml](lolbas/include_certutil_abuse.xml) | 8 | T1140/T1105/T1132 (urlcache, decode, encode, decodehex, encodehex, ping, verifyctl, addstore root) | 4.50 |
+| [include_bitsadmin_abuse.xml](lolbas/include_bitsadmin_abuse.xml) | 6 | T1197 BITS Jobs (transfer, addfile, setnotifycmdline, setminretrydelay, create, resume) | 4.50 |
+| [include_script_host_abuse.xml](lolbas/include_script_host_abuse.xml) | 10 | T1059.005 VBScript / T1059.007 JavaScript (cscript/wscript with .vbs/.js from temp, with HTTP, parented by Office processes, jscript.exe) | 4.50 |
+| [include_trusted_developer_utilities.xml](lolbas/include_trusted_developer_utilities.xml) | 12 | T1127 (msbuild generic, msbuild from temp, csc, vbc, jsc, ilasm, tracker /d, dnx, rcsi, csi, ngen from shell parent) | 4.50 |
+| [include_xsl_script_processing.xml](lolbas/include_xsl_script_processing.xml) | 6 | T1220 XSL Script Processing (WMIC format URL/local, msxsl HTTP/local/generic) | 4.50 |
+| [include_persistence_via_lolbas.xml](lolbas/include_persistence_via_lolbas.xml) | 10 | T1547.001 / T1053.005 / T1543.003 / T1546.012 (at, schtasks variants, sc create binPath, reg add Run keys, reg add IFEO) | 4.50 |
+| [include_discovery_recon.xml](lolbas/include_discovery_recon.xml) | 15 | T1033/T1069/T1087/T1018/T1057/T1082/T1016 (whoami /all/priv/groups, net group, nltest, quser, qwinsta, tasklist /svc, systeminfo, route print, arp -a) | 4.50 |
+| [include_amsi_bypass_patterns.xml](lolbas/include_amsi_bypass_patterns.xml) | 8 | T1562.001 AMSI bypass patterns (amsiInitFailed, AmsiScanBuffer, AmsiContext, AmsiUtils, amsi.dll, Reflection field SetValue, Marshal.WriteByte, amsi-bypass) | 4.50 |
+| [include_dotnet_unmanaged_abuse.xml](lolbas/include_dotnet_unmanaged_abuse.xml) | 8 | T1218 / T1127 .NET unmanaged execution (csi, Microsoft.Workflow.Compiler, jsc, dotnet from temp/Public, InstallUtil/RegSvcs/RegAsm from AppData) | 4.50 |
+| [include_uncommon_lolbas.xml](lolbas/include_uncommon_lolbas.xml) | 20 | T1218 long-tail rare LOLBAS (replace, runscripthelper, AgentExecutor, AppInstaller, ConfigSecurityPolicy, dnscmd /serverlevelplugindll, gpscript, hh http, ie4uinit, ieexec http, ttdinject, wuauclt /UpdateDeploymentProvider, OfflineScannerShell, MSDeploy, Squirrel, Update.exe, WorkFolders, **wsl.exe execution patterns**) | 4.50 |
+| **Total LOLBAS rules** | **153** | -- | -- |
+
+### LOLBAS Module Notes
+
+- All LOLBAS modules are detection-only (include rules); no exclude or dual-use variants
+- AMSI bypass patterns are based on known techniques; advanced threat actors may rotate strings or use unpublished bypass techniques
+- The discovery/recon module covers commands with routine admin uses; pair with SIEM correlation for high-volume burst detection
+- The trusted developer utilities module may have higher false positive rates on systems with Visual Studio installed; tune by excluding the VS install path
+- WSL detection in `include_uncommon_lolbas.xml` is desired for OT environments where WSL should not be present
 
 ## Module File Format Reference
 

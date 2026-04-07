@@ -1,0 +1,61 @@
+<!--
+  ICS Watch Dog Module: BITSAdmin Abuse (Comprehensive)
+  Category:     lolbas
+  Version:      v1.0
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1197 BITS Jobs, T1105 Ingress Tool Transfer
+
+  PURPOSE:
+    Detect bitsadmin.exe abuse for file download, persistence, and post-job
+    command execution. bitsadmin is a legacy command-line tool replaced by the
+    PowerShell BITS module in modern admin workflows; rare use patterns warrant
+    investigation.
+
+  WHEN TO USE:
+    Any environment that wants comprehensive coverage of BITSAdmin abuse beyond
+    the Tier 1 /transfer detection.
+
+  FALSE POSITIVE RISK:
+    Low. Modern Windows admin tooling uses Get-BitsTransfer / Start-BitsTransfer
+    PowerShell cmdlets, not bitsadmin.exe directly. Legacy SCCM and some Windows
+    Update operations may invoke bitsadmin internally via service.
+
+  REFERENCES:
+    https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+    https://attack.mitre.org/techniques/T1197/
+-->
+<RuleGroup name="ProcessCreate-LOLBAS-Bitsadmin" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <!-- T1197 + T1105: BITS file transfer download -->
+    <Rule name="technique_id=T1197|T1105,technique=BITS Jobs,detection=bitsadmin transfer mode for file download" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">/transfer</CommandLine>
+    </Rule>
+    <!-- T1197: BITS addfile -->
+    <Rule name="technique_id=T1197,technique=BITS Jobs,detection=bitsadmin addfile to existing job" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">/addfile</CommandLine>
+    </Rule>
+    <!-- T1197: BITS persistence via setnotifycmdline -->
+    <Rule name="technique_id=T1197,technique=BITS Jobs,detection=bitsadmin setnotifycmdline persistence" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">setnotifycmdline</CommandLine>
+    </Rule>
+    <!-- T1197: BITS setminretrydelay used to keep job alive (persistence) -->
+    <Rule name="technique_id=T1197,technique=BITS Jobs,detection=bitsadmin setminretrydelay persistence tactic" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">setminretrydelay</CommandLine>
+    </Rule>
+    <!-- T1197: BITS create job -->
+    <Rule name="technique_id=T1197,technique=BITS Jobs,detection=bitsadmin create new job" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">/create</CommandLine>
+    </Rule>
+    <!-- T1197: BITS resume staged job -->
+    <Rule name="technique_id=T1197,technique=BITS Jobs,detection=bitsadmin resume staged job" groupRelation="and">
+      <Image condition="end with">\bitsadmin.exe</Image>
+      <CommandLine condition="contains">/resume</CommandLine>
+    </Rule>
+  </ProcessCreate>
+</RuleGroup>
