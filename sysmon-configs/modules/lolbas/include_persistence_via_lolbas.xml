@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Persistence via LOLBAS
   Category:     lolbas
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1547.001 Registry Run Keys, T1053.005 Scheduled Task,
@@ -26,6 +26,20 @@
     https://attack.mitre.org/techniques/T1547/001/
     https://attack.mitre.org/techniques/T1053/005/
     https://attack.mitre.org/techniques/T1543/003/
+  PROVENANCE:
+    Source:           LOLBAS Project (lolbas-project.github.io); MITRE ATT&CK
+                      Enterprise matrix; SigmaHQ rules; security research
+                      publications and threat intelligence reports
+    Confidence:       security-research
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Patterns derived from public catalogs and research. Threat
+                      actors rotate techniques and obfuscate command lines to evade
+                      string-based detection. The LOLBAS Project covers known
+                      techniques as of its current revision; novel techniques and
+                      undisclosed vulnerabilities are not covered. False positive
+                      rates depend heavily on environment (developer workstations
+                      vs. production OT systems).
 -->
 <RuleGroup name="ProcessCreate-LOLBAS-Persistence" groupRelation="or">
   <ProcessCreate onmatch="include">

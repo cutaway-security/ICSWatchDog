@@ -248,7 +248,6 @@ ICSWatchDog/
         GIT_RELEASE_STEPS.md
         SYSMON_CODING_STANDARD.md                  # Sysmon XML and rule conventions
         html-css-jekyll.md                         # HTML/CSS/Jekyll code standard
-        PHASE8A_TAGGING_WORKSHEET.md               # Phase 8a deliverable
     docs/                                          # Jekyll website source (dev only)
         _config.yml
         _layouts/default.html

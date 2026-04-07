@@ -6,9 +6,9 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 
 ## Current Phase
 
-**Phase**: Phase 10 - LOLBAS Detection Coverage
-**Status**: Phase 10a-10e complete. New LOLBAS Detection website page published. README, modules.html, configurations.html, and nav.html all updated. Jekyll build verified (0.018s, no errors). Phase 10f (combined v4.0 release) ready to begin.
-**Focus**: Phase 10f -- combined v4.0 release (Phase 8 + 9 + 10).
+**Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
+**Status**: Phase 11a and 11b complete. Phase 11d (Coverage Script Usage Guide) inserted per user direction; subsequent phases renumbered. Phase 11c (Validation Framework) is the next implementation phase. Phase 11d recommendations pending user review before implementation.
+**Focus**: Phase 11c -- module validation framework. Phase 11d -- new Coverage Script Usage Guide added before Build Your Own Module Guide.
 
 ## Phases
 
@@ -349,6 +349,11 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-04-06 | Conservative Tier 1, broader Tier 2, comprehensive Tier 3 false positive philosophy | Balances OT operational sensitivity (Tier 1 must be near-zero FP) with detection completeness (Tier 3 prioritizes coverage over noise). Each tier opts users in further as they mature their monitoring program. |
 | 2026-04-06 | Dedicated lolbas-detection.html website page | LOLBAS detection is a focused effort for some teams (per user). Deserves its own page rather than a section within attack-tagging.html. Includes high-level OT tuning guidance; per-rule tuning lives in XML maintainer comments. |
 | 2026-04-06 | Combine Phase 8c, 9e, 10f into a single v4.0 release (Option B) | Per user direction. Phase 8 (ATT&CK tagging) and Phase 9 (module library) deferred from individual releases and combined with Phase 10 into one large v4.0 release. Cleaner narrative ("comprehensive detection update") and one coordinated test/deploy effort. |
+| 2026-04-07 | Phase 11 introduced: Module Validation, Provenance, and Coverage Assessment | User flagged the gap that vendor-ot modules and other OT-based modules were built from public information (vendor docs, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) without validation against actual deployments. Phase 11 introduces honest provenance metadata, a coverage assessment tool, a Build Your Own Module guide, and a community contribution intake process. Targets v4.1. |
+| 2026-04-07 | Provenance metadata standard: free-text in module header, four confidence levels | Free-text in header is consistent with existing module format (no separate metadata file). Four confidence levels balance granularity (verified-in-lab, vendor-documented, security-research, theoretical) without overcomplicating. Will evolve to structured (YAML frontmatter) if tooling needs require. |
+| 2026-04-07 | Honest retroactive labeling: most current modules are vendor-documented, NOT verified-in-lab | The project has not validated any module against an actual ICS vendor install. Marking modules as verified-in-lab would be inaccurate. The honest assessment downgrades some modules from implied authoritative status to vendor-documented or theoretical. This is the foundation of the validation framework. |
+| 2026-04-07 | Coverage assessment tool reports multiple coverage types, not a single percentage | Process coverage, software coverage, port coverage, and ATT&CK technique coverage are all valid coverage measurements. Different admins care about different ones. Reporting all four (and gaps for each) gives an honest picture rather than a single misleading number. |
+| 2026-04-07 | Insert Phase 11d Coverage Script Usage Guide before Build Your Own Module guide | Per user direction: testing existing coverage must precede building new modules. Admins need to understand what they have before deciding what to build. The Coverage Usage Guide teaches admins to use Get-SysmonCoverage.ps1 effectively; the BYO Module Guide assumes coverage analysis has already been performed. Phases 11e/11f/11g renumbered accordingly. |
 
 ### Phase 7: Efficacy Testing
 
@@ -755,6 +760,128 @@ Combined release of Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phas
 - [ ] Verify all site links point to main branch
 - [ ] Tag release v4.0 on main
 - [ ] Optional: create GitHub release notes summarizing Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phase 10 (LOLBAS) as a major release
+
+### Phase 11: Module Validation, Provenance, and Coverage Assessment
+
+**Status**: Planned. Phase 11a starting.
+
+Address the gap identified in user feedback: existing OT modules were built from public information (vendor documentation, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) but were never validated against actual deployments. Phase 11 introduces an honest provenance framework, a coverage assessment tool, a Build Your Own Module guide, and a community contribution intake process. Targets v4.1 release.
+
+Origin: User question (2026-04-07): "Where did the information come from and how do we know it is accurate (for false positives, false negatives, and accuracy so that things aren't missed). 100% is not achievable, but admins will want to know a percent and HOW to find things that are missing, not in the right place, or need to be improved."
+
+#### Phase 11a: Provenance Metadata Standard and Retroactive Application
+
+**Status**: Complete.
+
+- [x] Update claude-dev/SYSMON_CODING_STANDARD.md with new section 8.5 "Provenance Metadata"
+      - Defined required Provenance block fields (Source, Confidence, Last Validated, Validated By, Known Limitations)
+      - Defined confidence level vocabulary: verified-in-lab, vendor-documented, security-research, theoretical
+      - Defined position within module header (before REFERENCES section)
+      - Documented honest labeling philosophy (no verified-in-lab without evidence)
+      - Defined promotion path (vendor-documented -> verified-in-lab requires validation evidence per Phase 11c)
+- [x] Apply provenance metadata to all 48 existing modules via Python script:
+      - vendor-ot/ (5 modules) -- vendor-documented; per-module known limitations documenting version gaps
+      - vendor-it/ (5 modules) -- vendor-documented (default install paths well-known)
+      - cloud-storage/ (8 modules) -- vendor-documented (cloud client paths public, version-dependent)
+      - sector/ (4 modules) -- mixed: 2 modules have both vendor-documented + security-research labels
+      - protocol/ (8 modules) -- vendor-documented (IANA/standards-body assigned ports)
+      - remote-access/ (5 modules) -- vendor-documented (LOLRMM project + vendor docs)
+      - lolbas/ (13 modules) -- security-research (LOLBAS Project + MITRE ATT&CK + Sigma rules)
+- [x] Bump module version v1.0 -> v1.1 for each module updated (48/48)
+- [x] Honest assessment: 0 modules marked verified-in-lab. 33 vendor-documented. 17 security-research. 2 mixed-label sector modules.
+- [x] Validate all 48 modules pass xmllint after metadata addition (8 fixed comment-block edge case in water-wastewater)
+- [x] End-to-end merge test with provenance-tagged modules: VALID
+- [x] PowerShell test harness still 7/7 passing
+
+#### Phase 11b: Coverage Assessment Tool
+
+**Status**: Complete. Tool built, tested 10/10 passing.
+
+- [x] Build tools/Get-SysmonCoverage.ps1 (PowerShell 3+, no dependencies)
+- [x] Inventory current system (read-only): running processes, installed software (registry-based), listening TCP ports (Get-NetTCPConnection with netstat fallback), scheduled tasks, services
+- [x] Load deployed Sysmon config via -ConfigPath parameter or 'sysmon -c' query (Windows only)
+- [x] Support -AdditionalModules array for "what if I merged these modules" projections
+- [x] Extract rules from XML: Image patterns (including contains-any with semicolon-delimited values), CommandLine patterns, DestinationPort values, ATT&CK technique_id values
+- [x] Compute coverage metrics:
+      - Process coverage (fraction of running processes matched by at least one rule's binary pattern)
+      - OT software coverage (fraction of installed OT-relevant software with at least one matching module rule)
+      - Industrial port coverage (fraction of listening industrial protocol ports matched by a protocol rule)
+      - ATT&CK technique coverage (count of distinct technique_id values present in deployed rules)
+- [x] Report gaps: unmonitored processes (with paths), uncovered OT software (with module suggestions), uncovered industrial ports (with protocol names)
+- [x] Output formats: Console (default human-readable), JSON (for SIEM ingestion), Markdown (for sharing)
+- [x] -OutputPath parameter to write to file
+- [x] -MockInventoryPath parameter for testing with simulated inventory data
+- [x] Industrial port catalog: 19 well-known industrial protocol ports (Modbus, OPC-UA, DNP3, S7comm, BACnet, IEC 104, MQTT, EtherNet/IP, PROFINET, HART-IP, Ignition, OSIsoft PI, GE SRTP)
+- [x] OT vendor hint catalog: ~30 vendor name substrings mapped to module recommendations
+- [x] Test harness tools/Test-GetSysmonCoverage.ps1 with 10 test cases (Console output, JSON output, process coverage, OT software detection, industrial port coverage, additional module merging, ATT&CK extraction, Markdown output, OutputPath, nonexistent config rejection)
+- [x] Test fixtures: tools/test-fixtures/coverage/mock-inventory-ot-engineering.json (8 processes, 6 software, 6 listening ports, scheduled tasks, services)
+- [x] Bug fix: Int32 vs Int64 type comparison in hashtable lookups after JSON deserialization
+- [x] Cross-platform: tested on pwsh 7.6.0 on Linux against mock data; production use requires Windows for live inventory
+
+#### Phase 11c: Module Validation Framework
+
+- [ ] Define validation checklist (process names, file paths, project file extensions, default ports, rule logic firing, no FP on baseline)
+- [ ] Document evidence requirements for each checklist item
+- [ ] Define companion validation file format: <module>.validation.md
+- [ ] Document promotion path from `vendor-documented` to `verified-in-lab` confidence
+
+#### Phase 11d: Coverage Script Usage Guide
+
+**Status**: Planned. Recommendations pending user review.
+
+Origin: User direction (2026-04-07): produce a usage guide for Get-SysmonCoverage.ps1 BEFORE the Build Your Own Module guide. Rationale: testing existing coverage comes before building new modules; admins must understand what they have before deciding what to build.
+
+- [ ] Create new website page docs/_pages/coverage-assessment.html
+      - What the coverage tool does and does not do
+      - Prerequisites (PowerShell version, Sysmon, admin privileges)
+      - Quick start with three usage modes: live config, file-based config, with additional modules
+      - Section-by-section output interpretation (Process / OT Software / Industrial Port / ATT&CK)
+      - Coverage testing workflow (baseline -> identify gaps -> try modules -> compare -> decide)
+      - Test scenarios for common system roles (engineering workstation, HMI, DC, database server, jump host)
+      - Interpreting low coverage percentages (when low is OK vs when it indicates a problem)
+      - Common false interpretations (100% does not exist, monitoring vs detection)
+      - Output format selection (Console / JSON / Markdown use cases)
+      - Automation use cases (scheduled coverage checks, drift detection, SIEM integration)
+      - Tuning workflow integration
+      - Limitations and known gaps
+      - Troubleshooting (permissions, missing cmdlets, sysmon -c failures)
+      - Integration with other ICS Watch Dog tools (Test-SysmonConfig, Merge-SysmonModules)
+      - Worked end-to-end example session
+- [ ] Add Coverage Assessment link to docs/_includes/nav.html Guides dropdown
+- [ ] Verify Jekyll build
+
+#### Phase 11e: Build Your Own Module Guide
+
+- [ ] Create new website page docs/_pages/build-your-own-module.html
+      - When to build a custom module vs extend an existing one
+      - Environment inventory step (using coverage tool from 11b, link to 11d guide)
+      - Detection pattern cookbook (5-10 worked examples covering binary-only, composite binary+CL, parent-child, file creation, network connection, registry, persistence)
+      - Using the ATT&CK tagging convention (link to attack-tagging page)
+      - Module file format and validation
+      - Testing in a lab environment
+      - Documenting provenance with the metadata standard from 11a
+      - Contributing back via the community intake process (link to community page)
+
+#### Phase 11f: Community Contribution Intake Process
+
+- [ ] Update docs/_pages/community.html with structured contribution intake
+- [ ] PR template with provenance fields
+- [ ] Validation evidence requirements
+- [ ] Review checklist for maintainers
+- [ ] Three acceptance levels:
+      - Tier A (validated in real deployment with evidence) -> ships in main library
+      - Tier B (vendor-documented patterns without lab validation) -> ships in community/
+      - Tier C (theoretical proposed) -> posted as GitHub issue for community testing before merge
+
+#### Phase 11g: Documentation and v4.1 Release
+
+- [ ] Update modules.html to add Confidence column in module tables
+- [ ] Update community.html with new contribution process
+- [ ] Update README.md with brief mention of coverage tool, BYO guide, and provenance framework
+- [ ] Update nav.html to ensure all new pages are linked (Coverage Assessment, BYO Module)
+- [ ] Verify Jekyll build
+- [ ] Final validation: 8/8 configs xmllint, 48/48 modules xmllint, PS test harnesses passing
+- [ ] Commit, merge to main, deploy site, tag release v4.1
 
 ## Out of Scope
 

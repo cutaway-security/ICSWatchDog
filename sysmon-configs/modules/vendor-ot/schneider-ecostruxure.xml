@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Schneider Electric EcoStruxure / Unity Pro / Citect
   Category:     vendor-ot
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1565.001 Stored Data Manipulation
@@ -15,6 +15,18 @@
 
   REFERENCES:
     https://attack.mitre.org/techniques/T1565/001/
+  PROVENANCE:
+    Source:           Schneider Electric public documentation; legacy Unity Pro
+                      install guides; EcoStruxure Control Expert release notes
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Schneider rebranded Unity Pro to EcoStruxure Control Expert
+                      and the binary name may have changed in newer versions. Citect
+                      SCADA was rebranded to EcoStruxure Geo SCADA Expert; binary
+                      paths and names for the rebranded products are not independently
+                      verified. Does not cover Modicon-specific tools or
+                      WonderwareSystem Platform (use AVEVA module).
 -->
 <RuleGroup name="ProcessCreate-Schneider" groupRelation="or">
   <ProcessCreate onmatch="include">

@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Microsoft Office (noise reduction)
   Category:     vendor-it
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   Rule type:    Exclude (noise reduction)
@@ -22,6 +22,17 @@
     instead of merging this blanket exclusion. Specifically, do NOT exclude
     suspicious Office child processes (cmd.exe, powershell.exe, mshta.exe, etc.).
     Those are critical detections.
+  PROVENANCE:
+    Source:           Microsoft Office default install paths from vendor documentation;
+                      common deployment knowledge
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Default install paths assumed. Custom or per-machine
+                      installs in non-default paths will not match. Vendor may
+                      change install paths in future versions. Excludes are noise
+                      reduction; verify your environment actually has the volume
+                      problem before merging this module.
 -->
 <RuleGroup name="NetworkConnect-Exclude-Office" groupRelation="or">
   <NetworkConnect onmatch="exclude">

@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Electric Utility
   Category:     sector
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message,
@@ -24,6 +24,20 @@
   REFERENCES:
     https://attack.mitre.org/techniques/T0836/
     https://attack.mitre.org/techniques/T0852/
+  PROVENANCE:
+    Source:           SEL public documentation for AcSELerator/QuickSet; ABB
+                      Microscada documentation; IEC 61850 standard; CISA advisories
+                      for electric sector
+    Confidence:       vendor-documented (vendor tools); security-research (sector
+                      grouping)
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: SEL ACSELERATOR process names well-documented but not
+                      version-tested. ABB Microscada paths may vary by deployment.
+                      Does not cover GE PowerOn, SAS Hardware, or Beckwith relays.
+                      IEC 61850 SCL file extensions are standards-based and reliable.
+                      Sector grouping is editorial: utilities use diverse vendor
+                      stacks and this module covers a representative subset only.
 -->
 <RuleGroup name="ProcessCreate-Electric-Utility" groupRelation="or">
   <ProcessCreate onmatch="include">

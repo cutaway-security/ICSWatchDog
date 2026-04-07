@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Rockwell Studio 5000 / RSLogix
   Category:     vendor-ot
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1565.001 Stored Data Manipulation
@@ -21,6 +21,18 @@
 
   REFERENCES:
     https://attack.mitre.org/techniques/T1565/001/
+  PROVENANCE:
+    Source:           Rockwell Automation knowledge base; Studio 5000 install
+                      documentation; sysmon-modular project; community sources
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Covers RSLogix5000.exe (legacy) and LogixDesigner.exe (newer
+                      launcher). Studio 5000 v33+ install paths and process names
+                      not independently verified. Does not cover Studio 5000 View
+                      Designer, Studio 5000 Architect, or FactoryTalk View ME/SE
+                      Studio (use a separate FactoryTalk module). RSLinx Classic
+                      vs RSLinx Enterprise binary names may differ by version.
 -->
 <RuleGroup name="ProcessCreate-Rockwell-Studio5000" groupRelation="or">
   <ProcessCreate onmatch="include">

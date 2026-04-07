@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: ConnectWise ScreenConnect / ConnectWise Control (unsanctioned)
   Category:     remote-access
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   Rule type:    Include (detection)
@@ -18,6 +18,17 @@
   REFERENCES:
     https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060b
     https://lolrmm.io/tools/ConnectWise%20Control/
+  PROVENANCE:
+    Source:           ConnectWise ScreenConnect vendor public documentation; LOLRMM project
+                      (lolrmm.io); CISA AA23-025A RMM advisory; community
+                      Sysmon configurations
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Process names from vendor documentation. Versions may rename
+                      binaries. Portable / unpacked-from-archive variants run with
+                      different paths. Self-hosted deployments (where applicable)
+                      may use custom domains not covered by DNS detection.
 -->
 <RuleGroup name="ProcessCreate-Detect-ScreenConnect" groupRelation="or">
   <ProcessCreate onmatch="include">

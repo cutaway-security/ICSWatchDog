@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Adobe Acrobat Reader (noise reduction)
   Category:     vendor-it
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   Rule type:    Exclude (noise reduction)
@@ -19,6 +19,17 @@
     Acrobat Reader has historically been a malware delivery vector via crafted PDFs.
     Excluding it suppresses some forensic value. Consider scoping the exclusion
     rather than blanket-excluding all Reader activity.
+  PROVENANCE:
+    Source:           Adobe Reader default install paths from vendor documentation;
+                      common deployment knowledge
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Default install paths assumed. Custom or per-machine
+                      installs in non-default paths will not match. Vendor may
+                      change install paths in future versions. Excludes are noise
+                      reduction; verify your environment actually has the volume
+                      problem before merging this module.
 -->
 <RuleGroup name="NetworkConnect-Exclude-AdobeReader" groupRelation="or">
   <NetworkConnect onmatch="exclude">

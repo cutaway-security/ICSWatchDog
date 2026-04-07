@@ -540,6 +540,96 @@ Modules are XML fragments containing one or more `<RuleGroup>` elements. They ha
 
 The merge tooling inserts `<RuleGroup>` elements directly into a base config's existing `<EventFiltering>`.
 
+### 8.5 Provenance Metadata
+
+Every module MUST include a `Provenance` block in its header documenting where the rule content came from, the confidence level, and known limitations. This is mandatory for new modules and was applied retroactively to existing modules in Phase 11a.
+
+**Why provenance metadata exists**: Sysmon detection rules are useful only if admins can trust them. Without explicit provenance, a rule built from general knowledge looks identical to a rule validated against a live deployment. The Provenance block makes the difference visible so users know which rules to trust and which to validate themselves.
+
+#### Required Fields
+
+```
+PROVENANCE:
+  Source:           <where the rule data came from -- vendor doc URL,
+                    project name, observed in lab, security research,
+                    MITRE ATT&CK, LOLBAS Project, etc.>
+  Confidence:       <verified-in-lab|vendor-documented|security-research|theoretical>
+  Last Validated:   <YYYY-MM-DD>
+  Validated By:     <contributor handle, project name, or "unvalidated">
+  Known Limitations: <what is not covered, vendor versions not tested,
+                    environment assumptions, known false positive sources>
+```
+
+#### Confidence Levels
+
+| Level | Criteria | Example |
+|-------|----------|---------|
+| **verified-in-lab** | Validated against a live install in a lab or production environment by maintainers or trusted contributors. Vendor version range documented. Test evidence available. | Future state for top vendor modules |
+| **vendor-documented** | Built from authoritative vendor public documentation (knowledge base, install guide, security bulletin). Not lab-tested. Vendor version range identified or noted as version-dependent. | Most current vendor-ot, vendor-it, cloud-storage, remote-access modules |
+| **security-research** | Built from security research, threat intelligence reports, or community-maintained authoritative catalogs (LOLBAS Project, MITRE ATT&CK, Sigma rules). | Most lolbas/ modules |
+| **theoretical** | General knowledge starting point. No authoritative source for the specific patterns. Pattern is plausible but unverified. | Some sector module content, some long-tail LOLBAS rules |
+
+A `verified-in-lab` confidence level requires validation evidence (lab output, deployment observation period, false positive measurement) per Phase 11c validation framework.
+
+#### Position in Module Header
+
+The Provenance block goes immediately after the standard `WHEN NOT TO USE` and `DUAL-USE NOTE` (if applicable) sections, and before the `REFERENCES` section. Example:
+
+```xml
+<!--
+  ICS Watch Dog Module: Siemens TIA Portal
+  Category:     vendor-ot
+  Version:      v1.1
+  Schema:       4.50
+  Dependencies: none
+  ATT&CK:       T1565.001 Stored Data Manipulation, T0857 Modify Controller Tasking
+
+  PURPOSE:
+    Monitor Siemens TIA Portal engineering workstation activity...
+
+  WHEN TO USE:
+    Engineering workstations with TIA Portal installed (V13-V19+).
+
+  WHEN NOT TO USE:
+    Production HMIs and operator stations: TIA Portal should not be installed there.
+    Use sysmonconfig-baseline-ot.xml or sysmonconfig-enhanced-ot.xml as the base.
+
+  PROVENANCE:
+    Source:           Siemens public knowledge base; vendor install documentation
+                      for TIA Portal V13 through V17; sysmon-modular project
+                      reference; community threat reports
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Process names verified against publicly documented V13-V17
+                      installs only. Newer TIA Portal V18 / V19 may rename
+                      Siemens.Automation.Portal.exe or relocate it. WinCC OA
+                      processes are not covered. SCALANCE configuration tools
+                      are not covered.
+
+  REFERENCES:
+    https://attack.mitre.org/techniques/T1565/001/
+    https://attack.mitre.org/techniques/T0857/
+-->
+```
+
+#### Honest Labeling
+
+The retroactive Phase 11a pass labels existing modules **honestly**, not aspirationally. The project has not validated any module against an actual ICS vendor install in a lab. Marking modules as `verified-in-lab` would be inaccurate. Most current OT modules are correctly marked `vendor-documented` because the source was vendor public documentation, even though the rules have not been tested in a real environment.
+
+This is intentional. Users deserve to know that a `vendor-documented` module may have version-specific gaps and should be validated in their environment before being trusted as authoritative.
+
+#### Promotion Path
+
+Confidence promotion (`vendor-documented` → `verified-in-lab`) requires evidence per the Phase 11c validation framework. The promotion process is:
+
+1. Run the module against a live install in a lab or pre-production environment
+2. Verify each rule fires on its trigger condition
+3. Observe a baseline period (recommended: 24-48 hours minimum) and measure false positive rate
+4. Document the lab/test environment, vendor version, and evidence
+5. Submit a community contribution (per Phase 11e intake process) with the validation report
+6. After review, update the module's `Confidence` field and bump version
+
 ---
 
 ## 9. Validation Requirements

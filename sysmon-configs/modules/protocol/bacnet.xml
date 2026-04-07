@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: BACnet/IP
   Category:     protocol
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
@@ -11,6 +11,19 @@
     protocol for building automation systems (HVAC, lighting, access control)
     and is increasingly relevant to OT cybersecurity programs as IT/OT convergence
     spreads to facilities.
+  PROVENANCE:
+    Source:           IANA service name and port number registry; IEC and ISO
+                      standards documents; protocol vendor specifications
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07
+    Validated By:     unvalidated (port assignments are stable; vendor-documented
+                      means the IANA/standards-body assignment is the source)
+    Known Limitations: Default IANA-registered ports only. Custom port deployments
+                      will not match (e.g., a Modbus TCP slave on port 5020 instead
+                      of 502). Sysmon detects process-to-port; protocol payload
+                      inspection requires a network IDS. Encrypted variants (e.g.,
+                      OPC-UA over TLS, Modbus Security) appear identical at the
+                      port level. Add site-specific ports for non-standard deployments.
 -->
 <RuleGroup name="NetworkConnect-BACnet-IP" groupRelation="or">
   <NetworkConnect onmatch="include">

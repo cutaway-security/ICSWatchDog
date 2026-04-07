@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: AVEVA / OSIsoft PI System
   Category:     vendor-ot
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1005 Data from Local System, T1213 Data from Information Repositories,
@@ -21,6 +21,18 @@
     https://attack.mitre.org/techniques/T1005/
     https://attack.mitre.org/techniques/T1213/
     https://attack.mitre.org/techniques/T1565/002/
+  PROVENANCE:
+    Source:           AVEVA / OSIsoft PI Server documentation (PI Data Archive,
+                      PI AF, PI System Management Tools); vendor install guides
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Subsystem names (pinetmgr, pisnapss, piarchss) are version-
+                      specific. AVEVA renamed OSIsoft PI to AVEVA PI in 2020 and
+                      newer releases may differ. Does not cover PI Vision web
+                      components, PI Web API, PI Integrators, or PI Connectors.
+                      Default port 5450 is for PI Data Archive; PI AF Server uses
+                      5457 but other ports may be configured.
 -->
 <RuleGroup name="ProcessCreate-AVEVA-PI" groupRelation="or">
   <ProcessCreate onmatch="include">

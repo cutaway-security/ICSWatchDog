@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Inductive Automation Ignition Gateway
   Category:     vendor-ot
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1505.003 Web Shell, T1565.002 Transmitted Data Manipulation
@@ -25,6 +25,19 @@
   REFERENCES:
     https://attack.mitre.org/techniques/T1505/003/
     https://attack.mitre.org/techniques/T1565/002/
+  PROVENANCE:
+    Source:           Inductive Automation public documentation; Ignition User
+                      Manual; community deployment reports
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Ignition runs as a Java application (java.exe) wrapped by
+                      ignition.exe; the module intentionally does NOT include
+                      java.exe parent matching due to false positive risk. This
+                      means subprocess-based detection is limited. Default install
+                      path \Inductive Automation\Ignition\ assumed; non-default
+                      installs will not match. Default ports 8088/8043 assumed;
+                      hardened deployments often use custom ports.
 -->
 <RuleGroup name="FileCreate-Ignition" groupRelation="or">
   <FileCreate onmatch="include">

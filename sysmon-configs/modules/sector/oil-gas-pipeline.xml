@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Oil and Gas Pipeline
   Category:     sector
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
@@ -22,6 +22,18 @@
   REFERENCES:
     https://www.tsa.gov/news/press/releases/2022/07/21/tsa-updates-renews-cybersecurity-requirements-pipeline-owners
     https://www.api.org/oil-and-natural-gas/health-and-safety/security/cybersecurity
+  PROVENANCE:
+    Source:           Public oil and gas pipeline documentation; TSA SD02-2021-01;
+                      API 1164; standard industrial protocol assignments
+    Confidence:       security-research
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Module covers protocols (Modbus, DNP3, OPC-UA, HART-IP, PI)
+                      not vendor-specific tools. Does not address upstream-specific
+                      systems (drilling, completions), midstream-specific monitoring
+                      (custody transfer, leak detection), or downstream-specific
+                      tools (refinery DCS). HART-IP port 5094 is the registered
+                      port; some implementations use custom ports.
 -->
 <RuleGroup name="NetworkConnect-OilGas-Pipeline" groupRelation="or">
   <NetworkConnect onmatch="include">

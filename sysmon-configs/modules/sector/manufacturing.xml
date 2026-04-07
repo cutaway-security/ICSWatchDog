@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Manufacturing
   Category:     sector
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
@@ -14,6 +14,19 @@
 
   WHEN TO USE:
     Engineering workstations, MES systems, and control rooms in manufacturing.
+  PROVENANCE:
+    Source:           Manufacturing sector public documentation; standard industrial
+                      protocol port assignments; common discrete and process
+                      manufacturing knowledge
+    Confidence:       security-research
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Module covers protocols only (EtherNet/IP, PROFINET, OPC-UA,
+                      Modbus, S7comm). Does not address MES platforms, ERP
+                      integration points, robotics-specific protocols (KUKA, ABB,
+                      FANUC controllers), or motion control (CIP Motion). Sector
+                      grouping is editorial; discrete and process manufacturing
+                      have very different technology stacks.
 -->
 <RuleGroup name="NetworkConnect-Manufacturing" groupRelation="or">
   <NetworkConnect onmatch="include">

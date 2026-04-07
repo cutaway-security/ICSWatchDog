@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Google Drive (unsanctioned, detection)
   Category:     cloud-storage
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   Rule type:    Include (detection)
@@ -15,6 +15,19 @@
 
   WHEN TO USE:
     Google Drive is NOT sanctioned at your site.
+  PROVENANCE:
+    Source:           Public vendor documentation for the Google Drive desktop client;
+                      common deployment knowledge; observed binary names from
+                      community Sysmon configurations
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Default desktop client install paths assumed. Cloud storage
+                      providers regularly update client binaries and install paths.
+                      Web-based access (browser-only, no desktop client) is NOT
+                      detected by these rules; protocol-level (HTTPS) detection
+                      requires network monitoring tools. The detection patterns
+                      may need adjustment as vendors push client updates.
 -->
 <RuleGroup name="ProcessCreate-Detect-GoogleDrive" groupRelation="or">
   <ProcessCreate onmatch="include">

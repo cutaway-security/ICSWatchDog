@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Siemens TIA Portal
   Category:     vendor-ot
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T1565.001 Stored Data Manipulation, T0857 Modify Controller Tasking
@@ -22,6 +22,17 @@
   REFERENCES:
     https://attack.mitre.org/techniques/T1565/001/
     https://attack.mitre.org/techniques/T0857/
+  PROVENANCE:
+    Source:           Siemens public documentation for TIA Portal V13-V17;
+                      sysmon-modular project reference; community threat reports
+    Confidence:       vendor-documented
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Process names verified against documented V13-V17 installs
+                      only. TIA Portal V18 / V19 may rename Siemens.Automation.Portal.exe
+                      or relocate the binary. WinCC OA processes are not covered.
+                      SCALANCE configuration tools are not covered. PCS 7 and SIMATIC
+                      Manager classic are not separately addressed beyond s7tgtopx.exe.
 -->
 <RuleGroup name="ProcessCreate-Siemens-TIA" groupRelation="or">
   <ProcessCreate onmatch="include">

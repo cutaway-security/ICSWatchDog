@@ -1,7 +1,7 @@
 <!--
   ICS Watch Dog Module: Water and Wastewater
   Category:     sector
-  Version:      v1.0
+  Version:      v1.1
   Schema:       4.50
   Dependencies: none
   ATT&CK:       T0830 Adversary-in-the-Middle, T0855 Unauthorized Command Message
@@ -21,6 +21,19 @@
 
   REFERENCES:
     https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-060a
+  PROVENANCE:
+    Source:           Water sector public documentation; CISA AA24-060A; Oldsmar
+                      2021 incident reports; common SCADA protocol assignments
+    Confidence:       security-research (sector content); vendor-documented
+                      (TeamViewer process name)
+    Last Validated:   2026-04-07 (initial draft, NOT lab-tested)
+    Validated By:     unvalidated
+    Known Limitations: Sector module covers protocols (Modbus, DNP3, BACnet,
+                      EtherNet/IP) and one specific tool (TeamViewer for Oldsmar
+                      relevance). Does not cover water-specific HMI/SCADA platforms
+                      (e.g., ClearSCADA, Wonderware InTouch for water). Those
+                      should be detected via vendor-ot modules and the OT enhanced
+                      config. Sector grouping is editorial.
 -->
 <RuleGroup name="NetworkConnect-Water-Wastewater" groupRelation="or">
   <NetworkConnect onmatch="include">
