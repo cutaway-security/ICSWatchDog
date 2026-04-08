@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phase 11a and 11b complete. Phase 11d (Coverage Script Usage Guide) inserted per user direction; subsequent phases renumbered. Phase 11c (Validation Framework) is the next implementation phase. Phase 11d recommendations pending user review before implementation.
-**Focus**: Phase 11c -- module validation framework. Phase 11d -- new Coverage Script Usage Guide added before Build Your Own Module Guide.
+**Status**: Phases 11a and 11b complete. Phase 11d (Coverage Toolchain Refactor + Usage Guide) in progress. Two-checkpoint plan: B1 = standards/dev docs/planning sweep; B2 = tool refactor + tests + guide. Phase 11c (Validation Framework) deferred until after 11d. All Phase 11 work targets release tag v7.
+**Focus**: Phase 11d checkpoint B1 in progress.
 
 ## Phases
 
@@ -348,12 +348,16 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-04-06 | Composite Rule (groupRelation=and) introduced for first time in Phase 10 | Tier 1 LOLBAS rules require binary + command-line pattern AND logic to minimize false positives. Schema 4.50 (Sysmon v13+) supports composite Rule elements (introduced in schema 4.20). First use in ICS Watch Dog; documented in SYSMON_CODING_STANDARD.md section 5.3. |
 | 2026-04-06 | Conservative Tier 1, broader Tier 2, comprehensive Tier 3 false positive philosophy | Balances OT operational sensitivity (Tier 1 must be near-zero FP) with detection completeness (Tier 3 prioritizes coverage over noise). Each tier opts users in further as they mature their monitoring program. |
 | 2026-04-06 | Dedicated lolbas-detection.html website page | LOLBAS detection is a focused effort for some teams (per user). Deserves its own page rather than a section within attack-tagging.html. Includes high-level OT tuning guidance; per-rule tuning lives in XML maintainer comments. |
-| 2026-04-06 | Combine Phase 8c, 9e, 10f into a single v4.0 release (Option B) | Per user direction. Phase 8 (ATT&CK tagging) and Phase 9 (module library) deferred from individual releases and combined with Phase 10 into one large v4.0 release. Cleaner narrative ("comprehensive detection update") and one coordinated test/deploy effort. |
-| 2026-04-07 | Phase 11 introduced: Module Validation, Provenance, and Coverage Assessment | User flagged the gap that vendor-ot modules and other OT-based modules were built from public information (vendor docs, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) without validation against actual deployments. Phase 11 introduces honest provenance metadata, a coverage assessment tool, a Build Your Own Module guide, and a community contribution intake process. Targets v4.1. |
+| 2026-04-06 | Combine Phase 8c, 9e, 10f into a single combined release (Option B) | Per user direction. Phase 8 (ATT&CK tagging) and Phase 9 (module library) deferred from individual releases and combined with Phase 10 into one large release (shipped as tag v6). Cleaner narrative ("comprehensive detection update") and one coordinated test/deploy effort. |
+| 2026-04-07 | Phase 11 introduced: Module Validation, Provenance, and Coverage Assessment | User flagged the gap that vendor-ot modules and other OT-based modules were built from public information (vendor docs, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) without validation against actual deployments. Phase 11 introduces honest provenance metadata, a coverage assessment toolchain, a Build Your Own Module guide, and a community contribution intake process. Targets release tag v7. |
+| 2026-04-07 | Phase 11d expanded from single script guide into full coverage toolchain refactor | Per user direction: drop the "mock" framing on Get-SysmonCoverage.ps1, treat inventory JSON as a first-class artifact. Three single-purpose scripts (Export-SystemInventory, Get-SysmonCoverage, Compare-SystemInventory) replace the single tool with a `-MockInventoryPath` flag. Enables capture-on-locked-down-host workflows and sanitized community submissions. Usage guide written against the refactored toolchain. |
+| 2026-04-07 | Tool standards split out from Sysmon coding standard | New claude-dev/TOOL_CODING_STANDARD.md owns PowerShell/Python tool conventions, JSON I/O schema versioning, parameter naming, testing rules. SYSMON_CODING_STANDARD.md stays focused on Sysmon XML. Prevents either standard from growing unwieldy. |
+| 2026-04-07 | Defensive release boundary via .gitattributes export-ignore | The current release process manually `git rm`s claude-dev/, docs/, CLAUDE.md. Adding `export-ignore` for the same paths gives a structural safety net for any future release path that uses `git archive` or GitHub release tarballs. The manual `git rm` step in GIT_RELEASE_STEPS.md is preserved unchanged. |
+| 2026-04-07 | Dev test fixtures moved out of tools/ into claude-dev/test-fixtures/ | Mock inventory JSONs are dev artifacts, not user-facing. Moving them under claude-dev/ aligns with the existing convention that claude-dev/ is the dev workspace, and the .gitattributes export-ignore ensures they cannot accidentally ship in a release. Test harnesses themselves stay in tools/ and skip cleanly when fixtures are absent. |
 | 2026-04-07 | Provenance metadata standard: free-text in module header, four confidence levels | Free-text in header is consistent with existing module format (no separate metadata file). Four confidence levels balance granularity (verified-in-lab, vendor-documented, security-research, theoretical) without overcomplicating. Will evolve to structured (YAML frontmatter) if tooling needs require. |
 | 2026-04-07 | Honest retroactive labeling: most current modules are vendor-documented, NOT verified-in-lab | The project has not validated any module against an actual ICS vendor install. Marking modules as verified-in-lab would be inaccurate. The honest assessment downgrades some modules from implied authoritative status to vendor-documented or theoretical. This is the foundation of the validation framework. |
 | 2026-04-07 | Coverage assessment tool reports multiple coverage types, not a single percentage | Process coverage, software coverage, port coverage, and ATT&CK technique coverage are all valid coverage measurements. Different admins care about different ones. Reporting all four (and gaps for each) gives an honest picture rather than a single misleading number. |
-| 2026-04-07 | Insert Phase 11d Coverage Script Usage Guide before Build Your Own Module guide | Per user direction: testing existing coverage must precede building new modules. Admins need to understand what they have before deciding what to build. The Coverage Usage Guide teaches admins to use Get-SysmonCoverage.ps1 effectively; the BYO Module Guide assumes coverage analysis has already been performed. Phases 11e/11f/11g renumbered accordingly. |
+| 2026-04-07 | Insert Phase 11d Coverage Toolchain Refactor + Usage Guide before Build Your Own Module guide | Per user direction: testing existing coverage must precede building new modules. Admins need to understand what they have before deciding what to build. Phase 11d covers both the toolchain refactor (Export/Get-Coverage/Compare) and the usage guide. Phases 11e/11f/11g renumbered accordingly. |
 
 ### Phase 7: Efficacy Testing
 
@@ -632,7 +636,7 @@ Dual-use convention for cloud-storage and remote-access modules:
 - [ ] Merge to main (include sysmon-configs/modules/, tools/Merge-SysmonModules.ps1, tools/Test-MergeSysmonModules.ps1, tools/test-fixtures/)
 - [ ] Deploy site to gh-pages
 - [ ] Verify all site links
-- [ ] Tag release (deferred and combined with Phase 10 into single v4.0 release per user direction)
+- [x] Tag release (deferred and combined with Phase 10 into single combined release; shipped as tag v6)
 
 ### Phase 10: LOLBAS Detection Coverage
 
@@ -642,7 +646,7 @@ Add Living off the Land Binaries and Scripts (LOLBAS) detection coverage in thre
 
 Convention: see SYSMON_CODING_STANDARD.md section 6.6 (LOLBAS Detection Three-Tier Strategy) and section 5.3 (Composite Rules with groupRelation=and).
 
-Versioning: Phase 10 ships combined with Phase 8 (ATT&CK tagging) and Phase 9 (module library) as a single v4.0 release per user direction (Option B).
+Versioning: Phase 10 shipped combined with Phase 8 (ATT&CK tagging) and Phase 9 (module library) as a single release per user direction (Option B). Shipped as tag v6 on 2026-04-06.
 
 #### Phase 10a: Research and Worksheet
 
@@ -746,7 +750,7 @@ Versioning: Phase 10 ships combined with Phase 8 (ATT&CK tagging) and Phase 9 (m
 - [x] Update README.md with LOLBAS section explaining three-tier strategy, linking to icswatchdog.com/lolbas-detection/
 - [x] Verify Jekyll build (0.018s, no errors, _site/lolbas-detection/index.html generated)
 
-#### Phase 10f: Combined v4.0 Release
+#### Phase 10f: Combined Release (shipped as tag v6)
 
 Combined release of Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phase 10 (LOLBAS detection).
 
@@ -758,14 +762,14 @@ Combined release of Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phas
 - [ ] Merge to main (exclude docs/ and claude-dev/ per release process)
 - [ ] Deploy site to gh-pages
 - [ ] Verify all site links point to main branch
-- [ ] Tag release v4.0 on main
+- [x] Tag release on main (shipped as tag v6 on 2026-04-06)
 - [ ] Optional: create GitHub release notes summarizing Phase 8 (ATT&CK tagging), Phase 9 (module library), and Phase 10 (LOLBAS) as a major release
 
 ### Phase 11: Module Validation, Provenance, and Coverage Assessment
 
-**Status**: Planned. Phase 11a starting.
+**Status**: In progress. Phases 11a and 11b complete. Phase 11d (Coverage Toolchain Refactor + Usage Guide) in progress as of 2026-04-07.
 
-Address the gap identified in user feedback: existing OT modules were built from public information (vendor documentation, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) but were never validated against actual deployments. Phase 11 introduces an honest provenance framework, a coverage assessment tool, a Build Your Own Module guide, and a community contribution intake process. Targets v4.1 release.
+Address the gap identified in user feedback: existing OT modules were built from public information (vendor documentation, sysmon-modular reference, MITRE ATT&CK, LOLBAS Project) but were never validated against actual deployments. Phase 11 introduces an honest provenance framework, a coverage assessment toolchain, a usage guide, a Build Your Own Module guide, and a community contribution intake process. Targets release tag v7.
 
 Origin: User question (2026-04-07): "Where did the information come from and how do we know it is accurate (for false positives, false negatives, and accuracy so that things aren't missed). 100% is not achievable, but admins will want to know a percent and HOW to find things that are missing, not in the right place, or need to be improved."
 
@@ -825,29 +829,46 @@ Origin: User question (2026-04-07): "Where did the information come from and how
 - [ ] Define companion validation file format: <module>.validation.md
 - [ ] Document promotion path from `vendor-documented` to `verified-in-lab` confidence
 
-#### Phase 11d: Coverage Script Usage Guide
+#### Phase 11d: Coverage Toolchain Refactor and Usage Guide
 
-**Status**: Planned. Recommendations pending user review.
+**Status**: In progress. Checkpoint B1 (standards + dev docs + planning) underway. Checkpoint B2 (tool refactor + tests + guide) follows.
 
-Origin: User direction (2026-04-07): produce a usage guide for Get-SysmonCoverage.ps1 BEFORE the Build Your Own Module guide. Rationale: testing existing coverage comes before building new modules; admins must understand what they have before deciding what to build.
+Origin: User direction (2026-04-07). Two related needs:
+1. Testing existing coverage must precede building new modules; admins must understand what they have before deciding what to build.
+2. Drop the "mock inventory" framing on `Get-SysmonCoverage.ps1`. Inventory JSON should be a first-class artifact, not a test hack — same format whether produced by the live tool, captured on a locked-down OT host, or sanitized for community submission.
 
-- [ ] Create new website page docs/_pages/coverage-assessment.html
-      - What the coverage tool does and does not do
-      - Prerequisites (PowerShell version, Sysmon, admin privileges)
-      - Quick start with three usage modes: live config, file-based config, with additional modules
-      - Section-by-section output interpretation (Process / OT Software / Industrial Port / ATT&CK)
-      - Coverage testing workflow (baseline -> identify gaps -> try modules -> compare -> decide)
-      - Test scenarios for common system roles (engineering workstation, HMI, DC, database server, jump host)
-      - Interpreting low coverage percentages (when low is OK vs when it indicates a problem)
-      - Common false interpretations (100% does not exist, monitoring vs detection)
-      - Output format selection (Console / JSON / Markdown use cases)
-      - Automation use cases (scheduled coverage checks, drift detection, SIEM integration)
-      - Tuning workflow integration
-      - Limitations and known gaps
-      - Troubleshooting (permissions, missing cmdlets, sysmon -c failures)
-      - Integration with other ICS Watch Dog tools (Test-SysmonConfig, Merge-SysmonModules)
-      - Worked end-to-end example session
-- [ ] Add Coverage Assessment link to docs/_includes/nav.html Guides dropdown
+##### Checkpoint B1: Standards and dev docs
+
+- [ ] Sweep planning docs for stale v4.x references (replace with v6 historical, v7 forward target)
+- [ ] Create `claude-dev/TOOL_CODING_STANDARD.md` (PowerShell/Python tool conventions, JSON I/O schema versioning, parameter naming, testing rules)
+- [ ] Create `claude-dev/REMOTE_TESTING.md` (Proxmox Windows VM setup for remote automated testing; SSH-first; no secrets/keys/hostnames in the public dev branch)
+- [ ] Add `.gitattributes` with `export-ignore` for `claude-dev/`, `docs/`, `CLAUDE.md` as defensive layer behind manual release process
+- [ ] Update `claude-dev/GIT_RELEASE_STEPS.md` to note the `.gitattributes` safety net behind the existing manual `git rm` step
+- [ ] Update PLAN.md and RESUME.md to reflect checkpoint B1 deliverables
+
+##### Checkpoint B2: Toolchain refactor, tests, and usage guide
+
+- [ ] Refactor `tools/Get-SysmonCoverage.ps1`: drop `-MockInventoryPath`, add `-InventoryPath` (live system OR JSON file as input)
+- [ ] Build `tools/Export-SystemInventory.ps1`: capture live system to JSON. Includes `InventorySchemaVersion` and metadata header. Opt-in `-Redact` flag for sanitization.
+- [ ] Build `tools/Compare-SystemInventory.ps1`: diff two inventory JSONs; changes-only output; Console default with optional `-OutputPath`
+- [ ] Move existing fixture from `tools/test-fixtures/coverage/` to `claude-dev/test-fixtures/coverage/`. Regenerate via the new export tool so it matches schema v1.0.
+- [ ] Update `tools/Test-GetSysmonCoverage.ps1` for new parameter and fixture path; add skip-on-missing-fixture behavior
+- [ ] Add `tools/Test-CompareSystemInventory.ps1` for the new diff tool
+- [ ] Add `tools/Test-ExportSystemInventory.ps1` (parameter-validation only on Linux; manual smoke test on Windows recorded in RESUME.md)
+- [ ] Dogfood all three tools end-to-end against the regenerated fixture
+- [ ] Create new website page `docs/_pages/coverage-assessment.html` (succinct, ~1200-1500 words):
+      - The three scripts and when to use each
+      - Capture -> measure -> compare workflow
+      - Live-system quick start
+      - Offline / cross-system workflow (capture on locked-down host, analyze elsewhere)
+      - Reading the four coverage sections (Process / OT Software / Industrial Port / ATT&CK)
+      - Honest interpretation: low % on baseline-ot is expected, not a failing
+      - Output formats and when to use each
+      - Diff workflow (patch impact, host comparison)
+      - Submitting inventories to the community (sanitization checklist; what `-Redact` does and doesn't catch)
+      - Limitations
+      - Troubleshooting
+- [ ] Add Coverage Assessment link to `docs/_includes/nav.html` Guides dropdown
 - [ ] Verify Jekyll build
 
 #### Phase 11e: Build Your Own Module Guide
@@ -873,7 +894,7 @@ Origin: User direction (2026-04-07): produce a usage guide for Get-SysmonCoverag
       - Tier B (vendor-documented patterns without lab validation) -> ships in community/
       - Tier C (theoretical proposed) -> posted as GitHub issue for community testing before merge
 
-#### Phase 11g: Documentation and v4.1 Release
+#### Phase 11g: Documentation and v7 Release
 
 - [ ] Update modules.html to add Confidence column in module tables
 - [ ] Update community.html with new contribution process
@@ -881,7 +902,7 @@ Origin: User direction (2026-04-07): produce a usage guide for Get-SysmonCoverag
 - [ ] Update nav.html to ensure all new pages are linked (Coverage Assessment, BYO Module)
 - [ ] Verify Jekyll build
 - [ ] Final validation: 8/8 configs xmllint, 48/48 modules xmllint, PS test harnesses passing
-- [ ] Commit, merge to main, deploy site, tag release v4.1
+- [ ] Commit, merge to main, deploy site, tag release v7
 
 ## Out of Scope
 

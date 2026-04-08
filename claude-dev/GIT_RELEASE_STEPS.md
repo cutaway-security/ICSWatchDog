@@ -7,6 +7,10 @@
 
 All development occurs on the `claude-dev` branch. Releases strip development files and force-push to `main`. Main is a deployment target only -- no work is committed there directly. The website is deployed separately to the `gh-pages` branch via deploy-site.sh.
 
+### Defensive layer: .gitattributes export-ignore
+
+`.gitattributes` at the repo root marks `claude-dev/`, `docs/`, and `CLAUDE.md` as `export-ignore`. This is a structural safety net behind the manual `git rm` step in Section 4 below: any future release path that uses `git archive` or relies on GitHub's auto-generated release tarballs will automatically exclude those paths even if the manual step is missed. The current force-push process is unaffected and continues to work as documented. When adding a new dev-only path under the repo root, add it to both `.gitattributes` (export-ignore) and to Section 4 below (manual `git rm`).
+
 ### Tag and Branch Naming
 
 | Item | Format | Example | Purpose |
@@ -170,4 +174,11 @@ The following files exist only on the `claude-dev` branch and are stripped befor
 | `claude-dev/GIT_RELEASE_STEPS.md` | This file |
 | `claude-dev/deploy-site.sh` | Website deployment script |
 | `claude-dev/html-css-jekyll.md` | Code standard reference |
+| `claude-dev/SYSMON_CODING_STANDARD.md` | Sysmon XML coding standard |
+| `claude-dev/TOOL_CODING_STANDARD.md` | PowerShell/Python tool coding standard |
+| `claude-dev/REMOTE_TESTING.md` | Proxmox remote test environment setup |
+| `claude-dev/remote-testing.example.conf` | Local-config template (real config gitignored) |
+| `claude-dev/test-fixtures/` | Dev-only test fixtures for tool harnesses |
 | `docs/` | Jekyll website source (deployed separately to gh-pages) |
+
+The entire `claude-dev/` directory is also marked `export-ignore` in `.gitattributes` as a defensive safety net (see Overview).

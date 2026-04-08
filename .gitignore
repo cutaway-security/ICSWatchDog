@@ -11,3 +11,7 @@ Gemfile.lock
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local-only dev test config (must never be committed -- contains real
+# hostnames/IPs/usernames per claude-dev/REMOTE_TESTING.md)
+claude-dev/remote-testing.local.conf
