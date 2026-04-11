@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phases 11a and 11b complete. Phase 11d (Coverage Toolchain Refactor + Usage Guide) in progress. Two-checkpoint plan: B1 = standards/dev docs/planning sweep; B2 = tool refactor + tests + guide. Phase 11c (Validation Framework) deferred until after 11d. All Phase 11 work targets release tag v7.
-**Focus**: Phase 11d checkpoint B1 in progress.
+**Status**: Phases 11a and 11b complete. Phase 11d checkpoint B1 complete. Schema bump, Win7 legacy config, config testing (all 6 VMs), and script testing (Win10) all complete. Ready for commit and push, then Phase 11d checkpoint B2. All Phase 11 work targets release tag v7.
+**Focus**: Commit/push, then Phase 11d B2 (toolchain refactor + usage guide).
 
 ## Phases
 
@@ -358,6 +358,14 @@ Two role-specific server configs, each self-contained (includes server baseline 
 | 2026-04-07 | Honest retroactive labeling: most current modules are vendor-documented, NOT verified-in-lab | The project has not validated any module against an actual ICS vendor install. Marking modules as verified-in-lab would be inaccurate. The honest assessment downgrades some modules from implied authoritative status to vendor-documented or theoretical. This is the foundation of the validation framework. |
 | 2026-04-07 | Coverage assessment tool reports multiple coverage types, not a single percentage | Process coverage, software coverage, port coverage, and ATT&CK technique coverage are all valid coverage measurements. Different admins care about different ones. Reporting all four (and gaps for each) gives an honest picture rather than a single misleading number. |
 | 2026-04-07 | Insert Phase 11d Coverage Toolchain Refactor + Usage Guide before Build Your Own Module guide | Per user direction: testing existing coverage must precede building new modules. Admins need to understand what they have before deciding what to build. Phase 11d covers both the toolchain refactor (Export/Get-Coverage/Compare) and the usage guide. Phases 11e/11f/11g renumbered accordingly. |
+| 2026-04-11 | Schema 4.50 bumped to 4.90 across all curated configs | Testing confirmed Sysmon 15.20 (schema 4.91) rejects schema 4.50 configs ("No rules installed") but accepts 4.90. The "4.50 for legacy" strategy was broken at both ends: too new for Win7/Sysmon 10 (max 4.23) and too old for current Sysmon (requires 4.90+). Bump to 4.90 is metadata-only; no rule logic changed. |
+| 2026-04-11 | Legacy Win7 config at schema 4.23 created | Per user direction: many OT environments still run Win7. New `sysmonconfig-legacy-win7.xml` derived from baseline-ot with post-4.23 event types removed (FileDelete, ProcessTampering, FileDeleteDetected) and `contains any` conditions replaced with single-binary `end with` matching. Reduced-feature but honest about what schema 4.23 supports. |
+| 2026-04-11 | PS version check added to all tools and test harnesses | Win7 has PS 2.0, below the project minimum of PS 3.0. Scripts now check `$PSVersionTable.PSVersion.Major -lt 3` and exit cleanly with an error message. This is tested as a PASS (graceful rejection) on Win7, not a FAIL. |
+| 2026-04-11 | Test infrastructure stood up on Proxmox NUCs | Dev VMs (Win7, Win10, Win11, Server 2016/2019/2022) with OpenSSH and Sysmon installed. TESTING_STANDARD.md governs test procedures. SSH key auth confirmed working on Win7, Win10 (fixed ACL issue), Win11. Server VMs not yet tested. Max 3 concurrent VMs due to NUC memory constraints. |
+| 2026-04-11 | VM lifecycle via SSH + qm, not Proxmox API | SSH to Proxmox host and `qm start/stop/status` commands are simpler than curl-based API calls. API credentials saved for future automation if needed. |
+
+| 2026-04-11 | PS 2.0 compatibility via runtime detection, not separate scripts | Per user direction: many OT environments have Win7 with PS 2.0. Instead of maintaining separate Win7 script copies, each script self-detects PS version at runtime. Console and Markdown output work on PS 2.0. JSON output gates behind a PS 3+ check with a clear error. Avoids code duplication and version drift. |
+| 2026-04-11 | Markdown output for AI consumption; all three formats mandatory on report scripts | Per user direction: Markdown output should be available on all report-producing scripts to facilitate AI/LLM analysis. Console/JSON/Markdown are now all mandatory (not optional) on scripts that produce reports. Consistent `-OutputFormat` parameter across all tools. |
 
 ### Phase 7: Efficacy Testing
 

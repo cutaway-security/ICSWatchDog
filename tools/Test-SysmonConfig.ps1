@@ -110,6 +110,11 @@ param(
     [switch]$SkipConfirmation
 )
 
+if ($PSVersionTable.PSVersion.Major -lt 3) {
+    Write-Error "This script requires PowerShell 3.0 or later. Current version: $($PSVersionTable.PSVersion)"
+    exit 1
+}
+
 # Enforce strict mode for reliable error handling
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"

@@ -66,8 +66,10 @@
     Live coverage report from the running Sysmon config, parsed as JSON.
 
 .NOTES
-    Requirements: PowerShell 3.0 or later. No external modules.
-    Compatible with Windows PowerShell 5.1+ and PowerShell Core 7+.
+    Requirements: PowerShell 2.0 or later. No external modules.
+    PS 2.0: Console and Markdown output only (JSON requires PS 3.0+).
+    PS 3.0+: All output formats (Console, JSON, Markdown).
+    Compatible with Windows PowerShell 2.0+ and PowerShell Core 7+.
     See: https://icswatchdog.com/coverage-assessment/
 #>
 
@@ -83,6 +85,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# PS 2.0 compatibility: JSON output requires PS 3+ (ConvertTo-Json / ConvertFrom-Json).
+# Console and Markdown output work on PS 2.0+.
+$Script:PSv2 = ($PSVersionTable.PSVersion.Major -lt 3)
+if ($Script:PSv2 -and $OutputFormat -eq 'JSON') {
+    Write-Error "JSON output requires PowerShell 3.0 or later. Current version: $($PSVersionTable.PSVersion). Use -OutputFormat Console or Markdown."
+    exit 1
+}
+if ($Script:PSv2 -and $MockInventoryPath) {
+    Write-Error "MockInventoryPath requires PowerShell 3.0 or later (ConvertFrom-Json). Current version: $($PSVersionTable.PSVersion)"
+    exit 1
+}
 
 # ==============================================================================
 # CONFIGURATION
@@ -171,7 +185,7 @@ function Get-RulesFromXml {
     #>
     param([string]$XmlPath)
 
-    $content = Get-Content -LiteralPath $XmlPath -Raw
+    $content = [System.IO.File]::ReadAllText($XmlPath)
 
     # Strip XML comments to avoid extracting commented-out examples
     $content = [regex]::Replace($content, '<!--[\s\S]*?-->', '')
@@ -229,8 +243,8 @@ function Get-RulesFromModule {
     Modules are XML fragments without a <Sysmon> root. Wrap and parse.
     #>
     param([string]$ModulePath)
-    $content = Get-Content -LiteralPath $ModulePath -Raw
-    $tmp = New-TemporaryFile
+    $content = [System.IO.File]::ReadAllText($ModulePath)
+    $tmp = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -LiteralPath $tmp -Value ("<icswatchdog-root>" + $content + "</icswatchdog-root>")
         return Get-RulesFromXml -XmlPath $tmp
@@ -271,7 +285,8 @@ function Get-SystemInventory {
     #>
     if ($MockInventoryPath) {
         Write-Detail "Using mock inventory from: $MockInventoryPath"
-        return Get-Content -LiteralPath $MockInventoryPath -Raw | ConvertFrom-Json | ConvertTo-Hashtable
+        $jsonText = [System.IO.File]::ReadAllText($MockInventoryPath)
+        return $jsonText | ConvertFrom-Json | ConvertTo-Hashtable
     }
 
     Write-Detail "Inventorying running processes..."
@@ -310,14 +325,14 @@ function Get-SystemInventory {
     $listeningPorts = @()
     try {
         $listeningPorts = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
-            ForEach-Object { [int]$_.LocalPort } | Select-Object -Unique
+            ForEach-Object { [int]$_.LocalPort } | Sort-Object -Unique
     } catch {
         # Get-NetTCPConnection requires PS 4+ on Windows 8/Server 2012+. Fall back to netstat.
         Write-Detail "Get-NetTCPConnection unavailable; falling back to netstat -ano"
         try {
             $netstat = & netstat -ano 2>$null
             $listeningPorts = $netstat | Where-Object { $_ -match '^\s+TCP\s+\S+:(\d+)\s+\S+\s+LISTENING' } |
-                ForEach-Object { [int]($_ -replace '^\s+TCP\s+\S+:(\d+).*', '$1') } | Select-Object -Unique
+                ForEach-Object { [int]($_ -replace '^\s+TCP\s+\S+:(\d+).*', '$1') } | Sort-Object -Unique
         } catch {
             Write-Warning "Port inventory failed: $($_.Exception.Message)"
         }
@@ -426,6 +441,7 @@ function Get-Coverage {
 
     # Software coverage (OT-relevant)
     $otRelevantSoftware = @($Inventory.Software | Where-Object {
+        if (-not $_.DisplayName) { return $false }
         $name = $_.DisplayName.ToLower()
         $matched = $false
         foreach ($hint in $OtVendorHints.Keys) {
@@ -437,13 +453,14 @@ function Get-Coverage {
     $coveredOtSoftware = 0
     $uncoveredOtSoftware = New-Object System.Collections.Generic.List[hashtable]
     foreach ($sw in $otRelevantSoftware) {
+        if (-not $sw.DisplayName) { continue }
         $name = $sw.DisplayName.ToLower()
         $hasModule = $false
         $suggestedModule = ''
         foreach ($hint in $OtVendorHints.Keys) {
             if ($name.Contains($hint)) {
                 $suggestedModule = $OtVendorHints[$hint]
-                if (-not $suggestedModule.StartsWith('(no module yet')) {
+                if ($suggestedModule -and -not $suggestedModule.StartsWith('(no module yet')) {
                     # Check if any rule's image pattern is consistent with this vendor
                     $hasModule = $true
                 }

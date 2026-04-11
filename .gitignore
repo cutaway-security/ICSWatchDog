@@ -12,6 +12,9 @@ Gemfile.lock
 .DS_Store
 Thumbs.db
 
-# Local-only dev test config (must never be committed -- contains real
-# hostnames/IPs/usernames per claude-dev/REMOTE_TESTING.md)
+# Local-only dev/test configs (must never be committed -- contain real
+# hostnames/IPs/credentials per claude-dev/REMOTE_TESTING.md)
 claude-dev/remote-testing.local.conf
+claude-dev/*.local.*
+claude-dev/dev-inventory.csv
+claude-dev/proxmox-api.conf

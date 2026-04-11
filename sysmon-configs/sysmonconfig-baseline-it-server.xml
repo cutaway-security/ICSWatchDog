@@ -5,7 +5,7 @@
   Project:      https://github.com/cutaway-security/ICSWatchDog
   License:      Creative Commons Attribution 4.0
 
-  Minimum Sysmon:   v13+ (schema 4.50)
+  Minimum Sysmon:   v15+ (schema 4.90)
   Target:           Enterprise Windows servers (general server baseline)
 
   SANS ICS 5 Critical Controls Supported:
@@ -80,7 +80,7 @@
     - CISA Ransomware Guide: https://www.cisa.gov/stopransomware/ransomware-guide
 -->
 
-<Sysmon schemaversion="4.50">
+<Sysmon schemaversion="4.90">
   <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
   <!-- CheckRevocation: checks loaded driver code-signing certificate revocation status.
        Requires network access to CRL distribution points / OCSP responders.

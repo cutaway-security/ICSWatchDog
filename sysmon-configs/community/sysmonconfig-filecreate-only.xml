@@ -11,7 +11,7 @@
   tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and
   testing before deploying in any environment.
 -->
-<Sysmon schemaversion="4.50">
+<Sysmon schemaversion="4.90">
     <!--SYSMON META CONFIG-->
     <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
     <!-- CheckRevocation: set to False if this system has no internet access -->

@@ -34,7 +34,7 @@ Every config and module file begins with a comment block containing:
 | Author | Required | ICS Watch Dog Project (or community contributor name) |
 | Project | Required | Project URL |
 | License | Required | Creative Commons Attribution 4.0 |
-| Minimum Sysmon | Required | e.g., v13+ (schema 4.50) |
+| Minimum Sysmon | Required | e.g., v15+ (schema 4.90) |
 | Target | Required | Intended deployment role (workstation, server, DC, OT, etc.) |
 | SANS ICS 5 Critical Controls | Required for curated configs | Mapping of controls supported |
 | CIS Benchmark Alignment | Required for curated configs | Relevant CIS benchmarks |
@@ -115,7 +115,7 @@ Modules are partial XML fragments without a `<Sysmon>` root element. They contai
   ICS Watch Dog Module: <Module Name>
   Category:     <vendor-ot|vendor-it|cloud-storage|sector|protocol|remote-access>
   Version:      vX.Y
-  Schema:       4.50 (default) or 4.90 (with explicit reason)
+  Schema:       4.90 (standard) or 4.23 (legacy Win7 only)
   Dependencies: <other modules required, if any>
   ATT&CK:       <technique IDs covered>
 
@@ -144,22 +144,23 @@ Modules are partial XML fragments without a `<Sysmon>` root element. They contai
 
 ### 3.1 Default
 
-Use **schema 4.50** for all new configs and modules unless newer features are essential. Schema 4.50 supports Sysmon v13+ and runs on legacy Windows versions common in OT environments (Windows 7, Server 2008/2012, LTSC editions).
+Use **schema 4.90** for all new configs and modules. Schema 4.90 is the project standard and requires Sysmon v15+.
 
-### 3.2 Schema 4.90 Use
+Testing confirmed that Sysmon 15.20 (schema 4.91) **rejects** configs at schema 4.50 ("No rules installed"). Schema 4.90 loads successfully. All curated configs and modules MUST use schema 4.90 or higher.
 
-Schema 4.90 (Sysmon v15+) is permitted only when the config or module requires features not available in 4.50:
+### 3.2 Legacy Schema 4.23
 
-- Event ID 27 (FileBlockExecutable)
-- Event ID 28 (FileBlockShredding)
-- Event ID 29 (FileExecutableDetected)
-- Event ID 24 (ClipboardChange)
+A single legacy config (`sysmonconfig-legacy-win7.xml`) targets Windows 7 systems running Sysmon 10.42 (schema 4.23). This config is a reduced-feature variant of the OT Baseline with these restrictions:
 
-When using schema 4.90, the config or module header MUST include an explicit note explaining the requirement and the legacy compatibility impact.
+- No FileDelete (Event ID 23), ProcessTampering (25), or FileDeleteDetected (26)
+- No `contains any` or `excludes any` conditions (introduced in schema 4.50)
+- LOLBAS rules simplified to single-binary `end with` matching
+
+New modules and configs MUST NOT target schema 4.23 unless specifically adding Win7 legacy support.
 
 ### 3.3 Schema Mismatch Warning
 
-The merge tooling warns when a 4.90 module is merged into a 4.50 base config. The merge succeeds, but the resulting config requires Sysmon v15+ to load.
+The merge tooling warns when modules with mismatched schema versions are merged. The merge succeeds, but the resulting config requires the higher schema version to load.
 
 ---
 
@@ -220,7 +221,7 @@ Default `groupRelation="or"` for most RuleGroups. Use `"and"` only when matching
 
 Composite rules use the `<Rule>` element with `groupRelation="and"` to require multiple field conditions to match together. This is necessary for high-precision LOLBAS detections that need to scope by both binary name AND command-line pattern to avoid false positives.
 
-**Schema compatibility**: Composite `<Rule>` elements are supported in schema 4.20 and later. The ICS Watch Dog baseline schema 4.50 (Sysmon v13+) supports them.
+**Schema compatibility**: Composite `<Rule>` elements are supported in schema 4.20 and later. The ICS Watch Dog standard schema 4.90 (Sysmon v15+) supports them. The legacy Win7 config (schema 4.23) also supports composite rules but cannot use `contains any` conditions.
 
 **Example -- LOLBAS detection requiring binary + command-line pattern**:
 ```xml
@@ -524,7 +525,7 @@ Admins pick exactly ONE per tool based on site policy. The merge tooling does no
 Modules follow the header format in section 2.3, with these required additions:
 
 - Category
-- Schema (4.50 default; 4.90 with explicit reason)
+- Schema (4.90 standard; 4.23 for legacy Win7 only)
 - Dependencies (other modules required, if any)
 - Dual-use note (cloud-storage and remote-access modules only)
 - When to use / when NOT to use
@@ -580,7 +581,7 @@ The Provenance block goes immediately after the standard `WHEN NOT TO USE` and `
   ICS Watch Dog Module: Siemens TIA Portal
   Category:     vendor-ot
   Version:      v1.1
-  Schema:       4.50
+  Schema:       4.90
   Dependencies: none
   ATT&CK:       T1565.001 Stored Data Manipulation, T0857 Modify Controller Tasking
 
@@ -664,7 +665,7 @@ The following must NOT change:
 
 ### 9.4 Schema Compatibility
 
-Configs and modules using schema 4.90 features must declare schema 4.90 in the header. Modules using 4.90 features must include an explicit header note about Sysmon version requirements.
+All configs and modules use schema 4.90 (the project standard). The only exception is the legacy Win7 config at schema 4.23.
 
 ---
 

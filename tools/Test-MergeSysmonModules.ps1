@@ -36,6 +36,11 @@ param(
     [string]$FixturesPath    = (Join-Path $PSScriptRoot 'test-fixtures')
 )
 
+if ($PSVersionTable.PSVersion.Major -lt 3) {
+    Write-Error "This script requires PowerShell 3.0 or later. Current version: $($PSVersionTable.PSVersion)"
+    exit 1
+}
+
 $ErrorActionPreference = 'Stop'
 
 if (-not (Test-Path -LiteralPath $MergeScriptPath)) {

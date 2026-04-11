@@ -1,0 +1,301 @@
+<!--
+  ICS Watch Dog - Legacy Windows 7 Sysmon Configuration
+  Version:      v1.0
+  Author:       ICS Watch Dog Project (https://icswatchdog.com)
+  Project:      https://github.com/cutaway-security/ICSWatchDog
+  License:      Creative Commons Attribution 4.0
+
+  Minimum Sysmon:   v10+ (schema 4.23)
+  Target:           Windows 7 ICS/OT systems still in service (HMI, engineering workstations)
+
+  LEGACY NOTICE:
+    This configuration targets Windows 7 systems running Sysmon 10.42 (schema 4.23).
+    Windows 7 reached end of life in January 2020. This config provides the best
+    available monitoring coverage within the constraints of older Sysmon versions.
+
+    Schema 4.23 limitations vs. the standard OT Baseline (schema 4.90):
+    - No RuleGroup element: each event type appears once under EventFiltering
+    - No composite Rule elements (groupRelation="and"): LOLBAS composite
+      detection is not possible. Individual conditions provide broader but
+      less precise monitoring.
+    - No FileDelete (Event ID 23), ProcessTampering (25), FileDeleteDetected (26)
+    - Cannot mix onmatch="include" and onmatch="exclude" for the same event type
+
+    Detection approach:
+    - ProcessCreate uses onmatch="exclude" (log everything except known noise).
+      This captures ransomware indicators, LOLBAS activity, and vendor processes
+      without explicit include rules. Events will not have ATT&CK RuleName tags.
+    - FileCreate uses onmatch="include" (log only specific file types and paths).
+    - PipeEvent uses onmatch="exclude" (log all pipe activity except known system pipes).
+    - Other event types follow the same patterns as the standard configs.
+
+    For systems running Sysmon 15+ (Windows 10/11, Server 2016+), use the standard
+    OT Baseline or other curated configs instead of this one.
+
+  DESCRIPTION:
+    OT baseline monitoring for legacy Windows 7 systems. Provides:
+    - Broad process creation logging with noise exclusions
+    - Network connection monitoring
+    - File creation monitoring for executables, scripts, and ICS project files
+    - Registry persistence detection
+    - Named pipe monitoring (C2 detection)
+    - DNS query logging
+    - WMI event logging
+
+  DISCLAIMER:
+    This configuration is provided as-is for educational and operational use.
+    It is NOT tested against all environments and may require tuning for your
+    specific systems. Cutaway Security, LLC and contributors assume no liability
+    for any impact resulting from the use of this configuration.
+-->
+
+<Sysmon schemaversion="4.23">
+  <HashAlgorithms>md5,sha256,IMPHASH</HashAlgorithms>
+  <!-- CheckRevocation: omitted to disable (Sysmon 10.x uses self-closing
+       element to enable, omission to disable). OT systems are often air-gapped. -->
+
+  <EventFiltering>
+
+    <!--
+    EVENT ID 1: PROCESS CREATION [ProcessCreate]
+    Log all process creation except known noisy system processes.
+    This broad approach captures ransomware indicators, LOLBAS activity,
+    and vendor processes without explicit include rules.
+    -->
+    <ProcessCreate onmatch="exclude">
+      <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+      <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+      <Image condition="is">C:\Windows\System32\SearchProtocolHost.exe</Image>
+      <Image condition="is">C:\Windows\System32\SearchFilterHost.exe</Image>
+      <Image condition="is">C:\Windows\System32\audiodg.exe</Image>
+      <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+      <Image condition="is">C:\Windows\System32\musNotification.exe</Image>
+      <Image condition="is">C:\Windows\System32\musNotificationUx.exe</Image>
+      <Image condition="is">C:\Windows\System32\WerFault.exe</Image>
+      <Image condition="is">C:\Windows\SysWOW64\WerFault.exe</Image>
+      <Image condition="is">C:\Windows\System32\wermgr.exe</Image>
+      <Image condition="is">C:\Windows\System32\SppExtComObj.Exe</Image>
+      <Image condition="is">C:\Windows\System32\CompatTelRunner.exe</Image>
+      <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+      <Image condition="is">C:\Program Files\Windows Defender\NisSrv.exe</Image>
+      <Image condition="is">C:\Program Files\Windows Defender\MpCmdRun.exe</Image>
+    </ProcessCreate>
+
+    <!--
+    EVENT ID 2: FILE CREATION TIME CHANGED [FileCreateTime]
+    Detects timestomping.
+    -->
+    <FileCreateTime onmatch="exclude">
+      <Image condition="is">C:\Windows\System32\svchost.exe</Image>
+      <Image condition="is">C:\Windows\System32\msiexec.exe</Image>
+    </FileCreateTime>
+
+    <!--
+    EVENT ID 3: NETWORK CONNECTION [NetworkConnect]
+    Log all network connections except Windows Defender.
+    OT systems should have minimal and predictable network activity.
+    -->
+    <NetworkConnect onmatch="exclude">
+      <Image condition="is">C:\Program Files\Windows Defender\MsMpEng.exe</Image>
+    </NetworkConnect>
+
+    <!--
+    EVENT ID 5: PROCESS TERMINATED [ProcessTerminate]
+    -->
+    <ProcessTerminate onmatch="exclude">
+      <Image condition="is">C:\Windows\System32\backgroundTaskHost.exe</Image>
+      <Image condition="is">C:\Windows\System32\RuntimeBroker.exe</Image>
+      <Image condition="is">C:\Windows\System32\conhost.exe</Image>
+    </ProcessTerminate>
+
+    <!--
+    EVENT ID 6: DRIVER LOADED [DriverLoad]
+    Log all non-Microsoft drivers.
+    -->
+    <DriverLoad onmatch="exclude">
+      <Signature condition="contains">Microsoft</Signature>
+      <Signature condition="contains">Windows</Signature>
+    </DriverLoad>
+
+    <!--
+    EVENT ID 7: IMAGE LOADED [ImageLoad]
+    Disabled by default (high volume).
+    -->
+    <ImageLoad onmatch="include"/>
+
+    <!--
+    EVENT ID 8: CREATE REMOTE THREAD [CreateRemoteThread]
+    -->
+    <CreateRemoteThread onmatch="exclude">
+      <SourceImage condition="is">C:\Windows\System32\csrss.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\wininit.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\winlogon.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\services.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\lsass.exe</SourceImage>
+      <SourceImage condition="is">C:\Windows\System32\svchost.exe</SourceImage>
+    </CreateRemoteThread>
+
+    <!--
+    EVENT ID 9: RAW ACCESS READ [RawAccessRead]
+    Disabled by default.
+    -->
+    <RawAccessRead onmatch="include"/>
+
+    <!--
+    EVENT ID 10: PROCESS ACCESS [ProcessAccess]
+    Monitor access to lsass.exe (credential theft detection).
+    -->
+    <ProcessAccess onmatch="include">
+      <TargetImage condition="is">C:\Windows\System32\lsass.exe</TargetImage>
+    </ProcessAccess>
+
+    <!--
+    EVENT ID 11: FILE CREATED [FileCreate]
+    Monitor creation of executables, scripts, ICS project files,
+    and files in persistence/staging locations.
+    -->
+    <FileCreate onmatch="include">
+      <!-- Persistence locations -->
+      <TargetFilename condition="contains">\Start Menu</TargetFilename>
+      <TargetFilename condition="contains">\Startup</TargetFilename>
+      <TargetFilename condition="contains">\Windows\System32\Tasks</TargetFilename>
+
+      <!-- Executable and script file types -->
+      <TargetFilename condition="end with">.exe</TargetFilename>
+      <TargetFilename condition="end with">.dll</TargetFilename>
+      <TargetFilename condition="end with">.sys</TargetFilename>
+      <TargetFilename condition="end with">.bat</TargetFilename>
+      <TargetFilename condition="end with">.cmd</TargetFilename>
+      <TargetFilename condition="end with">.ps1</TargetFilename>
+      <TargetFilename condition="end with">.vbs</TargetFilename>
+      <TargetFilename condition="end with">.js</TargetFilename>
+      <TargetFilename condition="end with">.wsf</TargetFilename>
+      <TargetFilename condition="end with">.hta</TargetFilename>
+      <TargetFilename condition="end with">.scr</TargetFilename>
+      <TargetFilename condition="end with">.msi</TargetFilename>
+
+      <!-- Staging locations -->
+      <TargetFilename condition="contains">\Downloads\</TargetFilename>
+      <TargetFilename condition="contains">\AppData\Local\Temp\</TargetFilename>
+      <TargetFilename condition="contains">\ProgramData\</TargetFilename>
+
+      <!-- ICS project files -->
+      <TargetFilename condition="end with">.ap17</TargetFilename>
+      <TargetFilename condition="end with">.ap18</TargetFilename>
+      <TargetFilename condition="end with">.ap19</TargetFilename>
+      <TargetFilename condition="end with">.s7p</TargetFilename>
+      <TargetFilename condition="end with">.project</TargetFilename>
+      <TargetFilename condition="end with">.st</TargetFilename>
+      <TargetFilename condition="end with">.app</TargetFilename>
+
+      <!-- Firmware files -->
+      <TargetFilename condition="end with">.hex</TargetFilename>
+      <TargetFilename condition="end with">.bin</TargetFilename>
+      <TargetFilename condition="end with">.fw</TargetFilename>
+
+      <!-- OPC config -->
+      <TargetFilename condition="end with">.opf</TargetFilename>
+
+      <!-- Archives -->
+      <TargetFilename condition="end with">.zip</TargetFilename>
+      <TargetFilename condition="end with">.rar</TargetFilename>
+      <TargetFilename condition="end with">.7z</TargetFilename>
+      <TargetFilename condition="end with">.iso</TargetFilename>
+
+      <!-- Recycle Bin and Group Policy -->
+      <TargetFilename condition="contains">\$Recycle.Bin\</TargetFilename>
+      <TargetFilename condition="contains">\GroupPolicy\</TargetFilename>
+
+      <!-- Ransom note patterns -->
+      <TargetFilename condition="contains">DECRYPT</TargetFilename>
+      <TargetFilename condition="contains">RANSOM</TargetFilename>
+      <TargetFilename condition="contains">RECOVER</TargetFilename>
+      <TargetFilename condition="end with">Decrypt-Your-Files.txt</TargetFilename>
+
+      <!-- OT vendor directories -->
+      <TargetFilename condition="contains">\Siemens\</TargetFilename>
+      <TargetFilename condition="contains">\Rockwell Software\</TargetFilename>
+      <TargetFilename condition="contains">\Schneider Electric\</TargetFilename>
+      <TargetFilename condition="contains">\Wonderware\</TargetFilename>
+      <TargetFilename condition="contains">\ArchestrA\</TargetFilename>
+      <TargetFilename condition="contains">\PIPC\</TargetFilename>
+      <TargetFilename condition="contains">\Inductive Automation\</TargetFilename>
+      <TargetFilename condition="contains">\Kepware\</TargetFilename>
+      <TargetFilename condition="contains">\SEL\</TargetFilename>
+      <TargetFilename condition="contains">\CODESYS\</TargetFilename>
+    </FileCreate>
+
+    <!--
+    EVENT ID 12, 13, 14: REGISTRY EVENTS [RegistryEvent]
+    Monitor autostart and critical registry locations.
+    -->
+    <RegistryEvent onmatch="include">
+      <TargetObject condition="contains">\CurrentVersion\Run</TargetObject>
+      <TargetObject condition="contains">\CurrentVersion\RunOnce</TargetObject>
+      <TargetObject condition="contains">\CurrentVersion\RunServices</TargetObject>
+      <TargetObject condition="contains">\CurrentVersion\Policies\Explorer\Run</TargetObject>
+      <TargetObject condition="contains">\CurrentControlSet\Services</TargetObject>
+      <TargetObject condition="contains">\Schedule\TaskCache</TargetObject>
+      <TargetObject condition="contains">\Windows NT\CurrentVersion\Windows\AppInit_DLLs</TargetObject>
+      <TargetObject condition="contains">\CurrentVersion\Image File Execution Options</TargetObject>
+      <TargetObject condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell</TargetObject>
+      <TargetObject condition="contains">\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit</TargetObject>
+      <TargetObject condition="contains">\Policies\Microsoft\Windows\SrpV2</TargetObject>
+      <TargetObject condition="contains">\Control\SafeBoot</TargetObject>
+      <TargetObject condition="contains">\SecurityProviders\WDigest</TargetObject>
+      <TargetObject condition="contains">\Policies\Microsoft\Windows Defender</TargetObject>
+    </RegistryEvent>
+
+    <!--
+    EVENT ID 15: FILE CREATE STREAM HASH [FileCreateStreamHash]
+    -->
+    <FileCreateStreamHash onmatch="include">
+      <TargetFilename condition="end with">.exe</TargetFilename>
+      <TargetFilename condition="end with">.dll</TargetFilename>
+      <TargetFilename condition="end with">.bat</TargetFilename>
+      <TargetFilename condition="end with">.cmd</TargetFilename>
+      <TargetFilename condition="end with">.ps1</TargetFilename>
+      <TargetFilename condition="end with">.vbs</TargetFilename>
+      <TargetFilename condition="end with">.js</TargetFilename>
+      <TargetFilename condition="end with">.hta</TargetFilename>
+    </FileCreateStreamHash>
+
+    <!--
+    EVENT ID 17, 18: NAMED PIPE EVENTS [PipeEvent]
+    Log all pipe activity except known system pipes. This catches
+    C2 framework pipes (Cobalt Strike, PsExec, Mimikatz) without
+    explicit include rules.
+    -->
+    <PipeEvent onmatch="exclude">
+      <PipeName condition="is">\lsass</PipeName>
+      <PipeName condition="is">\wkssvc</PipeName>
+      <PipeName condition="is">\srvsvc</PipeName>
+      <PipeName condition="is">\winreg</PipeName>
+      <PipeName condition="is">\spoolss</PipeName>
+    </PipeEvent>
+
+    <!--
+    EVENT ID 19, 20, 21: WMI EVENTS [WmiEvent]
+    Log all WMI persistence.
+    -->
+    <WmiEvent onmatch="exclude"/>
+
+    <!--
+    EVENT ID 22: DNS QUERY [DnsQuery]
+    Log all DNS queries except common Microsoft domains.
+    -->
+    <DnsQuery onmatch="exclude">
+      <QueryName condition="end with">.microsoft.com</QueryName>
+      <QueryName condition="end with">.windowsupdate.com</QueryName>
+      <QueryName condition="end with">.windows.com</QueryName>
+    </DnsQuery>
+
+    <!--
+    EVENT IDs 23, 25, 26: NOT AVAILABLE AT SCHEMA 4.23
+    FileDelete (23), ProcessTampering (25), and FileDeleteDetected (26)
+    require Sysmon 11+ / schema 4.30+ and are not included in this
+    legacy configuration.
+    -->
+
+  </EventFiltering>
+</Sysmon>

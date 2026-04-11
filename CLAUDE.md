@@ -65,8 +65,8 @@ Before moving to the next phase:
 | Constraint | Value |
 |------------|-------|
 | Primary Artifacts | Sysmon XML configuration files |
-| Schema Version | Tiered: 4.50 for starter/baseline (legacy OS support), newer for advanced |
-| Sysmon Minimum | v13+ for starter/baseline tiers; higher for advanced tiers using newer features |
+| Schema Version | 4.90 for all standard configs; 4.23 for legacy Win7 config |
+| Sysmon Minimum | v15+ for standard configs (schema 4.90); v10+ for legacy Win7 config (schema 4.23) |
 | License | Creative Commons Attribution 4.0 International |
 
 ### Website

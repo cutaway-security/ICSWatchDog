@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Last Session**: 2026-04-07
+**Last Session**: 2026-04-11
 **Branch**: claude-dev
-**Status**: Phases 1-10 complete (released as tag v6). Phase 11a and 11b complete. Phase 11d (Coverage Toolchain Refactor + Usage Guide) in progress. Phase 11 work targets release tag v7.
+**Status**: Phases 1-10 complete (released as tag v6). Phase 11a and 11b complete. Phase 11d checkpoint B1 complete. Schema bump, testing, NLA fix, PS 2.0 coverage tool compatibility all complete. Ready for commit/push, then Phase 11d checkpoint B2. Phase 11 work targets release tag v7.
 
 ## Phase History Summary (v6 and earlier)
 
@@ -45,6 +45,41 @@ Sample real coverage output (baseline-ot vs mock OT engineering workstation): 25
 - Removed worksheet reference from `claude-dev/ARCHITECTURE.md` file structure tree
 - Consolidated `claude-dev/RESUME.md` to focus on current state and recent activity
 
+## Schema 4.50 to 4.90 Bump and Testing Infrastructure (2026-04-11)
+
+### Critical finding: Sysmon 15.20 rejects schema 4.50
+
+Tested on Win11Pro-Dev VM: `sysmon64.exe -c sysmonconfig-baseline-ot.xml` (schema 4.50) resulted in "No rules installed". Schema 4.90 loaded successfully ("Configuration updated", 24 rule groups active). This confirmed the user's report and invalidated the project's "4.50 for legacy" strategy.
+
+### Schema bump
+
+Updated all 6 configs from schema 4.50 to 4.90: baseline-ot, baseline-it-server, baseline-it-workstation, enhanced-ot, server-ad, server-services. Also bumped the community filecreate-only config. Updated header comments (`Minimum Sysmon: v15+ (schema 4.90)`). All configs pass xmllint. The two advanced configs (advanced-ot, jumphost) were already at 4.90.
+
+### Win7 legacy config
+
+Created `sysmonconfig-legacy-win7.xml` at schema 4.23 for Windows 7 systems running Sysmon 10.42. Based on baseline-ot with:
+- Removed FileDelete (ID 23), ProcessTampering (ID 25), FileDeleteDetected (ID 26)
+- Replaced `contains any` conditions with `end with` for single-binary matching (powershell.exe only; pwsh.exe and powershell_ise.exe unavailable at schema 4.23)
+
+### PS version checks
+
+Added `$PSVersionTable.PSVersion.Major -lt 3` check to all 5 scripts: Merge-SysmonModules.ps1, Get-SysmonCoverage.ps1, Test-SysmonConfig.ps1, Test-GetSysmonCoverage.ps1, Test-MergeSysmonModules.ps1. Win7 (PS 2.0) now gets a clean error instead of cryptic failures.
+
+### Testing infrastructure
+
+- 6 dev VMs deployed on Proxmox NUCs (Win7, Win10, Win11, Server 2016/2019/2022). Server 2012 and 2025 not yet installed.
+- SSH key auth confirmed working on Win7, Win10 (fixed ACL issue on administrators_authorized_keys), Win11.
+- Win10 SSH fix: `NT AUTHORITY\Authenticated Users:(RX)` ACE on `C:\ProgramData\ssh\administrators_authorized_keys` caused silent key auth rejection. Fixed by removing inheritance and setting only SYSTEM:(F) and Administrators:(F).
+- Created `claude-dev/TESTING_STANDARD.md` governing config, script, and efficacy testing procedures, pass/fail criteria, VM lifecycle rules (max 3 concurrent), and result recording.
+- Created `claude-dev/dev-inventory.csv` (gitignored) with corrected VMIDs, Sysmon/PS versions from live probing.
+- Created `claude-dev/proxmox-api.conf` (gitignored) with API credentials.
+- Added compatibility matrix section to README.md (currently empty, to be filled during test runs).
+
+### Standards updates
+
+- CLAUDE.md: updated schema version constraint from "4.50 for starter/baseline" to "4.90 for standard, 4.23 for legacy Win7"
+- SYSMON_CODING_STANDARD.md: Section 3 rewritten for 4.90 default with 4.23 legacy exception
+
 ## Phase 11d Checkpoint B1: COMPLETE
 
 Standards and dev-doc foundation laid before the Phase 11d toolchain refactor (Checkpoint B2). All work targets release tag v7.
@@ -60,22 +95,76 @@ Deliverables:
 - Updated `claude-dev/GIT_RELEASE_STEPS.md`: Overview now documents the `.gitattributes` safety net; "Files Removed During Release" table now lists all current dev-only files (added TOOL_CODING_STANDARD.md, REMOTE_TESTING.md, SYSMON_CODING_STANDARD.md, remote-testing.example.conf, test-fixtures/).
 - Updated `claude-dev/PLAN.md`: Phase 11d expanded into Checkpoint B1 + B2 task lists; current phase pointer set to "11d B1 in progress"; 5 new decision log entries (toolchain refactor scope, standards split, .gitattributes safety net, fixture relocation).
 
+## Config and Script Testing Results (2026-04-11)
+
+### Config test results
+
+All configs loaded on their target VMs ("Configuration updated" + expected rule group counts).
+
+| Config | Win7 | Win10 | Win11 | Srv 2016 | Srv 2019 | Srv 2022 |
+|---|---|---|---|---|---|---|
+| baseline-it-workstation | N/A | PASS (20) | PASS (20) | N/A | N/A | N/A |
+| baseline-it-server | N/A | N/A | N/A | PASS (20) | PASS (20) | PASS (20) |
+| baseline-ot | N/A | PASS (20) | PASS (20) | N/A | PASS (20) | PASS (20) |
+| enhanced-ot | N/A | PASS (21) | PASS (21) | N/A | PASS (21) | PASS (21) |
+| advanced-ot | N/A | PASS (24) | PASS (24) | N/A | PASS (24) | PASS (24) |
+| jumphost | N/A | N/A | N/A | PASS (21) | PASS (21) | PASS (21) |
+| server-ad | N/A | N/A | N/A | PASS (21) | PASS (21) | PASS (21) |
+| server-services | N/A | N/A | N/A | PASS (21) | PASS (21) | PASS (21) |
+| legacy-win7 | PASS (15) | N/A | N/A | N/A | N/A | N/A |
+
+Note: Server 2016 has `Sysmon.exe` (not `Sysmon64.exe`). All other systems use `Sysmon64.exe`.
+
+### Legacy config issues fixed during testing
+
+1. `<CheckRevocation>False</CheckRevocation>`: text content not supported at schema 4.23. Removed (omission = disabled).
+2. `<RuleGroup>`: not supported at schema 4.23. Complete rewrite to flat `<EventFiltering>` format.
+3. Composite `<Rule groupRelation="and">`: not supported at schema 4.23. LOLBAS composite rules removed; broad `onmatch="exclude"` on ProcessCreate catches activity without precision targeting.
+
+### Script test results (Win10)
+
+- Merge-SysmonModules.ps1: PASS. Merged baseline-ot + modbus-tcp. Loaded output into Sysmon: 21 rule groups.
+- Get-SysmonCoverage.ps1: PASS. Live coverage report: 63.3% process coverage.
+- Test-SysmonConfig.ps1: PASS. Executed without errors. Efficacy results deferred to post-commit.
+
+### PS 2.0 coverage tool compatibility (2026-04-11)
+
+Made Get-SysmonCoverage.ps1 compatible with PS 2.0 via runtime detection:
+- Replaced `Get-Content -Raw` with `[System.IO.File]::ReadAllText()`
+- Replaced `New-TemporaryFile` with `[System.IO.Path]::GetTempFileName()`
+- Replaced `Select-Object -Unique` with `Sort-Object -Unique`
+- Added null guards for `.ToLower()` calls on potentially null DisplayName values (PS 2.0 registry enumeration)
+- Removed PS 3.0 version gate; JSON output gated behind runtime PS version check
+- Win7 Console: PASS (32.6% process coverage, 43 processes)
+- Win7 Markdown: PASS (tables, headers, unmonitored list)
+- Win7 JSON: PASS (clean rejection: "JSON output requires PowerShell 3.0 or later")
+- Win10 regression: none (10/10 local tests, Console/JSON/Markdown verified on VM)
+
+Updated TOOL_CODING_STANDARD.md:
+- PS minimum changed from 3.0 to 2.0 (with runtime feature detection)
+- All three output formats (Console/JSON/Markdown) now mandatory on report-producing scripts
+- Markdown for AI consumption use case codified
+- PS 2.0 compatibility table added (which features to avoid, which alternatives to use)
+
+### NLA fix (2026-04-11)
+
+Applied GPO startup script to set network category to Private on all 6 VMs. Root cause: Proxmox virtual bridge gateway MAC changes between reboots, causing NLA to see a "new" network every time. All VMs verified Private after reboot. Win7 uses COM API variant; others use Get-NetConnectionProfile.
+
+### Server 2016 and Win7 resolved
+
+- Server 2016: network adapter issue fixed by user. SSH working. All 4 server configs pass. Note: uses Sysmon.exe (32-bit), not Sysmon64.exe.
+- Win7: NLA fix resolved the persistent networking issue.
+
 ## Blockers
 
-None. Checkpoint B1 is documentation-only and contains no code changes. Checkpoint B2 will need a Windows host (manual or via the Proxmox setup in REMOTE_TESTING.md, when stood up) for full validation of `Export-SystemInventory.ps1`. Linux pwsh handles parameter-validation tests and JSON-roundtrip tests for the other two tools.
+None. All testing complete. Ready for commit and push.
 
-## Next Steps (Checkpoint B2)
+## Next Steps
 
-1. Review B1 deliverables (this checkpoint) before proceeding
-2. Refactor `tools/Get-SysmonCoverage.ps1`: drop `-MockInventoryPath`, add `-InventoryPath`
-3. Build `tools/Export-SystemInventory.ps1` (schema v1.0, opt-in `-Redact`)
-4. Build `tools/Compare-SystemInventory.ps1` (changes-only, console default)
-5. Move existing fixture to `claude-dev/test-fixtures/coverage/`, regenerate via the new export tool
-6. Update / add test harnesses (skip-on-missing-fixture)
-7. Dogfood end-to-end against the regenerated fixture
-8. Write `docs/_pages/coverage-assessment.html` usage guide
-9. Update PLAN.md / RESUME.md / ARCHITECTURE.md for B2 deliverables
-10. Then Phase 11c (Validation Framework) → 11e (Build Your Own Module) → 11f (Community Intake) → 11g (v7 release)
+1. **Commit and push** current work
+2. **Phase 11d Checkpoint B2**: refactor Get-SysmonCoverage.ps1 (`-MockInventoryPath` -> `-InventoryPath`), build Export-SystemInventory.ps1, build Compare-SystemInventory.ps1, write usage guide
+3. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority; coverage tool is the one users need most on Win7)
+4. Phase 11c (Validation Framework) -> 11e (Build Your Own Module) -> 11f (Community Intake) -> 11g (v7 release)
 
 ## Files Modified This Session
 
@@ -95,6 +184,25 @@ None. Checkpoint B1 is documentation-only and contains no code changes. Checkpoi
 | `sysmon-configs/modules/sector/water-wastewater.xml` | Also fixed XML double-hyphen issue in provenance text |
 | `claude-dev/PHASE8A_TAGGING_WORKSHEET.md` | DELETED (Phase 8a worksheet, historical) |
 | `claude-dev/PHASE10A_LOLBAS_WORKSHEET.md` | DELETED (Phase 10a worksheet, historical) |
-| `tools/Get-SysmonCoverage.ps1` | Phase 11b coverage assessment tool (refactor pending in B2) |
-| `tools/Test-GetSysmonCoverage.ps1` | Phase 11b test harness (update pending in B2) |
+| `tools/Get-SysmonCoverage.ps1` | Phase 11b coverage assessment tool; PS version check added (refactor pending in B2) |
+| `tools/Test-GetSysmonCoverage.ps1` | Phase 11b test harness; PS version check added (update pending in B2) |
 | `tools/test-fixtures/coverage/` | Phase 11b mock inventory (will move to claude-dev/test-fixtures/ in B2) |
+| `sysmon-configs/sysmonconfig-baseline-ot.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-baseline-it-server.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-baseline-it-workstation.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-enhanced-ot.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-server-ad.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-server-services.xml` | Schema 4.50 -> 4.90; header updated |
+| `sysmon-configs/sysmonconfig-advanced-ot.xml` | Header updated (legacy reference 4.50 -> 4.90) |
+| `sysmon-configs/community/sysmonconfig-filecreate-only.xml` | Schema 4.50 -> 4.90 |
+| `sysmon-configs/sysmonconfig-legacy-win7.xml` | NEW: Win7 legacy config at schema 4.23 |
+| `tools/Merge-SysmonModules.ps1` | PS version check added |
+| `tools/Test-SysmonConfig.ps1` | PS version check added |
+| `tools/Test-MergeSysmonModules.ps1` | PS version check added |
+| `claude-dev/TESTING_STANDARD.md` | NEW: testing standard for configs and scripts across dev VMs |
+| `claude-dev/dev-inventory.csv` | NEW (gitignored): VM inventory with corrected VMIDs and versions |
+| `claude-dev/proxmox-api.conf` | NEW (gitignored): Proxmox API credentials |
+| `CLAUDE.md` | Schema version constraint updated (4.90 standard, 4.23 legacy) |
+| `claude-dev/SYSMON_CODING_STANDARD.md` | Section 3 rewritten for 4.90 default with 4.23 legacy exception |
+| `README.md` | Curated configs table updated to v15+/4.90; legacy-win7 config added; compatibility matrix section added |
+| `.gitignore` | Added gitignore patterns for dev config files |

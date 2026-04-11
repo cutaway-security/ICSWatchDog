@@ -59,8 +59,8 @@
     See https://icswatchdog.com/attack-tagging/ for the full specification.
 
     IMPORTANT: This config requires Sysmon v15+ and schema 4.90. It will NOT work
-    on systems running older Sysmon versions. For legacy OS compatibility, use the
-    OT Baseline or OT Enhanced configs (schema 4.50).
+    on systems running older Sysmon versions. For Windows 7 / Sysmon 10.x systems,
+    use the legacy Win7 config (schema 4.23).
 
     ROLE-SPECIFIC TUNING GUIDANCE:
     This config is designed as a single advanced config. Tune for your system role:

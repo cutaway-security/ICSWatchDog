@@ -14,14 +14,15 @@ All configs are in the [`sysmon-configs/`](sysmon-configs/) directory.
 
 | Config | Description | Sysmon Version |
 |--------|-------------|----------------|
-| [sysmonconfig-baseline-it-workstation.xml](sysmon-configs/sysmonconfig-baseline-it-workstation.xml) | IT workstation baseline - desktop/laptop monitoring, remote access tool detection | v13+ (schema 4.50) |
-| [sysmonconfig-baseline-it-server.xml](sysmon-configs/sysmonconfig-baseline-it-server.xml) | IT server baseline - server-appropriate exclusions, minimal desktop noise | v13+ (schema 4.50) |
-| [sysmonconfig-server-ad.xml](sysmon-configs/sysmonconfig-server-ad.xml) | Active Directory / Domain Controller - NTDS.dit monitoring, credential extraction detection, raw disk read enabled | v13+ (schema 4.50) |
-| [sysmonconfig-server-services.xml](sysmon-configs/sysmonconfig-server-services.xml) | Database + web server - covers MSSQL, PostgreSQL, MySQL, Oracle, MongoDB, InfluxDB, IIS, Apache, Nginx, Tomcat | v13+ (schema 4.50) |
-| [sysmonconfig-baseline-ot.xml](sysmon-configs/sysmonconfig-baseline-ot.xml) | OT baseline - adds ICS/OT vendor monitoring, ICS file types, adjusted OT exclusions | v13+ (schema 4.50) |
+| [sysmonconfig-baseline-it-workstation.xml](sysmon-configs/sysmonconfig-baseline-it-workstation.xml) | IT workstation baseline - desktop/laptop monitoring, remote access tool detection | v15+ (schema 4.90) |
+| [sysmonconfig-baseline-it-server.xml](sysmon-configs/sysmonconfig-baseline-it-server.xml) | IT server baseline - server-appropriate exclusions, minimal desktop noise | v15+ (schema 4.90) |
+| [sysmonconfig-server-ad.xml](sysmon-configs/sysmonconfig-server-ad.xml) | Active Directory / Domain Controller - NTDS.dit monitoring, credential extraction detection, raw disk read enabled | v15+ (schema 4.90) |
+| [sysmonconfig-server-services.xml](sysmon-configs/sysmonconfig-server-services.xml) | Database + web server - covers MSSQL, PostgreSQL, MySQL, Oracle, MongoDB, InfluxDB, IIS, Apache, Nginx, Tomcat | v15+ (schema 4.90) |
+| [sysmonconfig-baseline-ot.xml](sysmon-configs/sysmonconfig-baseline-ot.xml) | OT baseline - adds ICS/OT vendor monitoring, ICS file types, adjusted OT exclusions | v15+ (schema 4.90) |
 | [sysmonconfig-jumphost.xml](sysmon-configs/sysmonconfig-jumphost.xml) | Jump host / bastion host - comprehensive monitoring, clipboard tracking, minimal exclusions | v15+ (schema 4.90) |
-| [sysmonconfig-enhanced-ot.xml](sysmon-configs/sysmonconfig-enhanced-ot.xml) | OT enhanced - industrial protocol port monitoring, expanded vendor coverage | v13+ (schema 4.50) |
+| [sysmonconfig-enhanced-ot.xml](sysmon-configs/sysmonconfig-enhanced-ot.xml) | OT enhanced - industrial protocol port monitoring, expanded vendor coverage | v15+ (schema 4.90) |
 | [sysmonconfig-advanced-ot.xml](sysmon-configs/sysmonconfig-advanced-ot.xml) | OT advanced - executable detection (Event IDs 27-29), file shredding detection | v15+ (schema 4.90) |
+| [sysmonconfig-legacy-win7.xml](sysmon-configs/sysmonconfig-legacy-win7.xml) | Legacy Windows 7 - reduced-feature OT baseline for Sysmon 10.x on end-of-life systems | v10+ (schema 4.23) |
 
 ### Community Configs
 
@@ -90,7 +91,7 @@ The merge tool combines a base curated config with selected modules into a deplo
     -OutputPath sysmonconfig-site-acmeplant.xml
 ```
 
-Requires: Windows PowerShell 5.1+ or PowerShell Core 7+. No external dependencies. The curated configs remain the primary supported deployment artifact -- modules are an opt-in layer for advanced users.
+Requires: Windows PowerShell 3.0+ or PowerShell Core 7+. No external dependencies. The curated configs remain the primary supported deployment artifact -- modules are an opt-in layer for advanced users.
 
 For module library overview, dual-use convention, and full module list, see the [Module Library](https://icswatchdog.com/modules/) guide.
 
@@ -109,6 +110,36 @@ After deploying Sysmon, validate that your configuration is generating the expec
 Requires: Administrator privileges, Sysmon installed and running, PowerShell 3+. No external dependencies.
 
 For details, see the [Efficacy Testing](https://icswatchdog.com/efficacy-testing/) guide.
+
+## Tested Configurations
+
+The following matrix tracks which configurations and scripts have been tested on which operating systems and Sysmon versions. Dates reflect the most recent test run.
+
+### Configuration Compatibility
+
+| Config | Win7 (10.42/4.23) | Win10 (15.20/4.91) | Win11 (15.20/4.91) | Server 2016 (15.20) | Server 2019 (15.20) | Server 2022 (15.20) |
+|---|---|---|---|---|---|---|
+| baseline-it-workstation | N/A | PASS 2026-04-11 | PASS 2026-04-11 | N/A | N/A | N/A |
+| baseline-it-server | N/A | N/A | N/A | PASS 2026-04-11 | PASS 2026-04-11 | PASS 2026-04-11 |
+| baseline-ot | N/A | PASS 2026-04-11 | PASS 2026-04-11 | N/A | PASS 2026-04-11 | PASS 2026-04-11 |
+| enhanced-ot | N/A | PASS 2026-04-11 | PASS 2026-04-11 | N/A | PASS 2026-04-11 | PASS 2026-04-11 |
+| advanced-ot | N/A | PASS 2026-04-11 | PASS 2026-04-11 | N/A | PASS 2026-04-11 | PASS 2026-04-11 |
+| jumphost | N/A | N/A | N/A | PASS 2026-04-11 | PASS 2026-04-11 | PASS 2026-04-11 |
+| server-ad | N/A | N/A | N/A | PASS 2026-04-11 | PASS 2026-04-11 | PASS 2026-04-11 |
+| server-services | N/A | N/A | N/A | PASS 2026-04-11 | PASS 2026-04-11 | PASS 2026-04-11 |
+| legacy-win7 | PASS 2026-04-11 | N/A | N/A | N/A | N/A | N/A |
+
+### Script Compatibility
+
+| Script | Win7 (PS 2.0) | Win10 (PS 5.1) | Win11 (PS 5.1) | Server 2016 | Server 2019 | Server 2022 |
+|---|---|---|---|---|---|---|
+| Merge-SysmonModules.ps1 | PASS 2026-04-11 | PASS 2026-04-11 | | | | |
+| Test-SysmonConfig.ps1 | PASS 2026-04-11 | PASS 2026-04-11 | | | | |
+| Get-SysmonCoverage.ps1 | PASS 2026-04-11 (Console/MD) | PASS 2026-04-11 | | | | |
+
+Legend: PASS (date) = tested and working. FAIL (date) = tested and failed. N/A = not applicable for this OS. Empty = not yet tested. Win7 scripts are expected to exit with a PS version error (this is a PASS).
+
+Note: Server 2016 uses Sysmon.exe (32-bit); all other systems use Sysmon64.exe. Win7 scripts exit cleanly with a PS version error ("requires PowerShell 3.0 or later") -- this is the expected PASS behavior.
 
 ## Disclaimer
 

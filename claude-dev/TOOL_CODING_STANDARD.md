@@ -30,7 +30,7 @@ ICS Watch Dog tools must run on locked-down OT Windows hosts with minimal privil
 
 | Item | Requirement |
 |------|-------------|
-| Minimum PowerShell version | 3.0 |
+| Minimum PowerShell version | 2.0 (with runtime feature detection for PS 3+ features) |
 | Compatible with PowerShell Core (Linux/macOS) | Yes, where the cmdlets used exist on those platforms |
 | External modules | None. Stock cmdlets only. |
 | Execution policy assumptions | Tool must run under `RemoteSigned` or `AllSigned`; no `Set-ExecutionPolicy` calls inside the script |
@@ -38,7 +38,29 @@ ICS Watch Dog tools must run on locked-down OT Windows hosts with minimal privil
 | Error handling | `$ErrorActionPreference = 'Stop'` at top of script. Wrap risky operations in try/catch. |
 | Comment-based help | Required (`.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE`, `.NOTES`) |
 | `[CmdletBinding()]` | Required on the param block |
-| Strict mode | Optional but recommended (`Set-StrictMode -Version 3.0`) |
+| Strict mode | Optional but recommended (`Set-StrictMode -Version 2.0` for PS 2.0 compat) |
+
+### 2.1.1 PS 2.0 Compatibility
+
+Many OT environments run Windows 7 with PowerShell 2.0. Report-producing scripts MUST run on PS 2.0 with Console and Markdown output. JSON output may be gated behind a runtime version check:
+
+```powershell
+$Script:PSv2 = ($PSVersionTable.PSVersion.Major -lt 3)
+if ($Script:PSv2 -and $OutputFormat -eq 'JSON') {
+    Write-Error "JSON output requires PowerShell 3.0 or later. Use -OutputFormat Console or Markdown."
+    exit 1
+}
+```
+
+PS 3+ features to avoid in PS 2.0 compatible code paths:
+
+| PS 3+ Feature | PS 2.0 Alternative |
+|---|---|
+| `Get-Content -Raw` | `[System.IO.File]::ReadAllText($path)` |
+| `New-TemporaryFile` | `[System.IO.Path]::GetTempFileName()` |
+| `ConvertFrom-Json` / `ConvertTo-Json` | Gate behind `$Script:PSv2` check; not available on PS 2.0 |
+| `Select-Object -Unique` | `Sort-Object -Unique` |
+| `Invoke-WebRequest` / `Invoke-RestMethod` | Not applicable (no network calls in read-only tools) |
 
 ### 2.2 Python
 
@@ -76,13 +98,25 @@ PowerShell verbs must be on the approved list (`Get-Verb`). Common choices in th
 
 ### 4.2 Common parameters
 
-Tools that produce reports SHOULD support:
+Tools that produce reports MUST support all three output formats for consistency:
 
 | Parameter | Type | Behavior |
 |-----------|------|----------|
-| `-OutputFormat` | `Console`, `JSON`, `Markdown` | Default `Console` |
+| `-OutputFormat` | `Console`, `JSON`, `Markdown` | Default `Console`. All three MUST be implemented. |
 | `-OutputPath` | path | Optional. If omitted, write to stdout. |
 | `-VerboseLogging` | switch | Extra diagnostic output. Distinct from PowerShell's built-in `-Verbose`. |
+
+Output format use cases (consistent across all report-producing scripts):
+
+| Format | Use Case | PS 2.0 |
+|--------|----------|--------|
+| `Console` | Interactive human review, terminal output | Yes |
+| `JSON` | Automation pipelines, machine parsing, SIEM ingest | PS 3.0+ only (requires ConvertTo-Json) |
+| `Markdown` | AI analysis (LLM prompts), tickets, reports, wikis | Yes |
+
+Scripts that produce reports (Get-SysmonCoverage, Export-SystemInventory, Compare-SystemInventory, Test-SysmonConfig) MUST implement all three formats with the same `-OutputFormat` parameter name and valid set. This avoids user confusion when switching between tools.
+
+On PS 2.0, requesting JSON output MUST produce a clear error ("JSON output requires PowerShell 3.0 or later") and exit with code 1. Console and Markdown MUST work on PS 2.0.
 
 ### 4.3 Mutually exclusive parameters
 
@@ -143,13 +177,15 @@ Each schema MUST be documented in this file in the Schema Catalog (Section 11) b
 
 When a tool produces a human-readable report, support three formats with consistent semantics:
 
-| Format | Use case | Conventions |
-|--------|----------|-------------|
-| `Console` | Interactive, color OK if available | Default. Plain text when not a TTY. Human-readable summaries first, raw data after. |
-| `JSON` | Pipelines, automation, SIEM ingest | Conforms to a versioned schema (Section 5). No console-only formatting characters. |
-| `Markdown` | Tickets, reports, copy/paste into wikis | Use tables and headers. No HTML. No emoji. |
+| Format | Use case | PS 2.0 | Conventions |
+|--------|----------|--------|-------------|
+| `Console` | Interactive human review, terminal output | Yes | Default. Plain text when not a TTY. Human-readable summaries first, raw data after. |
+| `JSON` | Automation pipelines, machine parsing, SIEM ingest | No (PS 3.0+) | Conforms to a versioned schema (Section 5). No console-only formatting characters. |
+| `Markdown` | AI analysis (LLM prompts), tickets, reports, wikis | Yes | Use tables and headers. No HTML. No emoji. Structured for LLM consumption. |
 
-The Console format is for humans; the JSON format is for machines; the Markdown format is for tickets. A tool should not try to make one format do all three jobs.
+All three formats MUST be implemented by every report-producing script to ensure consistency across the toolchain. The Console format is for humans; the JSON format is for machines; the Markdown format is for AI and documentation. A tool should not try to make one format do all three jobs.
+
+On PS 2.0, JSON is unavailable (ConvertTo-Json does not exist). The script MUST detect this at runtime and exit with a clear error if JSON is requested. Console and Markdown MUST work on PS 2.0.
 
 ---
 
