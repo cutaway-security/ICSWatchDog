@@ -6,51 +6,156 @@ permalink: /community/
 
 <h1>Community Contributions</h1>
 
-<p>ICS Watch Dog welcomes contributions from the ICS/OT cybersecurity community. Whether you have a Sysmon configuration for a specific use case, vendor-specific rules, or documentation improvements, your contributions help the community.</p>
+<p>ICS Watch Dog welcomes contributions from the ICS/OT cybersecurity community. Whether you have a detection module for a specific vendor, a Sysmon configuration for a use case, or a system inventory that reveals coverage gaps, your contributions help the community build better monitoring for industrial environments.</p>
 
-<section class="read-section">
-  <h2>How to Contribute</h2>
+<section class="overview-section">
+  <h2>What You Can Contribute</h2>
 
-  <h3>Option 1: Pull Request</h3>
-  <p>Fork the <a href="https://github.com/cutaway-security/ICSWatchDog" target="_blank" rel="noopener">ICS Watch Dog repository</a>, add your contribution, and submit a pull request. Community Sysmon configs should be placed in the <code>sysmon-configs/community/</code> directory.</p>
-
-  <h3>Option 2: GitHub Issue</h3>
-  <p>Open a <a href="https://github.com/cutaway-security/ICSWatchDog/issues" target="_blank" rel="noopener">GitHub issue</a> with the "feature enhancement" label. Describe your proposed config or improvement. The project team will review and may implement it or work with you to integrate it.</p>
-
-  <h3>What to Include</h3>
-  <p>When contributing a Sysmon configuration, please include:</p>
-  <ul>
-    <li><strong>XML header</strong> with version, author name/handle, license, and a description of what the config monitors</li>
-    <li><strong>Descriptive rule names</strong> using the Sysmon <code>name</code> attribute on each rule for log traceability</li>
-    <li><strong>Comments</strong> explaining the purpose of each rule group and any non-obvious rules</li>
-    <li><strong>Schema version</strong> and minimum Sysmon version required</li>
-    <li><strong>Testing notes</strong> describing what environment the config was tested in (if any)</li>
-  </ul>
+  <table>
+    <thead>
+      <tr><th>Contribution</th><th>What It Is</th><th>How to Submit</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Detection module</strong></td>
+        <td>An XML fragment with RuleGroup elements for a vendor product, protocol, sector, or detection pattern</td>
+        <td><a href="https://github.com/cutaway-security/ICSWatchDog/issues/new?template=module_submission.md">Module Submission</a> template</td>
+      </tr>
+      <tr>
+        <td><strong>Sysmon config</strong></td>
+        <td>A complete Sysmon configuration for a specific use case (e.g., DNS-focused, historian server)</td>
+        <td>Pull request to <code>sysmon-configs/community/</code></td>
+      </tr>
+      <tr>
+        <td><strong>System inventory</strong></td>
+        <td>A sanitized JSON inventory showing what runs on a real OT system (captured with <code>Export-SystemInventory.ps1 -Redact</code>)</td>
+        <td><a href="https://github.com/cutaway-security/ICSWatchDog/issues/new?template=feature_request.md">Feature Request</a> template</td>
+      </tr>
+      <tr>
+        <td><strong>Bug report</strong></td>
+        <td>A config that fails to load, a tool that errors, or documentation that is wrong</td>
+        <td><a href="https://github.com/cutaway-security/ICSWatchDog/issues/new?template=bug_report.md">Bug Report</a> template</td>
+      </tr>
+      <tr>
+        <td><strong>Feature request</strong></td>
+        <td>A new capability, vendor support, or tool improvement</td>
+        <td><a href="https://github.com/cutaway-security/ICSWatchDog/issues/new?template=feature_request.md">Feature Request</a> template</td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
-<section class="read-section">
-  <h2>Naming Convention</h2>
-  <p>Community config files should follow the naming pattern:</p>
-  <pre><code>sysmonconfig-[description].xml</code></pre>
-  <p>Examples:</p>
-  <ul>
-    <li><code>sysmonconfig-filecreate-only.xml</code></li>
-    <li><code>sysmonconfig-dns-focused.xml</code></li>
-    <li><code>sysmonconfig-historian-server.xml</code></li>
-  </ul>
-  <p>Use lowercase with hyphens. No spaces or underscores in filenames.</p>
+<section class="overview-section">
+  <h2>Submitting a Module</h2>
+
+  <p>Modules are the most common contribution. Use the <a href="https://github.com/cutaway-security/ICSWatchDog/issues/new?template=module_submission.md">Module Submission</a> issue template. It asks for:</p>
+
+  <ol>
+    <li><strong>Module XML file</strong> following the module format (see <a href="/build-your-own-module/">Build Your Own Module</a>)</li>
+    <li><strong>Validation file</strong> (<code>.validation.md</code>) with your checklist results and evidence</li>
+    <li><strong>Provenance</strong>: where the rule content came from (vendor docs, LOLBAS Project, lab testing)</li>
+    <li><strong>Confidence level</strong>: how much you trust the rules (see below)</li>
+    <li><strong>Sanitized inventory</strong> (optional): a <code>-Redact</code> JSON export showing the gap your module fills</li>
+  </ol>
+
+  <p>Not sure how to build a module? Start with the <a href="/build-your-own-module/">Build Your Own Module</a> guide.</p>
 </section>
 
-<section class="read-section">
+<section class="overview-section">
+  <h2>Acceptance Levels</h2>
+
+  <p>Contributions are accepted at one of three tiers based on the evidence provided. Higher-confidence submissions are more likely to reach the main library.</p>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Confidence</th><th>Evidence Required</th><th>Where It Ships</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tier A</strong></td>
+        <td>verified-in-lab</td>
+        <td>Lab environment description, vendor product and version, evidence that rules fire, baseline observation period (24+ hours), false positive count</td>
+        <td>Main module library (<code>sysmon-configs/modules/</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Tier B</strong></td>
+        <td>vendor-documented</td>
+        <td>Vendor documentation URLs, product version range, process names and paths from vendor docs</td>
+        <td>Community directory (<code>sysmon-configs/community/</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Tier C</strong></td>
+        <td>security-research or theoretical</td>
+        <td>Source URLs (LOLBAS, MITRE ATT&amp;CK, blog posts) or reasoning for theoretical patterns</td>
+        <td>Posted as a GitHub issue for community testing before merge</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Tier C submissions can promote to Tier B or A when additional evidence is provided. See the <a href="/build-your-own-module/#step-6-document-provenance">provenance documentation</a> section for the confidence levels.</p>
+</section>
+
+<section class="overview-section">
+  <h2>What to Include</h2>
+
+  <h3>Module submissions</h3>
+  <ul>
+    <li>Module XML file with the standard header (version, schema, ATT&amp;CK tags, provenance block)</li>
+    <li>Companion <code>.validation.md</code> file with checklist results</li>
+    <li>Evidence: vendor documentation URLs, lab test output, or LOLBAS/ATT&amp;CK references</li>
+  </ul>
+
+  <h3>Config submissions</h3>
+  <ul>
+    <li>Complete Sysmon XML config with header (version, author, license, description)</li>
+    <li>Schema version and minimum Sysmon version</li>
+    <li>Comments explaining non-obvious rules</li>
+    <li>Testing notes (what OS and Sysmon version it was tested on)</li>
+  </ul>
+
+  <h3>Config naming convention</h3>
+  <pre>sysmonconfig-[description].xml</pre>
+  <p>Use lowercase with hyphens. No spaces or underscores.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Sanitization Requirements</h2>
+
+  <p>All contributions are public. Before submitting any file:</p>
+
+  <ul>
+    <li>Remove all hostnames, IP addresses, and DNS names</li>
+    <li>Remove all usernames, passwords, API keys, and license keys</li>
+    <li>Remove all internal URLs, network names, and AD domain names</li>
+    <li>Review file paths for usernames (<code>C:\Users\jdoe\</code>)</li>
+    <li>Review service names and scheduled task names for site-specific identifiers</li>
+  </ul>
+
+  <p>If submitting a system inventory JSON, use <code>Export-SystemInventory.ps1 -Redact</code> and then review the output manually. The <code>-Redact</code> flag is a mechanical safety net, not a guarantee.</p>
+</section>
+
+<section class="overview-section">
   <h2>Review Process</h2>
-  <p>All contributions are reviewed for:</p>
-  <ul>
-    <li><strong>Well-formed XML</strong> - The config must pass XML validation</li>
-    <li><strong>Descriptive comments</strong> - Rules should be documented so others can understand them</li>
-    <li><strong>No sensitive data</strong> - No internal hostnames, IP addresses, or credentials</li>
-    <li><strong>Attribution</strong> - Author information must be included in the XML header</li>
-  </ul>
-  <p>Community configs are accepted as-is after basic review. They are not modified by the project team beyond formatting adjustments.</p>
+
+  <p>Maintainers review each submission against this checklist:</p>
+
+  <table>
+    <thead>
+      <tr><th>Check</th><th>Requirement</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>XML well-formed</td><td><code>xmllint --noout</code> passes</td></tr>
+      <tr><td>Schema version</td><td>Declares 4.90 (or 4.23 for Win7 legacy)</td></tr>
+      <tr><td>Provenance block</td><td>Header contains Source, Confidence, Last Validated, Known Limitations</td></tr>
+      <tr><td>ATT&amp;CK tagging</td><td>Include rules follow the <a href="/attack-tagging/">tagging convention</a></td></tr>
+      <tr><td>Rule name length</td><td>No <code>name</code> attribute exceeds 250 characters</td></tr>
+      <tr><td>Merge test</td><td>Module merges into at least one curated config without error</td></tr>
+      <tr><td>Sanitization</td><td>No hostnames, IPs, usernames, credentials, or internal paths</td></tr>
+      <tr><td>No malicious content</td><td>Rules do not disable security tools, exfiltrate data, or mask activity</td></tr>
+    </tbody>
+  </table>
+
+  <p>Submissions that fail review receive feedback via the GitHub issue. Contributors can address issues and resubmit.</p>
 </section>
 
 <section class="overview-section">
@@ -74,5 +179,5 @@ permalink: /community/
 </section>
 
 <div class="callout callout-warning">
-  <p><strong>Disclaimer:</strong> Community-contributed configurations are not maintained or tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and testing before deploying community configurations in any environment. All configurations are provided as-is and should be validated in a test environment before production use.</p>
+  <p><strong>Disclaimer:</strong> Community-contributed configurations and modules are not maintained or tested by Cutaway Security, LLC. Users must perform their own due diligence, review, and testing before deploying community contributions in any environment. All configurations are provided as-is and should be validated in a test environment before production use.</p>
 </div>
