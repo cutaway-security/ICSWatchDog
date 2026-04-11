@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phases 11a, 11b, 11c, 11d, 11e complete. Phase 11f (Community Contribution Intake Process) is next. All Phase 11 work targets release tag v7.
-**Focus**: Phase 11f.
+**Status**: Phases 11a-11g complete. Website redesign (capability cards, About page, nav section labels, next-step links) and v7 documentation updates done. Ready for commit, push, and release tag v7.
+**Focus**: Commit, push, release v7.
 
 ## Phases
 
@@ -922,23 +922,49 @@ Origin: User direction (2026-04-07). Two related needs:
 
 ##### Community page and process
 
-- [ ] Update docs/_pages/community.html with structured contribution intake
-- [ ] Validation evidence requirements (reference SYSMON_CODING_STANDARD.md Section 9.5)
-- [ ] Review checklist for maintainers
-- [ ] Three acceptance levels:
-      - Tier A (validated in real deployment with evidence) -> ships in main library
-      - Tier B (vendor-documented patterns without lab validation) -> ships in community/
-      - Tier C (theoretical proposed) -> posted as GitHub issue for community testing before merge
+**Status**: Complete.
+
+- [x] Update `docs/_pages/community.html` with structured contribution intake
+  - What you can contribute (modules, configs, inventories, bugs, features) with direct links to issue templates
+  - Module submission workflow (5-step checklist)
+  - Three acceptance levels (Tier A/B/C) with evidence requirements and where each ships
+  - What to include per contribution type (modules vs. configs)
+  - Config naming convention
+  - Sanitization requirements (mechanical + manual review)
+  - Maintainer review checklist (8 items: xmllint, schema, provenance, ATT&CK, name length, merge test, sanitization, no malicious content)
+  - Current community configs table (preserved)
+  - Disclaimer (preserved)
+- [x] Verify Jekyll build (0.016s)
 
 #### Phase 11g: Documentation and v7 Release
 
-- [ ] Update modules.html to add Confidence column in module tables
-- [ ] Update community.html with new contribution process
-- [ ] Update README.md with brief mention of coverage tool, BYO guide, and provenance framework
-- [ ] Update nav.html to ensure all new pages are linked (Coverage Assessment, BYO Module)
-- [ ] Verify Jekyll build
-- [ ] Final validation: 8/8 configs xmllint, 48/48 modules xmllint, PS test harnesses passing
-- [ ] Commit, merge to main, deploy site, tag release v7
+**Status**: Complete (documentation and validation). Release pending.
+
+Website redesign:
+- [x] Redesign home page: replace 6 config cards with 6 capability cards (Deploy, Extend, Measure, Detect, Build, Contribute)
+- [x] Update hero subtitle to reflect full project scope (configs + modules + tools)
+- [x] Move "New to Sysmon?" callout above capability cards
+- [x] Remove "Why ICS Watch Dog?" section from home (moved to About page)
+- [x] Remove sponsor/contributors from home (moved to About page)
+- [x] Remove tuning warning from home (already on configurations page)
+- [x] Create About page (`docs/_pages/about.html`): mission, what the project provides, how it works (5-step progression), SANS ICS 5 mapping table, project history, sponsor/contributors
+- [x] Add About link to nav
+- [x] Nav Guides dropdown: add section labels (Deploy, Detect, Extend, Community) with CSS separator styling
+- [x] Tighten `.overview-section` padding from 2rem to 1rem
+- [x] Add "Next:" callout links to Getting Started, Configurations, Deployment, Coverage Assessment pages
+
+Documentation updates:
+- [x] Update modules.html: schema version section updated (4.90 standard), provenance/confidence table added, test harness section replaced with validation steps
+- [x] Update README.md: coverage toolchain section with three-tool table and examples, module provenance section, BYO guide link
+- [x] community.html already updated in Phase 11f
+- [x] All nav links verified (Coverage Assessment, Build Your Own Module, About all present)
+- [x] Jekyll build passes (0.017s, all pages generated)
+- [x] Final validation: 10/10 configs xmllint, 25/25 test harness pass
+
+Release steps:
+- [ ] Commit and push to claude-dev
+- [ ] Follow GIT_RELEASE_STEPS.md: tag dev-v7, create release-v7 branch, strip dev files, force-push to main, tag v7
+- [ ] Deploy website via deploy-site.sh
 
 ## Out of Scope
 

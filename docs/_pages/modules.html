@@ -98,9 +98,18 @@ permalink: /modules/
 </section>
 
 <section class="read-section">
-  <h2>Schema Versions</h2>
-  <p>Modules default to <strong>schema 4.50</strong> for broadest compatibility with legacy OT systems. Modules that require newer Sysmon features (Event IDs 24, 27, 28, 29) declare schema 4.90 in their header.</p>
-  <p>The merge tool warns when a 4.90 module is merged into a 4.50 base config. The merge succeeds, but the resulting configuration requires Sysmon v15+ to load.</p>
+  <h2>Schema Versions and Provenance</h2>
+  <p>All modules use <strong>schema 4.90</strong> (Sysmon v15+). The merge tool warns on schema mismatches between modules and the base config.</p>
+  <p>Every module includes a <strong>provenance block</strong> in its header documenting where the rule content came from, and a companion <code>.validation.md</code> file recording what has been tested. Confidence levels:</p>
+  <table>
+    <thead><tr><th>Level</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>verified-in-lab</strong></td><td>Tested against a real installation with documented evidence</td></tr>
+      <tr><td><strong>vendor-documented</strong></td><td>Built from vendor public documentation (not lab-tested)</td></tr>
+      <tr><td><strong>security-research</strong></td><td>Based on security research, LOLBAS Project, MITRE ATT&amp;CK</td></tr>
+      <tr><td><strong>theoretical</strong></td><td>Plausible patterns without authoritative source</td></tr>
+    </tbody>
+  </table>
 </section>
 
 <section class="overview-section">
@@ -143,21 +152,13 @@ permalink: /modules/
 </section>
 
 <section class="read-section">
-  <h2>Test Harness</h2>
-  <p>The module library includes a test harness (<code>tools/Test-MergeSysmonModules.ps1</code>) that validates the merge tool against fixture files. Run it after any modification to the merge script:</p>
-
-<pre><code>.\tools\Test-MergeSysmonModules.ps1</code></pre>
-
-  <p>The test harness exercises:</p>
-  <ul>
-    <li>Simple single-module merge</li>
-    <li>Multi-module merge</li>
-    <li>Forbidden element rejection (modules containing <code>&lt;Sysmon&gt;</code>)</li>
-    <li>Schema 4.90 mismatch warnings</li>
-    <li>Real curated config + real module end-to-end smoke test</li>
-    <li>Malformed XML rejection</li>
-    <li>Nonexistent module file rejection</li>
-  </ul>
+  <h2>Validation</h2>
+  <p>After merging, validate your output config:</p>
+  <ol>
+    <li>XML well-formedness: <code>xmllint --noout merged-config.xml</code></li>
+    <li>Load into Sysmon: <code>Sysmon64.exe -c merged-config.xml</code> (look for "Configuration updated.")</li>
+    <li>Verify coverage: <code>.\Get-SysmonCoverage.ps1 -ConfigPath merged-config.xml</code></li>
+  </ol>
 </section>
 
 <section class="overview-section">

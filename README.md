@@ -111,6 +111,33 @@ Requires: Administrator privileges, Sysmon installed and running, PowerShell 3+.
 
 For details, see the [Efficacy Testing](https://icswatchdog.com/efficacy-testing/) guide.
 
+## Coverage Assessment
+
+Measure how well your Sysmon configuration covers your actual system. Three tools work together:
+
+| Tool | Purpose |
+|------|---------|
+| `Export-SystemInventory.ps1` | Capture system state (processes, software, ports, services) to JSON |
+| `Get-SysmonCoverage.ps1` | Compare a config against system inventory and report coverage gaps |
+| `Compare-SystemInventory.ps1` | Diff two inventory files to track changes |
+
+```
+# Live system coverage report
+.\tools\Get-SysmonCoverage.ps1 -ConfigPath sysmonconfig-baseline-ot.xml
+
+# Offline: capture inventory, analyze elsewhere
+.\tools\Export-SystemInventory.ps1 -OutputPath my-system.json
+.\tools\Get-SysmonCoverage.ps1 -ConfigPath sysmonconfig-baseline-ot.xml -InventoryPath my-system.json
+```
+
+PS 2.0 compatible (Console and Markdown output). JSON output requires PS 3.0+. No external dependencies.
+
+For details, see the [Coverage Assessment](https://icswatchdog.com/coverage-assessment/) guide. To build custom modules for your gaps, see the [Build Your Own Module](https://icswatchdog.com/build-your-own-module/) guide.
+
+## Module Provenance
+
+Every module includes a provenance block documenting its source and a confidence level (verified-in-lab, vendor-documented, security-research, or theoretical). Companion `.validation.md` files alongside each module record what has been tested and what has not.
+
 ## Tested Configurations
 
 The following matrix tracks which configurations and scripts have been tested on which operating systems and Sysmon versions. Dates reflect the most recent test run.

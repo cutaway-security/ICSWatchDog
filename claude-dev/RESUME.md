@@ -5,7 +5,7 @@
 **Last Session**: 2026-04-11
 **Branch**: claude-dev
 **Last Session**: 2026-04-11
-**Status**: Phases 1-10 complete (released as tag v6). Phases 11a-11e complete. Phase 11f (Community Contribution Intake) is next. Phase 11 work targets release tag v7.
+**Status**: Phases 1-10 complete (released as tag v6). Phase 11 (all subphases 11a-11g) complete. Ready for commit, push, and release tag v7.
 
 ## Phase History Summary (v6 and earlier)
 
@@ -225,16 +225,41 @@ Added to nav dropdown between "Module Library" and "Coverage Assessment". Jekyll
 - Created 10 custom GitHub labels via `gh label create`: module-submission, config, module, tool, documentation, tier-a, tier-b, tier-c, needs-validation, windows-7
 - `.github/` ships to main (added to GIT_RELEASE_STEPS.md verify checklist)
 
+## Phase 11f: Community Contribution Intake Process: COMPLETE (2026-04-11)
+
+Rewrote `docs/_pages/community.html` with structured contribution intake:
+- Contribution types table with direct links to issue templates (bug_report, feature_request, module_submission)
+- 5-step module submission workflow
+- Three acceptance tiers: Tier A (verified-in-lab, main library), Tier B (vendor-documented, community/), Tier C (theoretical, GitHub issue for testing)
+- Sanitization requirements (mechanical + manual review checklist)
+- 8-item maintainer review checklist
+- Preserved existing community configs table and disclaimer
+- Jekyll build passes (0.016s)
+
+## Phase 11g: Documentation and v7 Release: COMPLETE (2026-04-11)
+
+Website redesign:
+- Home page: replaced 6 config cards with 6 capability cards (Deploy/Extend/Measure/Detect/Build/Contribute). Updated hero subtitle. Moved "New to Sysmon?" above cards. Removed "Why ICS Watch Dog?", sponsor/contributors, and tuning warning from home.
+- Created About page: mission, 8-item "what the project provides" list, 5-step "how it works" progression, SANS ICS 5 mapping table, project history, sponsor/contributors.
+- Nav: Guides dropdown reorganized with section labels (Deploy/Detect/Extend/Community). About link added.
+- CSS: overview-section padding tightened from 2rem to 1rem.
+- Next-step callout links added to Getting Started, Configurations, Deployment, Coverage Assessment pages.
+
+Documentation updates:
+- modules.html: schema version section updated to 4.90 standard, provenance/confidence table added, test harness section replaced with user-facing validation steps.
+- README.md: added Coverage Assessment section (three-tool table + examples), Module Provenance section, BYO guide link.
+
+Final validation: 10/10 configs xmllint, 25/25 tests pass, Jekyll builds (0.017s), all pages generated.
+
 ## Blockers
 
-None. Phases 11a-11e complete. Issue template infrastructure ready. Ready for commit and push.
+None. Phase 11 complete. Ready for commit, push, and v7 release.
 
 ## Next Steps
 
-1. **Commit and push** all current work
-2. **Phase 11f**: Community Contribution Intake Process (update community.html with structured intake, acceptance levels, maintainer checklist)
-3. **Phase 11g**: v7 documentation and release
-4. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
+1. **Commit and push** to claude-dev
+2. **Release v7** per GIT_RELEASE_STEPS.md (tag dev-v7, release branch, strip dev files, force-push to main, tag v7, deploy site)
+3. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (post-v7)
 
 ## Files Modified This Session
 
