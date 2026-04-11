@@ -95,7 +95,7 @@ git commit -m "Remove development files for release v#"
 
 ### 5. Verify the release branch
 
-- [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
+- [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME, .github/ISSUE_TEMPLATE/
 - [ ] No development files remain (`ls claude-dev/` should fail, `ls docs/` should fail, `ls CLAUDE.md` should fail, `ls tools/test-fixtures/` should fail, `ls tools/Test-GetSysmonCoverage.ps1` should fail)
 - [ ] Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 

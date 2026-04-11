@@ -210,6 +210,8 @@ Bounded scope: this tooling exists only to merge ICS Watch Dog modules into ICS 
 
 ```
 ICSWatchDog/
+    .github/ISSUE_TEMPLATE/                        # GitHub issue templates (ships to main)
+        bug_report.md, feature_request.md, module_submission.md, config.yml
     CLAUDE.md                                      # Project rules (dev only)
     README.md                                      # Public-facing project description
     License                                        # CC BY 4.0
@@ -257,6 +259,7 @@ ICSWatchDog/
         TOOL_CODING_STANDARD.md                    # PowerShell/Python tool conventions
         TESTING_STANDARD.md                        # Config and script testing procedures
         REMOTE_TESTING.md                          # Proxmox VM test environment setup
+        GITHUB_ISSUE_STANDARD.md                   # Issue template and label conventions
         html-css-jekyll.md                         # HTML/CSS/Jekyll code standard
         remote-testing.example.conf                # Local-config template (placeholders only)
         test-fixtures/coverage/                    # Coverage/compare tool fixtures (dev only)

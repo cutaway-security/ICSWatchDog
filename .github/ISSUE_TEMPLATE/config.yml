@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ICS Watch Dog Documentation
+    url: https://icswatchdog.com
+    about: Check the documentation before opening an issue

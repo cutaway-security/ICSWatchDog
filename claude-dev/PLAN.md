@@ -369,6 +369,7 @@ Two role-specific server configs, each self-contained (includes server baseline 
 
 | 2026-04-11 | Tools split: user-facing ship, dev-only test harnesses excluded from releases | Test-GetSysmonCoverage.ps1, Test-CompareSystemInventory.ps1, Test-MergeSysmonModules.ps1, and tools/test-fixtures/ added to .gitattributes export-ignore and GIT_RELEASE_STEPS.md git rm step. Test-SysmonConfig.ps1 IS shipped because it tests against the live system (no fixture dependency). |
 | 2026-04-11 | Module validation framework: checklist + evidence + companion .validation.md files | Phase 11c. Universal checklist (7 items) + category-specific items. Evidence requirements per confidence level. Companion .validation.md files committed alongside module XMLs (shipped to users as the public validation record). Promotion path: theoretical -> security-research -> vendor-documented -> verified-in-lab. |
+| 2026-04-11 | GitHub issue templates as repo files, not GUI config | Issue templates managed as `.github/ISSUE_TEMPLATE/*.md` files in the repo. Three templates: bug report, feature request, module submission. Template chooser (`config.yml`) disables blank issues. Labels created via `gh label create` CLI (not stored in repo). `.github/` directory ships to main (issue templates only work from the default branch). |
 
 ### Phase 7: Efficacy Testing
 
@@ -907,9 +908,22 @@ Origin: User direction (2026-04-07). Two related needs:
 
 #### Phase 11f: Community Contribution Intake Process
 
+##### GitHub issue templates and labels (infrastructure)
+
+**Status**: Complete.
+
+- [x] Create `.github/ISSUE_TEMPLATE/bug_report.md` (component selector, Sysmon/Windows/PS version fields, reproduction steps)
+- [x] Create `.github/ISSUE_TEMPLATE/feature_request.md` (type selector, use case, evidence fields for module requests)
+- [x] Create `.github/ISSUE_TEMPLATE/module_submission.md` (category, confidence level, provenance, validation checklist, testing environment, attach files reminder, sanitization warning)
+- [x] Create `.github/ISSUE_TEMPLATE/config.yml` (template chooser, disable blank issues, link to icswatchdog.com)
+- [x] Run `gh label create` commands: 10 custom labels created (module-submission, config, module, tool, documentation, tier-a, tier-b, tier-c, needs-validation, windows-7)
+- [x] Create `claude-dev/GITHUB_ISSUE_STANDARD.md` (portable standard for issue template structure, label taxonomy, template chooser config)
+- [x] NOTE: `.github/` directory ships to main. Verified in GIT_RELEASE_STEPS.md checklist.
+
+##### Community page and process
+
 - [ ] Update docs/_pages/community.html with structured contribution intake
-- [ ] PR template with provenance fields
-- [ ] Validation evidence requirements
+- [ ] Validation evidence requirements (reference SYSMON_CODING_STANDARD.md Section 9.5)
 - [ ] Review checklist for maintainers
 - [ ] Three acceptance levels:
       - Tier A (validated in real deployment with evidence) -> ships in main library

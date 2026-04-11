@@ -214,14 +214,25 @@ Created `docs/_pages/build-your-own-module.html` with 8 sections:
 
 Added to nav dropdown between "Module Library" and "Coverage Assessment". Jekyll build passes.
 
+## GitHub Issue Templates and Labels (2026-04-11)
+
+- Created `claude-dev/GITHUB_ISSUE_STANDARD.md`: portable standard for issue templates, label taxonomy, template chooser config. Reusable across projects.
+- Created `.github/ISSUE_TEMPLATE/`:
+  - `bug_report.md`: component selector, version fields, reproduction steps, sanitization warning
+  - `feature_request.md`: type selector, use case, evidence fields for module requests
+  - `module_submission.md`: category, confidence level, provenance, validation checklist, testing environment, file attachments, sanitization warning
+  - `config.yml`: template chooser, blank issues disabled, documentation link
+- Created 10 custom GitHub labels via `gh label create`: module-submission, config, module, tool, documentation, tier-a, tier-b, tier-c, needs-validation, windows-7
+- `.github/` ships to main (added to GIT_RELEASE_STEPS.md verify checklist)
+
 ## Blockers
 
-None. Phases 11a-11e complete. Ready for commit and push.
+None. Phases 11a-11e complete. Issue template infrastructure ready. Ready for commit and push.
 
 ## Next Steps
 
 1. **Commit and push** all current work
-2. **Phase 11f**: Community Contribution Intake Process
+2. **Phase 11f**: Community Contribution Intake Process (update community.html with structured intake, acceptance levels, maintainer checklist)
 3. **Phase 11g**: v7 documentation and release
 4. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
 
