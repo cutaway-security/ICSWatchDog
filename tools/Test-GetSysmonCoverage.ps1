@@ -13,7 +13,7 @@
 [CmdletBinding()]
 param(
     [string]$CoverageScriptPath = (Join-Path $PSScriptRoot 'Get-SysmonCoverage.ps1'),
-    [string]$FixturesPath       = (Join-Path $PSScriptRoot 'test-fixtures/coverage'),
+    [string]$FixturesPath       = (Join-Path (Split-Path -Parent $PSScriptRoot) 'claude-dev/test-fixtures/coverage'),
     [string]$ProjectRoot        = (Split-Path -Parent $PSScriptRoot)
 )
 
@@ -27,14 +27,22 @@ $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $CoverageScriptPath)) {
     throw "Coverage script not found: $CoverageScriptPath"
 }
+
+# Fixtures live under claude-dev/test-fixtures/ (dev-only, stripped from releases).
+# Skip cleanly if absent (e.g., running from a release tarball).
 if (-not (Test-Path -LiteralPath $FixturesPath)) {
-    throw "Fixtures directory not found: $FixturesPath"
+    Write-Host "Fixtures directory not found: $FixturesPath" -ForegroundColor Yellow
+    Write-Host "Fixture-based tests require the claude-dev/ directory (dev branch only). Skipping." -ForegroundColor Yellow
+    exit 0
 }
 
-$mockInventory = Join-Path $FixturesPath 'mock-inventory-ot-engineering.json'
-$baseConfig    = Join-Path $ProjectRoot 'sysmon-configs/sysmonconfig-baseline-ot.xml'
+$inventoryFixture = Join-Path $FixturesPath 'mock-inventory-ot-engineering.json'
+$baseConfig       = Join-Path $ProjectRoot 'sysmon-configs/sysmonconfig-baseline-ot.xml'
 
-if (-not (Test-Path -LiteralPath $mockInventory)) { throw "Mock inventory not found: $mockInventory" }
+if (-not (Test-Path -LiteralPath $inventoryFixture)) {
+    Write-Host "Inventory fixture not found: $inventoryFixture. Skipping." -ForegroundColor Yellow
+    exit 0
+}
 if (-not (Test-Path -LiteralPath $baseConfig)) { throw "Base config not found: $baseConfig" }
 
 $results = @()
@@ -60,7 +68,7 @@ function Invoke-Test {
 
 # Test 1: Console output runs and returns non-empty report
 $results += Invoke-Test -Name "Console output with mock inventory" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat Console 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat Console 2>&1
     $reportText = $output -join "`n"
     if (-not $reportText.Contains('Process Coverage')) { throw "Output missing Process Coverage section" }
     if (-not $reportText.Contains('OT Software Coverage')) { throw "Output missing OT Software Coverage section" }
@@ -71,7 +79,7 @@ $results += Invoke-Test -Name "Console output with mock inventory" -ScriptBlock 
 
 # Test 2: JSON output is valid JSON with expected structure
 $results += Invoke-Test -Name "JSON output is valid and well-structured" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $json = $output -join "`n" | ConvertFrom-Json
     if (-not $json.Coverage) { throw "JSON missing Coverage field" }
     if (-not $json.Coverage.ProcessCoverage) { throw "JSON missing ProcessCoverage" }
@@ -83,7 +91,7 @@ $results += Invoke-Test -Name "JSON output is valid and well-structured" -Script
 
 # Test 3: Process coverage detects unmatched processes
 $results += Invoke-Test -Name "Process coverage identifies unmonitored processes" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $json = $output -join "`n" | ConvertFrom-Json
     # Mock inventory has 8 processes; baseline-ot doesn't include OT vendor binaries
     # so most should be unmatched
@@ -98,7 +106,7 @@ $results += Invoke-Test -Name "Process coverage identifies unmonitored processes
 
 # Test 4: OT software detection identifies known vendors
 $results += Invoke-Test -Name "OT software detection identifies vendor software" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $json = $output -join "`n" | ConvertFrom-Json
     # Mock has 6 software; 5 OT-relevant (Siemens, Rockwell, Ignition, CODESYS, Kepware), 1 not (Office)
     if ($json.Coverage.SoftwareCoverage.TotalOTRelevant -lt 4) {
@@ -109,7 +117,7 @@ $results += Invoke-Test -Name "OT software detection identifies vendor software"
 
 # Test 5: Industrial port coverage identifies industrial ports
 $results += Invoke-Test -Name "Industrial port coverage identifies listening industrial ports" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $json = $output -join "`n" | ConvertFrom-Json
     # Mock has 502 (Modbus), 4840 (OPC-UA), 8088 (Ignition) as industrial; 135, 445, 49152 as not
     if ($json.Coverage.PortCoverage.TotalIndustrial -ne 3) {
@@ -124,11 +132,11 @@ $results += Invoke-Test -Name "Additional protocol modules increase port coverag
     $opcua  = Join-Path $ProjectRoot 'sysmon-configs/modules/protocol/opc-ua.xml'
     $ignition = Join-Path $ProjectRoot 'sysmon-configs/modules/vendor-ot/ignition-gateway.xml'
 
-    $baseOutput = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $baseOutput = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $baseJson = $baseOutput -join "`n" | ConvertFrom-Json
     $baseCovered = $baseJson.Coverage.PortCoverage.Covered
 
-    $withModulesOutput = & $CoverageScriptPath -ConfigPath $baseConfig -AdditionalModules @($modbus, $opcua, $ignition) -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $withModulesOutput = & $CoverageScriptPath -ConfigPath $baseConfig -AdditionalModules @($modbus, $opcua, $ignition) -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $withModulesJson = $withModulesOutput -join "`n" | ConvertFrom-Json
     $withModulesCovered = $withModulesJson.Coverage.PortCoverage.Covered
 
@@ -140,7 +148,7 @@ $results += Invoke-Test -Name "Additional protocol modules increase port coverag
 
 # Test 7: ATT&CK techniques detected
 $results += Invoke-Test -Name "ATT&CK technique extraction from rules" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat JSON 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat JSON 2>&1
     $json = $output -join "`n" | ConvertFrom-Json
     if ($json.Coverage.AttackCoverage.DistinctTechniques -lt 10) {
         throw "Expected at least 10 ATT&CK techniques in baseline-ot, got $($json.Coverage.AttackCoverage.DistinctTechniques)"
@@ -150,7 +158,7 @@ $results += Invoke-Test -Name "ATT&CK technique extraction from rules" -ScriptBl
 
 # Test 8: Markdown output renders properly
 $results += Invoke-Test -Name "Markdown output renders correctly" -ScriptBlock {
-    $output = & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat Markdown 2>&1
+    $output = & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat Markdown 2>&1
     $text = $output -join "`n"
     if (-not $text.Contains('# Sysmon Coverage Report')) { throw "Markdown missing top-level header" }
     if (-not $text.Contains('## Coverage Summary')) { throw "Markdown missing Coverage Summary section" }
@@ -162,7 +170,7 @@ $results += Invoke-Test -Name "Markdown output renders correctly" -ScriptBlock {
 $results += Invoke-Test -Name "OutputPath writes report to file" -ScriptBlock {
     $tmp = [System.IO.Path]::GetTempFileName()
     try {
-        & $CoverageScriptPath -ConfigPath $baseConfig -MockInventoryPath $mockInventory -OutputFormat Markdown -OutputPath $tmp | Out-Null
+        & $CoverageScriptPath -ConfigPath $baseConfig -InventoryPath $inventoryFixture -OutputFormat Markdown -OutputPath $tmp | Out-Null
         if (-not (Test-Path -LiteralPath $tmp)) { throw "Output file not created" }
         $content = Get-Content -LiteralPath $tmp -Raw
         if (-not $content.Contains('# Sysmon Coverage Report')) { throw "Output file missing expected content" }
@@ -176,7 +184,7 @@ $results += Invoke-Test -Name "OutputPath writes report to file" -ScriptBlock {
 $results += Invoke-Test -Name "Nonexistent config rejection" -ScriptBlock {
     $threw = $false
     try {
-        & $CoverageScriptPath -ConfigPath '/nonexistent/path/to/config.xml' -MockInventoryPath $mockInventory 2>&1 | Out-Null
+        & $CoverageScriptPath -ConfigPath '/nonexistent/path/to/config.xml' -InventoryPath $inventoryFixture 2>&1 | Out-Null
     } catch {
         $threw = $true
     }

@@ -4,7 +4,8 @@
 
 **Last Session**: 2026-04-11
 **Branch**: claude-dev
-**Status**: Phases 1-10 complete (released as tag v6). Phase 11a and 11b complete. Phase 11d checkpoint B1 complete. Schema bump, testing, NLA fix, PS 2.0 coverage tool compatibility all complete. Ready for commit/push, then Phase 11d checkpoint B2. Phase 11 work targets release tag v7.
+**Last Session**: 2026-04-11
+**Status**: Phases 1-10 complete (released as tag v6). Phases 11a, 11b, 11d complete. Toolchain refactor (Export/Get-Coverage/Compare), usage guide, PS 2.0 compat, testing infrastructure all delivered. Ready for commit/push. Phase 11c (Validation Framework) is next. Phase 11 work targets release tag v7.
 
 ## Phase History Summary (v6 and earlier)
 
@@ -155,16 +156,34 @@ Applied GPO startup script to set network category to Private on all 6 VMs. Root
 - Server 2016: network adapter issue fixed by user. SSH working. All 4 server configs pass. Note: uses Sysmon.exe (32-bit), not Sysmon64.exe.
 - Win7: NLA fix resolved the persistent networking issue.
 
+## Phase 11d Checkpoint B2: COMPLETE (2026-04-11)
+
+Toolchain refactor and usage guide:
+
+- Refactored `Get-SysmonCoverage.ps1`: renamed `-MockInventoryPath` to `-InventoryPath`. Inventory JSON is now a first-class artifact, not a test hack.
+- Built `Export-SystemInventory.ps1`: captures live system to JSON with schema v1.0 envelope (`SchemaName`, `SchemaVersion`, `GeneratedBy`, `GeneratedAt`). Opt-in `-Redact` for sanitization. Console/Markdown on PS 2.0, JSON on PS 3+.
+- Built `Compare-SystemInventory.ps1`: diffs two inventory JSONs. Reports added/removed per category. Console/JSON/Markdown. Schema validation on input (checks `SchemaName` and major version).
+- Moved coverage test fixtures from `tools/test-fixtures/coverage/` to `claude-dev/test-fixtures/coverage/`. Updated fixture with schema v1.0 envelope. Created second fixture for diff testing.
+- Updated `Test-GetSysmonCoverage.ps1`: fixture path to `claude-dev/`, parameter rename, skip-on-missing behavior.
+- Created `Test-CompareSystemInventory.ps1`: 8 tests covering Console/JSON/Markdown output, change detection (process add/remove, port add/remove), no-changes case, output file writing.
+- Fixed `Test-MergeSysmonModules.ps1`: updated expected schema version from 4.50 to 4.90 (was broken by schema bump).
+- All test harnesses pass: Coverage 10/10, Compare 8/8, Merge 7/7 = 25/25.
+- Created `docs/_pages/coverage-assessment.html`: usage guide covering the three-tool workflow, output formats, honest interpretation, community submission, troubleshooting.
+- Added Coverage Assessment link to nav dropdown. Jekyll build passes (0.014s).
+- Updated ARCHITECTURE.md file structure tree with all new files and tools.
+
 ## Blockers
 
-None. All testing complete. Ready for commit and push.
+None. Phase 11d complete. Ready for commit and push.
 
 ## Next Steps
 
-1. **Commit and push** current work
-2. **Phase 11d Checkpoint B2**: refactor Get-SysmonCoverage.ps1 (`-MockInventoryPath` -> `-InventoryPath`), build Export-SystemInventory.ps1, build Compare-SystemInventory.ps1, write usage guide
-3. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority; coverage tool is the one users need most on Win7)
-4. Phase 11c (Validation Framework) -> 11e (Build Your Own Module) -> 11f (Community Intake) -> 11g (v7 release)
+1. **Commit and push** Phase 11d deliverables
+2. **Phase 11c**: Validation Framework (per-module checklist, companion validation file format, evidence requirements)
+3. **Phase 11e**: Build Your Own Module Guide
+4. **Phase 11f**: Community Contribution Intake Process
+5. **Phase 11g**: v7 release
+6. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
 
 ## Files Modified This Session
 

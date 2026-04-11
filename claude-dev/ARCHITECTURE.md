@@ -8,8 +8,8 @@ ICS Watch Dog consists of two components: (1) a progressive set of Sysmon XML co
 
 | Component | Purpose | Technology |
 |-----------|---------|------------|
-| Curated Configs | Progressive IT-to-OT Sysmon configs | Sysmon XML schema 4.50+ |
-| Community Configs | User-contributed configs for specific use cases | Sysmon XML schema 4.50+ |
+| Curated Configs | Progressive IT-to-OT Sysmon configs | Sysmon XML schema 4.90 (4.23 for legacy Win7) |
+| Community Configs | User-contributed configs for specific use cases | Sysmon XML schema 4.90 |
 | Reference Configs | Third-party configs retained for learning | Sysmon XML (SwiftOnSecurity) |
 | Website | Documentation, guides, SANS control mapping | Jekyll with custom CutSec design system |
 | Branding | Logo, banner, background images | PNG assets |
@@ -52,7 +52,7 @@ IT Baseline Server
 Jump Host (standalone, comprehensive monitoring, schema 4.90)
 ```
 
-All configs use schema 4.50 for legacy OS compatibility unless newer Sysmon features are required (jump host and advanced-ot use schema 4.90). Config headers include SANS ICS 5 Critical Controls mapping, MITRE ATT&CK references, and CIS Benchmark alignment labels.
+All standard configs use schema 4.90 (Sysmon v15+). A single legacy config (sysmonconfig-legacy-win7.xml) uses schema 4.23 for Windows 7 with Sysmon 10.42. Config headers include SANS ICS 5 Critical Controls mapping, MITRE ATT&CK references, and CIS Benchmark alignment labels.
 
 **Design principles:**
 - Configs for roles, not for vendors or individual software products
@@ -224,6 +224,7 @@ ICSWatchDog/
         sysmonconfig-enhanced-ot.xml               # OT enhanced
         sysmonconfig-advanced-ot.xml               # OT advanced
         sysmonconfig-jumphost.xml                  # Jump host / bastion host
+        sysmonconfig-legacy-win7.xml               # Legacy Win7 (schema 4.23)
         community/                                 # Community-contributed configs
             sysmonconfig-filecreate-only.xml
         reference/                                 # Reference configs for learning
@@ -237,17 +238,28 @@ ICSWatchDog/
             protocol/                              # Industrial protocol port monitoring
             remote-access/                         # Granular per-tool RMM modules
     tools/                                         # Helper scripts
-        Test-SysmonConfig.ps1                      # Efficacy testing (Phase 7)
-        Merge-SysmonModules.ps1                    # Module merge tooling (Phase 9)
-        Test-MergeSysmonModules.ps1                # Merge tooling test harness (Phase 9)
-        test-fixtures/                             # Sample inputs and expected outputs
+        Get-SysmonCoverage.ps1                     # Coverage assessment (PS 2.0+ compat)
+        Export-SystemInventory.ps1                  # System inventory export (PS 2.0+ compat)
+        Compare-SystemInventory.ps1                # Inventory diff (PS 3.0+ required)
+        Test-SysmonConfig.ps1                      # Efficacy testing
+        Merge-SysmonModules.ps1                    # Module merge tooling
+        Test-GetSysmonCoverage.ps1                 # Coverage tool test harness
+        Test-CompareSystemInventory.ps1            # Compare tool test harness
+        Test-MergeSysmonModules.ps1                # Merge tool test harness
+        test-fixtures/                             # Merge tool fixtures (shipped)
+    .gitattributes                                 # export-ignore for dev-only paths
     claude-dev/                                    # Development planning (dev only)
         ARCHITECTURE.md                            # This file
         PLAN.md
         RESUME.md
         GIT_RELEASE_STEPS.md
         SYSMON_CODING_STANDARD.md                  # Sysmon XML and rule conventions
+        TOOL_CODING_STANDARD.md                    # PowerShell/Python tool conventions
+        TESTING_STANDARD.md                        # Config and script testing procedures
+        REMOTE_TESTING.md                          # Proxmox VM test environment setup
         html-css-jekyll.md                         # HTML/CSS/Jekyll code standard
+        remote-testing.example.conf                # Local-config template (placeholders only)
+        test-fixtures/coverage/                    # Coverage/compare tool fixtures (dev only)
     docs/                                          # Jekyll website source (dev only)
         _config.yml
         _layouts/default.html

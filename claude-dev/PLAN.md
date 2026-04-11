@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phases 11a and 11b complete. Phase 11d checkpoint B1 complete. Schema bump, Win7 legacy config, config testing (all 6 VMs), and script testing (Win10) all complete. Ready for commit and push, then Phase 11d checkpoint B2. All Phase 11 work targets release tag v7.
-**Focus**: Commit/push, then Phase 11d B2 (toolchain refactor + usage guide).
+**Status**: Phases 11a, 11b, and 11d complete. Schema bump, Win7 legacy config, config/script testing (all 6 VMs), PS 2.0 coverage tool compatibility, NLA fix, toolchain refactor (Export/Get-Coverage/Compare), and usage guide all done. Ready for commit and push. Phase 11c (Validation Framework) is next. All Phase 11 work targets release tag v7.
+**Focus**: Commit/push Phase 11d deliverables, then Phase 11c.
 
 ## Phases
 
@@ -839,7 +839,7 @@ Origin: User question (2026-04-07): "Where did the information come from and how
 
 #### Phase 11d: Coverage Toolchain Refactor and Usage Guide
 
-**Status**: In progress. Checkpoint B1 (standards + dev docs + planning) underway. Checkpoint B2 (tool refactor + tests + guide) follows.
+**Status**: Complete. Checkpoint B1 (standards, dev docs, planning, schema bump, NLA fix, config/script testing) and Checkpoint B2 (toolchain refactor, test harnesses, usage guide) both delivered.
 
 Origin: User direction (2026-04-07). Two related needs:
 1. Testing existing coverage must precede building new modules; admins must understand what they have before deciding what to build.

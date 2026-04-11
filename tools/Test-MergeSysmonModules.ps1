@@ -151,7 +151,7 @@ $results += Invoke-Test -Name "Real curated config + real modules end-to-end" -S
     $out = Join-Path $tempDir 'test5.xml'
     & $MergeScriptPath -BaseConfig $realBase -Modules @($realMod1, $realMod2, $realMod3) -OutputPath $out | Out-Null
     [xml]$x = Get-Content -LiteralPath $out -Raw
-    if ($x.Sysmon.schemaversion -ne '4.50') { throw "Output schemaversion should be 4.50, got $($x.Sysmon.schemaversion)" }
+    if ($x.Sysmon.schemaversion -ne '4.90') { throw "Output schemaversion should be 4.90, got $($x.Sysmon.schemaversion)" }
     if ($x.Sysmon.CheckRevocation -notmatch 'False') { throw "Base CheckRevocation should be preserved as False" }
     $rgCount = $x.Sysmon.EventFiltering.RuleGroup.Count
     if ($rgCount -lt 5) { throw "Expected at least 5 RuleGroups in merged output, got $rgCount" }

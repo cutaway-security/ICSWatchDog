@@ -37,10 +37,12 @@
 .PARAMETER OutputPath
     Optional file path to write the report. If omitted, output goes to stdout.
 
-.PARAMETER MockInventoryPath
-    For testing only. Path to a JSON file with mock system inventory data.
-    When provided, the script uses the mock data instead of querying the
-    live system. Used by Test-GetSysmonCoverage.ps1.
+.PARAMETER InventoryPath
+    Path to a JSON file with system inventory data (produced by
+    Export-SystemInventory.ps1). When provided, the script uses this
+    data instead of querying the live system. Enables offline analysis:
+    capture inventory on one host, analyze on another.
+    Requires PowerShell 3.0+ (ConvertFrom-Json).
 
 .PARAMETER VerboseLogging
     Print detailed progress information.
@@ -80,7 +82,7 @@ param(
     [ValidateSet('Console', 'JSON', 'Markdown')]
     [string]$OutputFormat = 'Console',
     [string]$OutputPath,
-    [string]$MockInventoryPath,
+    [string]$InventoryPath,
     [switch]$VerboseLogging
 )
 
@@ -93,8 +95,8 @@ if ($Script:PSv2 -and $OutputFormat -eq 'JSON') {
     Write-Error "JSON output requires PowerShell 3.0 or later. Current version: $($PSVersionTable.PSVersion). Use -OutputFormat Console or Markdown."
     exit 1
 }
-if ($Script:PSv2 -and $MockInventoryPath) {
-    Write-Error "MockInventoryPath requires PowerShell 3.0 or later (ConvertFrom-Json). Current version: $($PSVersionTable.PSVersion)"
+if ($Script:PSv2 -and $InventoryPath) {
+    Write-Error "InventoryPath requires PowerShell 3.0 or later (ConvertFrom-Json). Current version: $($PSVersionTable.PSVersion)"
     exit 1
 }
 
@@ -283,9 +285,9 @@ function Get-SystemInventory {
     process injection, no system changes. Returns a hashtable suitable
     for coverage analysis.
     #>
-    if ($MockInventoryPath) {
-        Write-Detail "Using mock inventory from: $MockInventoryPath"
-        $jsonText = [System.IO.File]::ReadAllText($MockInventoryPath)
+    if ($InventoryPath) {
+        Write-Detail "Using inventory from: $InventoryPath"
+        $jsonText = [System.IO.File]::ReadAllText($InventoryPath)
         return $jsonText | ConvertFrom-Json | ConvertTo-Hashtable
     }
 
@@ -673,7 +675,7 @@ function Format-MarkdownReport {
 # ==============================================================================
 
 # Resolve config: from -ConfigPath, or query running Sysmon
-if (-not $ConfigPath -and -not $MockInventoryPath) {
+if (-not $ConfigPath -and -not $InventoryPath) {
     Write-Detail "No -ConfigPath provided; attempting to query running Sysmon via 'sysmon -c'"
     try {
         $sysmonOutput = & sysmon -c 2>&1
