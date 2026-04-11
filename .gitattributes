@@ -17,3 +17,10 @@ docs/         export-ignore
 
 # Claude Code project configuration -- dev-only
 CLAUDE.md     export-ignore
+
+# Dev-only test harnesses (depend on fixtures that don't ship)
+# Test-SysmonConfig.ps1 IS shipped (tests against live system, no fixtures)
+tools/Test-GetSysmonCoverage.ps1      export-ignore
+tools/Test-CompareSystemInventory.ps1 export-ignore
+tools/Test-MergeSysmonModules.ps1     export-ignore
+tools/test-fixtures/                  export-ignore

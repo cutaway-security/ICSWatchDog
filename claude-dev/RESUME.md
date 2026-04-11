@@ -5,7 +5,7 @@
 **Last Session**: 2026-04-11
 **Branch**: claude-dev
 **Last Session**: 2026-04-11
-**Status**: Phases 1-10 complete (released as tag v6). Phases 11a, 11b, 11d complete. Toolchain refactor (Export/Get-Coverage/Compare), usage guide, PS 2.0 compat, testing infrastructure all delivered. Ready for commit/push. Phase 11c (Validation Framework) is next. Phase 11 work targets release tag v7.
+**Status**: Phases 1-10 complete (released as tag v6). Phases 11a, 11b, 11c, 11d complete. Phase 11e (Build Your Own Module Guide) is next. Phase 11 work targets release tag v7.
 
 ## Phase History Summary (v6 and earlier)
 
@@ -172,18 +172,45 @@ Toolchain refactor and usage guide:
 - Added Coverage Assessment link to nav dropdown. Jekyll build passes (0.014s).
 - Updated ARCHITECTURE.md file structure tree with all new files and tools.
 
+## Phase 11c: Module Validation Framework: COMPLETE (2026-04-11)
+
+- Added SYSMON_CODING_STANDARD.md Section 9.5 with:
+  - 9.5.1 Validation checklist: 7 universal items + category-specific items per module type
+  - 9.5.2 Evidence requirements per confidence level (theoretical, security-research, vendor-documented, verified-in-lab)
+  - 9.5.3 Confidence promotion path with explicit requirements
+  - 9.5.4 Companion `<module>.validation.md` file format
+  - 9.5.5 Validation file lifecycle
+- Created initial validation files for all 48 modules alongside their XMLs
+- Detailed validation file for siemens-tia-portal.xml (full evidence, complete checklist)
+- Skeleton validation files for remaining 47 modules (honest: all mark "Merged config loads" as UNTESTED)
+
+### Tools dev/release classification (2026-04-11)
+
+Classified all tools/ contents:
+
+**Ship to users (in main releases):**
+- Get-SysmonCoverage.ps1, Export-SystemInventory.ps1, Compare-SystemInventory.ps1 (coverage toolchain)
+- Merge-SysmonModules.ps1 (module merge)
+- Test-SysmonConfig.ps1 (efficacy testing against live system)
+- check-rule-preservation.py (rule diff checker)
+
+**Dev-only (excluded from releases):**
+- Test-GetSysmonCoverage.ps1, Test-CompareSystemInventory.ps1, Test-MergeSysmonModules.ps1 (fixture-dependent harnesses)
+- tools/test-fixtures/ (merge tool fixtures)
+
+Added to .gitattributes export-ignore and GIT_RELEASE_STEPS.md git rm step. Test-SysmonConfig.ps1 ships because it tests the live system without fixture dependency.
+
 ## Blockers
 
-None. Phase 11d complete. Ready for commit and push.
+None. Phases 11a-11d complete. Ready for commit and push.
 
 ## Next Steps
 
-1. **Commit and push** Phase 11d deliverables
-2. **Phase 11c**: Validation Framework (per-module checklist, companion validation file format, evidence requirements)
-3. **Phase 11e**: Build Your Own Module Guide
-4. **Phase 11f**: Community Contribution Intake Process
-5. **Phase 11g**: v7 release
-6. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
+1. **Commit and push** all current work
+2. **Phase 11e**: Build Your Own Module Guide (website page with detection cookbook)
+3. **Phase 11f**: Community Contribution Intake Process (PR template, acceptance tiers)
+4. **Phase 11g**: v7 documentation and release
+5. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
 
 ## Files Modified This Session
 

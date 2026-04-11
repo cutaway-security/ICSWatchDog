@@ -71,6 +71,10 @@ Confirm: `On branch release-v#`.
 git rm -r claude-dev/
 git rm -r docs/
 git rm CLAUDE.md
+git rm tools/Test-GetSysmonCoverage.ps1
+git rm tools/Test-CompareSystemInventory.ps1
+git rm tools/Test-MergeSysmonModules.ps1
+git rm -r tools/test-fixtures/
 git status
 ```
 
@@ -92,7 +96,7 @@ git commit -m "Remove development files for release v#"
 ### 5. Verify the release branch
 
 - [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME
-- [ ] No development files remain (`ls claude-dev/` should fail, `ls docs/` should fail, `ls CLAUDE.md` should fail)
+- [ ] No development files remain (`ls claude-dev/` should fail, `ls docs/` should fail, `ls CLAUDE.md` should fail, `ls tools/test-fixtures/` should fail, `ls tools/Test-GetSysmonCoverage.ps1` should fail)
 - [ ] Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
 ### 6. Force-push to main
@@ -178,7 +182,14 @@ The following files exist only on the `claude-dev` branch and are stripped befor
 | `claude-dev/TOOL_CODING_STANDARD.md` | PowerShell/Python tool coding standard |
 | `claude-dev/REMOTE_TESTING.md` | Proxmox remote test environment setup |
 | `claude-dev/remote-testing.example.conf` | Local-config template (real config gitignored) |
+| `claude-dev/TESTING_STANDARD.md` | Config and script testing procedures |
 | `claude-dev/test-fixtures/` | Dev-only test fixtures for tool harnesses |
+| `tools/Test-GetSysmonCoverage.ps1` | Coverage tool test harness (needs dev fixtures) |
+| `tools/Test-CompareSystemInventory.ps1` | Compare tool test harness (needs dev fixtures) |
+| `tools/Test-MergeSysmonModules.ps1` | Merge tool test harness (needs dev fixtures) |
+| `tools/test-fixtures/` | Merge tool test fixtures |
 | `docs/` | Jekyll website source (deployed separately to gh-pages) |
+
+**Note**: `tools/Test-SysmonConfig.ps1` IS shipped. It tests against the live system and does not depend on fixtures. All other `Test-*.ps1` scripts are dev-only.
 
 The entire `claude-dev/` directory is also marked `export-ignore` in `.gitattributes` as a defensive safety net (see Overview).

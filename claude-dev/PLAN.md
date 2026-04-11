@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phases 11a, 11b, and 11d complete. Schema bump, Win7 legacy config, config/script testing (all 6 VMs), PS 2.0 coverage tool compatibility, NLA fix, toolchain refactor (Export/Get-Coverage/Compare), and usage guide all done. Ready for commit and push. Phase 11c (Validation Framework) is next. All Phase 11 work targets release tag v7.
-**Focus**: Commit/push Phase 11d deliverables, then Phase 11c.
+**Status**: Phases 11a, 11b, 11c, 11d complete. Phase 11e (Build Your Own Module Guide) is next. All Phase 11 work targets release tag v7.
+**Focus**: Phase 11e.
 
 ## Phases
 
@@ -366,6 +366,9 @@ Two role-specific server configs, each self-contained (includes server baseline 
 
 | 2026-04-11 | PS 2.0 compatibility via runtime detection, not separate scripts | Per user direction: many OT environments have Win7 with PS 2.0. Instead of maintaining separate Win7 script copies, each script self-detects PS version at runtime. Console and Markdown output work on PS 2.0. JSON output gates behind a PS 3+ check with a clear error. Avoids code duplication and version drift. |
 | 2026-04-11 | Markdown output for AI consumption; all three formats mandatory on report scripts | Per user direction: Markdown output should be available on all report-producing scripts to facilitate AI/LLM analysis. Console/JSON/Markdown are now all mandatory (not optional) on scripts that produce reports. Consistent `-OutputFormat` parameter across all tools. |
+
+| 2026-04-11 | Tools split: user-facing ship, dev-only test harnesses excluded from releases | Test-GetSysmonCoverage.ps1, Test-CompareSystemInventory.ps1, Test-MergeSysmonModules.ps1, and tools/test-fixtures/ added to .gitattributes export-ignore and GIT_RELEASE_STEPS.md git rm step. Test-SysmonConfig.ps1 IS shipped because it tests against the live system (no fixture dependency). |
+| 2026-04-11 | Module validation framework: checklist + evidence + companion .validation.md files | Phase 11c. Universal checklist (7 items) + category-specific items. Evidence requirements per confidence level. Companion .validation.md files committed alongside module XMLs (shipped to users as the public validation record). Promotion path: theoretical -> security-research -> vendor-documented -> verified-in-lab. |
 
 ### Phase 7: Efficacy Testing
 
@@ -832,10 +835,15 @@ Origin: User question (2026-04-07): "Where did the information come from and how
 
 #### Phase 11c: Module Validation Framework
 
-- [ ] Define validation checklist (process names, file paths, project file extensions, default ports, rule logic firing, no FP on baseline)
-- [ ] Document evidence requirements for each checklist item
-- [ ] Define companion validation file format: <module>.validation.md
-- [ ] Document promotion path from `vendor-documented` to `verified-in-lab` confidence
+**Status**: Complete.
+
+- [x] Define validation checklist (universal + category-specific items) in SYSMON_CODING_STANDARD.md Section 9.5.1
+- [x] Document evidence requirements for each confidence level in Section 9.5.2
+- [x] Define companion `<module>.validation.md` file format in Section 9.5.4
+- [x] Document promotion path (`theoretical` -> `security-research` -> `vendor-documented` -> `verified-in-lab`) in Section 9.5.3
+- [x] Create initial validation files for all 48 modules alongside their XML files
+- [x] Classify tools/ contents: user-facing tools ship; dev-only test harnesses and fixtures excluded from releases
+- [x] Update .gitattributes, GIT_RELEASE_STEPS.md with dev-only tool exclusions
 
 #### Phase 11d: Coverage Toolchain Refactor and Usage Guide
 

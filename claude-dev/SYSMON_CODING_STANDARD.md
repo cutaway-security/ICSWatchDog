@@ -667,6 +667,134 @@ The following must NOT change:
 
 All configs and modules use schema 4.90 (the project standard). The only exception is the legacy Win7 config at schema 4.23.
 
+### 9.5 Module Validation Framework
+
+This section defines how modules are validated and how they promote between confidence levels (see Section 8.5 for the four confidence levels).
+
+#### 9.5.1 Validation Checklist
+
+Every module MUST be checked against the items relevant to its category. Not all items apply to every module. The checklist is recorded in a companion `<module>.validation.md` file alongside the module XML.
+
+**Universal checklist (all modules):**
+
+| Item | Description | Evidence |
+|------|-------------|----------|
+| XML well-formed | `xmllint --noout` passes | Command output |
+| Schema version correct | Declares 4.90 in header | Visual inspection |
+| Provenance block present | Header contains Provenance section with Confidence field | Visual inspection |
+| ATT&CK tagging correct | All include-rule `name` attributes use the tagging convention | Visual inspection or grep |
+| Rule name length | No `name` attribute exceeds 250 characters | `check-rule-preservation.py` or grep |
+| Merge test | Module merges into at least one curated config without error | `Merge-SysmonModules.ps1` output |
+| Merged config loads | Merged output loads into Sysmon without error on at least one target OS | `Sysmon64.exe -c` output |
+
+**Category-specific checklist items:**
+
+| Category | Item | Description | Evidence |
+|----------|------|-------------|----------|
+| vendor-ot | Process names verified | Binary names and paths match a real or documented installation | Vendor documentation URL, screenshot, or lab observation |
+| vendor-ot | File extensions verified | Monitored file extensions (.ap17, .s7p, etc.) are correct for the vendor product | Vendor documentation URL |
+| vendor-ot | Default install paths verified | Install path patterns match the vendor's documented defaults | Vendor documentation URL or lab observation |
+| vendor-it | Exclusion patterns safe | Excluded processes are confirmed safe to exclude (not dual-use) | Security assessment |
+| cloud-storage | Dual-use include/exclude | Both include and exclude modules present per convention | Visual inspection |
+| protocol | Port numbers correct | Monitored ports match the protocol's registered/standard port | Protocol specification or RFC |
+| protocol | Protocol name correct | Protocol name in rule description matches the standard name | Protocol specification |
+| sector | Sector-specific relevance | Rules are relevant to the named sector's operational environment | Industry guidance or sector-specific documentation |
+| remote-access | Tool binary names current | Process names match the current version of the RMM tool | Vendor website or LOLRMM reference |
+| lolbas | LOLBAS Project alignment | Binary and abuse pattern match the LOLBAS Project entry | LOLBAS Project URL |
+
+#### 9.5.2 Evidence Requirements by Confidence Level
+
+Each confidence level requires specific evidence to claim. Evidence is recorded in the companion validation file.
+
+| Confidence Level | Required Evidence |
+|---|---|
+| **theoretical** | Plausible rule patterns based on general knowledge. No specific source required. Validation file documents the reasoning and notes the lack of authoritative source. |
+| **security-research** | Specific URL or citation to the authoritative source (LOLBAS Project entry, MITRE ATT&CK technique page, Sigma rule, threat intel report, security blog post). Source must be publicly accessible or clearly identified. |
+| **vendor-documented** | Specific URL or citation to vendor-published documentation (knowledge base article, installation guide, security bulletin, release notes). Vendor product version or version range identified. Default install paths and process names sourced from vendor docs. |
+| **verified-in-lab** | All `vendor-documented` evidence PLUS: (1) lab environment description (OS version, vendor product version, Sysmon version), (2) evidence that each rule fires on its trigger condition (screenshot, event log excerpt, or test script output), (3) baseline observation period of at least 24 hours with false positive count documented, (4) date of validation. |
+
+#### 9.5.3 Confidence Promotion Path
+
+Modules promote from lower to higher confidence when new evidence is provided:
+
+```
+theoretical
+    |-- Provide authoritative source URL --> security-research
+    |-- Provide vendor documentation URL --> vendor-documented
+
+security-research
+    |-- Provide vendor documentation URL and version --> vendor-documented
+
+vendor-documented
+    |-- Provide lab test evidence (Section 9.5.2) --> verified-in-lab
+```
+
+Promotion requires:
+1. Updated evidence in the companion `<module>.validation.md` file
+2. Updated `Confidence` field in the module XML header
+3. Version bump on the module (MINOR bump for confidence promotion)
+4. Pull request or commit with the promotion evidence
+
+Demotion (e.g., `vendor-documented` to `security-research`) occurs when previously cited vendor documentation becomes unavailable, the vendor product is significantly restructured (new binaries, paths), or community testing reveals the rules do not match the documented behavior.
+
+#### 9.5.4 Companion Validation File Format
+
+Each module has a companion validation file at the same path with `.validation.md` extension:
+
+```
+sysmon-configs/modules/vendor-ot/siemens-tia-portal.xml
+sysmon-configs/modules/vendor-ot/siemens-tia-portal.validation.md
+```
+
+The validation file uses this format:
+
+```markdown
+# Module Validation: <Module Name>
+
+**Module**: <path/to/module.xml>
+**Version**: vX.Y
+**Confidence**: <verified-in-lab|vendor-documented|security-research|theoretical>
+**Last Validated**: YYYY-MM-DD
+**Validated By**: <name or GitHub handle>
+
+## Evidence
+
+<Evidence section per Section 9.5.2. URLs, citations, lab descriptions as appropriate.>
+
+## Checklist
+
+| Item | Status | Notes |
+|------|--------|-------|
+| XML well-formed | PASS/FAIL/N-A | |
+| Schema version correct | PASS/FAIL/N-A | |
+| Provenance block present | PASS/FAIL/N-A | |
+| ATT&CK tagging correct | PASS/FAIL/N-A | |
+| Rule name length | PASS/FAIL/N-A | |
+| Merge test | PASS/FAIL/N-A | Merged into <config name> |
+| Merged config loads | PASS/FAIL/N-A | Tested on <OS, Sysmon version> |
+| <category-specific items> | PASS/FAIL/N-A | |
+
+## Observations
+
+<Any notes about false positives, version-specific behavior, tuning
+recommendations, or known gaps discovered during validation.>
+
+## History
+
+| Date | Change | By |
+|------|--------|----|
+| YYYY-MM-DD | Initial validation at <confidence level> | <name> |
+```
+
+Validation files are committed alongside their modules and are included in releases. They are the public record of what has been validated and what has not.
+
+#### 9.5.5 Validation File Lifecycle
+
+- **New module**: validation file created with initial confidence level and available evidence.
+- **Confidence promotion**: validation file updated with new evidence, checklist re-run, history entry added.
+- **Module version bump**: validation file reviewed; if rules changed, checklist items re-validated.
+- **Community contribution**: contributor provides validation file (or at minimum, evidence). Maintainer reviews and may adjust confidence level.
+
 ---
 
 ## 10. Attribution Requirements
