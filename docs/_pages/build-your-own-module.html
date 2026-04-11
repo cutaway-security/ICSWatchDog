@@ -1,0 +1,281 @@
+---
+layout: default
+title: Build Your Own Module
+permalink: /build-your-own-module/
+---
+
+<h1>Build Your Own Module</h1>
+
+<p>When the <a href="/coverage-assessment/">coverage tool</a> identifies gaps in your Sysmon monitoring, you have two options: merge an existing module from the <a href="/modules/">module library</a>, or build your own. This guide walks through building a custom module from scratch.</p>
+
+<section class="overview-section">
+  <h2>When to Build vs. Extend</h2>
+
+  <p><strong>Build a new module</strong> when the library has no module for your vendor, protocol, or use case. Examples: a new OT vendor product, a site-specific application, a protocol not in the built-in catalog.</p>
+
+  <p><strong>Extend an existing module</strong> when a module exists but is missing rules for your specific version, edition, or installation path. Fork the existing module and add your rules.</p>
+
+  <p><strong>Do not build a module</strong> for noise that should be an exclusion in the base config. If a trusted process generates too many events, add an exclusion to the curated config header instead.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Step 1: Assess Your Coverage</h2>
+
+  <p>Before writing rules, measure what you have. Run the coverage tool against your system:</p>
+
+  <pre>.\Get-SysmonCoverage.ps1 -ConfigPath sysmonconfig-baseline-ot.xml</pre>
+
+  <p>The gap report tells you what is unmonitored: unmatched processes, uncovered OT software, unmatched industrial ports. These gaps are your module candidates.</p>
+
+  <p>For locked-down systems, capture an inventory first:</p>
+
+  <pre>.\Export-SystemInventory.ps1 -OutputPath my-system.json
+.\Get-SysmonCoverage.ps1 -ConfigPath sysmonconfig-baseline-ot.xml -InventoryPath my-system.json</pre>
+</section>
+
+<section class="overview-section">
+  <h2>Step 2: Module File Structure</h2>
+
+  <p>A module is an XML fragment containing one or more <code>&lt;RuleGroup&gt;</code> elements. It has no <code>&lt;Sysmon&gt;</code> root element -- the merge tool handles that.</p>
+
+  <pre>&lt;!--
+  ICS Watch Dog Module: &lt;Your Module Name&gt;
+  Category:     &lt;vendor-ot|vendor-it|cloud-storage|sector|protocol|remote-access&gt;
+  Version:      v1.0
+  Schema:       4.90
+  Dependencies: none
+  ATT&amp;CK:       &lt;technique IDs covered&gt;
+
+  PURPOSE:
+    &lt;What this module monitors and why&gt;
+
+  WHEN TO USE:
+    &lt;Which systems benefit from this module&gt;
+
+  PROVENANCE:
+    Source:           &lt;Where the rule content came from&gt;
+    Confidence:       &lt;vendor-documented|security-research|theoretical&gt;
+    Last Validated:   &lt;date&gt;
+    Validated By:     &lt;your name or handle&gt;
+    Known Limitations: &lt;What this module does not cover&gt;
+--&gt;
+&lt;RuleGroup name="&lt;EventType&gt;-&lt;ModuleName&gt;" groupRelation="or"&gt;
+  &lt;!-- Rules go here --&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <p>Save the file under <code>sysmon-configs/modules/&lt;category&gt;/&lt;module-name&gt;.xml</code>.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Step 3: Detection Pattern Cookbook</h2>
+
+  <p>Each pattern below is a complete, working example you can adapt. All examples use the <a href="/attack-tagging/">ATT&amp;CK tagging convention</a>.</p>
+
+  <h3>Pattern 1: Process Monitoring (Binary Name)</h3>
+  <p>Monitor when a specific binary runs. Use <code>end with</code> to match regardless of install path.</p>
+
+  <pre>&lt;RuleGroup name="ProcessCreate-MyVendor" groupRelation="or"&gt;
+  &lt;ProcessCreate onmatch="include"&gt;
+    &lt;Image name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=MyVendor engineering tool launched"
+           condition="end with"&gt;\MyVendorTool.exe&lt;/Image&gt;
+  &lt;/ProcessCreate&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 2: File Creation (Extensions and Paths)</h3>
+  <p>Monitor when project files or configuration files are created or modified.</p>
+
+  <pre>&lt;RuleGroup name="FileCreate-MyVendor" groupRelation="or"&gt;
+  &lt;FileCreate onmatch="include"&gt;
+    &lt;TargetFilename name="technique_id=T1565.001,technique=Stored Data Manipulation,detection=MyVendor project file created"
+                    condition="end with"&gt;.mvproj&lt;/TargetFilename&gt;
+    &lt;TargetFilename name="technique_id=T1565.002,technique=Transmitted Data Manipulation,detection=File created in MyVendor directory"
+                    condition="contains"&gt;\MyVendor\&lt;/TargetFilename&gt;
+  &lt;/FileCreate&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 3: Network Connection (Protocol Port)</h3>
+  <p>Monitor connections to a specific industrial protocol port.</p>
+
+  <pre>&lt;RuleGroup name="NetworkConnect-MyProtocol" groupRelation="or"&gt;
+  &lt;NetworkConnect onmatch="include"&gt;
+    &lt;DestinationPort name="technique_id=T0830,technique=Adversary-in-the-Middle,detection=Connection to MyProtocol port 12345"
+                     condition="is"&gt;12345&lt;/DestinationPort&gt;
+  &lt;/NetworkConnect&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 4: Composite Rule (Binary + Command Line)</h3>
+  <p>Detect a specific binary only when its command line matches a suspicious pattern. Uses <code>&lt;Rule groupRelation="and"&gt;</code> to require both conditions. This reduces false positives compared to matching either condition alone.</p>
+
+  <pre>&lt;RuleGroup name="ProcessCreate-SuspiciousTool" groupRelation="or"&gt;
+  &lt;ProcessCreate onmatch="include"&gt;
+    &lt;Rule name="technique_id=T1105,technique=Ingress Tool Transfer,detection=MyTool downloading remote file"
+          groupRelation="and"&gt;
+      &lt;Image condition="end with"&gt;\mytool.exe&lt;/Image&gt;
+      &lt;CommandLine condition="contains"&gt;--download&lt;/CommandLine&gt;
+    &lt;/Rule&gt;
+  &lt;/ProcessCreate&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 5: Registry Persistence</h3>
+  <p>Monitor registry keys used for persistence or configuration tampering.</p>
+
+  <pre>&lt;RuleGroup name="RegistryEvent-MyVendor" groupRelation="or"&gt;
+  &lt;RegistryEvent onmatch="include"&gt;
+    &lt;TargetObject name="technique_id=T1547.001,technique=Registry Run Keys,detection=MyVendor service registry modified"
+                  condition="contains"&gt;\CurrentControlSet\Services\MyVendorSvc&lt;/TargetObject&gt;
+  &lt;/RegistryEvent&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 6: Named Pipe (C2 Detection)</h3>
+  <p>Monitor named pipes associated with specific tools or C2 frameworks.</p>
+
+  <pre>&lt;RuleGroup name="PipeCreated-MyDetection" groupRelation="or"&gt;
+  &lt;PipeEvent onmatch="include"&gt;
+    &lt;PipeName name="technique_id=T1572,technique=Protocol Tunneling,detection=SuspiciousTool named pipe"
+              condition="begin with"&gt;\suspipe_&lt;/PipeName&gt;
+  &lt;/PipeEvent&gt;
+&lt;/RuleGroup&gt;</pre>
+
+  <h3>Pattern 7: Noise Exclusion (IT Software)</h3>
+  <p>Exclude a trusted IT application that generates excessive events. Used in <code>vendor-it</code> category modules.</p>
+
+  <pre>&lt;RuleGroup name="ProcessCreate-Exclude-MyApp" groupRelation="or"&gt;
+  &lt;ProcessCreate onmatch="exclude"&gt;
+    &lt;Image name="exclude=MyApp updater noise"
+           condition="is"&gt;C:\Program Files\MyApp\Updater.exe&lt;/Image&gt;
+    &lt;Image name="exclude=MyApp helper noise"
+           condition="is"&gt;C:\Program Files\MyApp\Helper.exe&lt;/Image&gt;
+  &lt;/ProcessCreate&gt;
+&lt;/RuleGroup&gt;</pre>
+</section>
+
+<section class="overview-section">
+  <h2>Step 4: ATT&amp;CK Tagging</h2>
+
+  <p>Every include rule MUST have a <code>name</code> attribute following the ATT&amp;CK tagging convention:</p>
+
+  <pre>name="technique_id=T1234,technique=Technique Name,detection=What this rule detects"</pre>
+
+  <p>Rules:</p>
+  <ul>
+    <li>The <code>name</code> attribute must not exceed 250 characters</li>
+    <li>No commas in field values (commas are field delimiters)</li>
+    <li>Multiple technique IDs use pipe: <code>technique_id=T1105|T1140</code></li>
+    <li>Exclude rules use <code>name="exclude=Reason"</code> instead</li>
+  </ul>
+
+  <p>See the <a href="/attack-tagging/">ATT&amp;CK Rule Tagging</a> guide for the full specification and SIEM parsing examples.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Step 5: Validate Your Module</h2>
+
+  <h3>XML validation</h3>
+  <p>The module must be well-formed XML (even though it has no root element, the merge tool wraps it for validation):</p>
+  <pre>xmllint --noout your-module.xml</pre>
+
+  <h3>Merge test</h3>
+  <p>Merge your module into a curated config and verify the output loads into Sysmon:</p>
+  <pre>.\Merge-SysmonModules.ps1 `
+    -BaseConfig sysmonconfig-baseline-ot.xml `
+    -Modules @('your-module.xml') `
+    -OutputPath merged-test.xml
+
+Sysmon64.exe -c merged-test.xml</pre>
+
+  <p>Verify: "Configuration updated." appears and <code>Sysmon64.exe -c</code> shows your new RuleGroup in the rule list.</p>
+
+  <h3>Coverage re-check</h3>
+  <p>Verify your module closes the gaps you identified:</p>
+  <pre>.\Get-SysmonCoverage.ps1 `
+    -ConfigPath sysmonconfig-baseline-ot.xml `
+    -AdditionalModules @('your-module.xml')</pre>
+</section>
+
+<section class="overview-section">
+  <h2>Step 6: Document Provenance</h2>
+
+  <p>Add the provenance block to your module header (see the file structure in Step 2). Be honest about the confidence level:</p>
+
+  <table>
+    <thead>
+      <tr><th>Level</th><th>Meaning</th><th>Use When</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>theoretical</strong></td><td>Plausible but unverified</td><td>You wrote rules from general knowledge without checking vendor docs</td></tr>
+      <tr><td><strong>security-research</strong></td><td>Based on public security research</td><td>Rules derived from threat intel, LOLBAS Project, Sigma rules</td></tr>
+      <tr><td><strong>vendor-documented</strong></td><td>Based on vendor documentation</td><td>Process names and paths from vendor install guides or KB articles</td></tr>
+      <tr><td><strong>verified-in-lab</strong></td><td>Tested against a real installation</td><td>You ran the module in a lab and confirmed rules fire correctly</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="overview-section">
+  <h2>Step 7: Create a Validation File</h2>
+
+  <p>Create a <code>.validation.md</code> file alongside your module XML. This is the public record of what has been validated.</p>
+
+  <pre># Module Validation: Your Module Name
+
+**Module**: sysmon-configs/modules/vendor-ot/your-module.xml
+**Version**: v1.0
+**Confidence**: vendor-documented
+**Last Validated**: 2026-04-11
+**Validated By**: Your Name
+
+## Evidence
+
+Source documentation: [link to vendor KB article]
+
+## Checklist
+
+| Item | Status | Notes |
+|------|--------|-------|
+| XML well-formed | PASS | |
+| Merge test | PASS | Merged into baseline-ot |
+| Merged config loads | PASS | Tested on Win10, Sysmon 15.20 |
+
+## Observations
+
+Your testing notes, false positive observations, version-specific behavior.
+
+## History
+
+| Date | Change | By |
+|------|--------|----|
+| 2026-04-11 | Initial creation | Your Name |</pre>
+</section>
+
+<section class="overview-section">
+  <h2>Step 8: Contributing Back</h2>
+
+  <p>Share your module with the community:</p>
+
+  <ol>
+    <li><strong>Submit via GitHub</strong>: open a <a href="https://github.com/cutaway-security/ICSWatchDog/issues">GitHub issue</a> or pull request with your module XML, validation file, and (optionally) a sanitized system inventory JSON showing the gap your module fills.</li>
+    <li><strong>Sanitize before sharing</strong>: if including an inventory, export with <code>-Redact</code> and review manually for site-specific details (project names, custom service names, license keys).</li>
+    <li><strong>Include evidence</strong>: vendor documentation URLs, lab test results, or LOLBAS Project references. Higher-confidence contributions are more likely to be accepted into the main library.</li>
+  </ol>
+
+  <p>See the <a href="/community/">Community Contributions</a> page for the full intake process and acceptance levels.</p>
+</section>
+
+<section class="overview-section">
+  <h2>Quick Reference: Sysmon Event Types for Modules</h2>
+
+  <table>
+    <thead>
+      <tr><th>Event ID</th><th>Type</th><th>Common Use in Modules</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>ProcessCreate</td><td>Vendor binary monitoring, LOLBAS detection</td></tr>
+      <tr><td>3</td><td>NetworkConnect</td><td>Protocol port monitoring (Modbus, OPC-UA, etc.)</td></tr>
+      <tr><td>11</td><td>FileCreate</td><td>Project files, config files, vendor directories</td></tr>
+      <tr><td>12-14</td><td>RegistryEvent</td><td>Service registry, persistence keys</td></tr>
+      <tr><td>17-18</td><td>PipeEvent</td><td>C2 pipe detection, vendor named pipes</td></tr>
+      <tr><td>22</td><td>DnsQuery</td><td>Vendor update/telemetry domains</td></tr>
+    </tbody>
+  </table>
+
+  <p>For the full event type list and Sysmon documentation, see <a href="https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon">Microsoft Sysinternals Sysmon</a>.</p>
+</section>

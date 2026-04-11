@@ -7,8 +7,8 @@ Provide a usable, progressive set of Sysmon configuration files for ICS/OT envir
 ## Current Phase
 
 **Phase**: Phase 11 - Module Validation, Provenance, and Coverage Assessment
-**Status**: Phases 11a, 11b, 11c, 11d complete. Phase 11e (Build Your Own Module Guide) is next. All Phase 11 work targets release tag v7.
-**Focus**: Phase 11e.
+**Status**: Phases 11a, 11b, 11c, 11d, 11e complete. Phase 11f (Community Contribution Intake Process) is next. All Phase 11 work targets release tag v7.
+**Focus**: Phase 11f.
 
 ## Phases
 
@@ -889,15 +889,21 @@ Origin: User direction (2026-04-07). Two related needs:
 
 #### Phase 11e: Build Your Own Module Guide
 
-- [ ] Create new website page docs/_pages/build-your-own-module.html
-      - When to build a custom module vs extend an existing one
-      - Environment inventory step (using coverage tool from 11b, link to 11d guide)
-      - Detection pattern cookbook (5-10 worked examples covering binary-only, composite binary+CL, parent-child, file creation, network connection, registry, persistence)
-      - Using the ATT&CK tagging convention (link to attack-tagging page)
-      - Module file format and validation
-      - Testing in a lab environment
-      - Documenting provenance with the metadata standard from 11a
-      - Contributing back via the community intake process (link to community page)
+**Status**: Complete.
+
+- [x] Create new website page `docs/_pages/build-your-own-module.html`
+  - When to build vs. extend vs. use exclusion in base config
+  - Coverage assessment step (link to coverage-assessment page)
+  - Module file structure with header template
+  - Detection pattern cookbook: 7 worked examples (binary monitoring, file creation, protocol port, composite binary+CL, registry persistence, named pipe C2, noise exclusion)
+  - ATT&CK tagging rules (link to attack-tagging page)
+  - Validation steps (xmllint, merge test, Sysmon load, coverage re-check)
+  - Provenance documentation with confidence level table
+  - Validation file creation (.validation.md companion)
+  - Contributing back (GitHub issue/PR, sanitization, link to community page)
+  - Quick reference table of Sysmon event types commonly used in modules
+- [x] Add Build Your Own Module link to `docs/_includes/nav.html` Guides dropdown
+- [x] Verify Jekyll build (0.018s, page generated)
 
 #### Phase 11f: Community Contribution Intake Process
 

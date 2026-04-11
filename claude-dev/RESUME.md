@@ -5,7 +5,7 @@
 **Last Session**: 2026-04-11
 **Branch**: claude-dev
 **Last Session**: 2026-04-11
-**Status**: Phases 1-10 complete (released as tag v6). Phases 11a, 11b, 11c, 11d complete. Phase 11e (Build Your Own Module Guide) is next. Phase 11 work targets release tag v7.
+**Status**: Phases 1-10 complete (released as tag v6). Phases 11a-11e complete. Phase 11f (Community Contribution Intake) is next. Phase 11 work targets release tag v7.
 
 ## Phase History Summary (v6 and earlier)
 
@@ -200,17 +200,30 @@ Classified all tools/ contents:
 
 Added to .gitattributes export-ignore and GIT_RELEASE_STEPS.md git rm step. Test-SysmonConfig.ps1 ships because it tests the live system without fixture dependency.
 
+## Phase 11e: Build Your Own Module Guide: COMPLETE (2026-04-11)
+
+Created `docs/_pages/build-your-own-module.html` with 8 sections:
+1. When to build vs. extend vs. exclude
+2. Coverage assessment step (links to coverage-assessment page)
+3. Module file structure with complete header template
+4. Detection pattern cookbook: 7 worked examples (binary, file creation, protocol port, composite binary+CL, registry persistence, named pipe, noise exclusion)
+5. ATT&CK tagging rules and constraints
+6. Validation steps (xmllint, merge, Sysmon load, coverage re-check)
+7. Provenance and validation file creation
+8. Contributing back (GitHub, sanitization, community page link)
+
+Added to nav dropdown between "Module Library" and "Coverage Assessment". Jekyll build passes.
+
 ## Blockers
 
-None. Phases 11a-11d complete. Ready for commit and push.
+None. Phases 11a-11e complete. Ready for commit and push.
 
 ## Next Steps
 
 1. **Commit and push** all current work
-2. **Phase 11e**: Build Your Own Module Guide (website page with detection cookbook)
-3. **Phase 11f**: Community Contribution Intake Process (PR template, acceptance tiers)
-4. **Phase 11g**: v7 documentation and release
-5. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
+2. **Phase 11f**: Community Contribution Intake Process
+3. **Phase 11g**: v7 documentation and release
+4. Apply PS 2.0 compatibility pattern to Merge-SysmonModules.ps1 and Test-SysmonConfig.ps1 (lower priority)
 
 ## Files Modified This Session
 
