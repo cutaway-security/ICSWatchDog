@@ -251,9 +251,50 @@ Documentation updates:
 
 Final validation: 10/10 configs xmllint, 25/25 tests pass, Jekyll builds (0.017s), all pages generated.
 
+## License Change: Dual License (CC BY-SA 4.0 + Commercial) (2026-04-13)
+
+Changed license from CC BY 4.0 to dual-license model to protect against proprietary bundling of project content without ShareAlike obligations.
+
+Changes made:
+- `License` file: replaced CC BY 4.0 full text with CC BY-SA 4.0 full text
+- `NOTICE` file: NEW. Dual-license statement, attribution requirements, third-party content inventory
+- 9 curated configs: added `Copyright:` line, changed `License:` to CC BY-SA 4.0 with commercial contact
+- 48 module XMLs: added `Copyright:` and `License:` lines after Dependencies field
+- 1 community config: updated license line
+- 8 PowerShell scripts: added copyright/license header block
+- 1 Python script: added copyright/license header block
+- `README.md`: license section rewritten with dual-license explanation and NOTICE link
+- `docs/_includes/footer.html`: CC BY 4.0 link changed to CC BY-SA 4.0 with commercial licensing link
+- `docs/_pages/about.html`: license paragraph rewritten for dual-license
+- `CLAUDE.md`: license constraint updated
+- `claude-dev/SYSMON_CODING_STANDARD.md`: 3 license references updated (header field table, header template, attribution section)
+- `claude-dev/GIT_RELEASE_STEPS.md`: added NOTICE to release verify checklist
+- `claude-dev/PLAN.md`: decision log entry added
+- Reference config (`sysmonconfig-swiftonsecurity-v74.xml`) NOT modified -- retains original SwiftOnSecurity CC BY 4.0 license
+
+## VM Tracking Simplification (2026-04-13)
+
+Consolidated VM tracking to `~/.ssh/config` as the single source of truth. Eliminated three planned-but-mostly-unused tracking files that duplicated SSH config data or were never actually adopted.
+
+Changes made:
+- **Deleted** `claude-dev/remote-testing.example.conf` (committed template for a file we no longer use)
+- **Updated** `.gitignore`: removed entries for `remote-testing.local.conf`, `dev-inventory.csv`, `proxmox-api.conf`; kept defensive `claude-dev/*.local.*` catch-all
+- **Rewrote** `claude-dev/REMOTE_TESTING.md` Section 7: replaced "Local Configuration File" with "VM Tracking: ~/.ssh/config as Single Source of Truth" documenting the VMID comment format `# VMID=<id> PROXMOX=<alias>`, rebuild procedure after workstation loss, and rationale for no local conf
+- **Updated** `claude-dev/REMOTE_TESTING.md` Section 8 ("Test Run Pattern"): examples now use SSH aliases directly with no `-i <key>` flag and no `source` of any conf file; key resolution is left to SSH config
+- **Updated** `claude-dev/REMOTE_TESTING.md` other sections: threat model note adjusted, orchestration TODO rephrased to parse VMID from SSH config comments
+- **Updated** `claude-dev/TESTING_STANDARD.md` Section 2.1: added VMID and Proxmox columns to the Available systems table, populated with real values from `ssh proxmox0 "qm list"`
+- **Updated** `claude-dev/TESTING_STANDARD.md` Section 2.2: lifecycle rules now cite `~/.ssh/config` as source of truth for VMID
+- **Updated** `claude-dev/TESTING_STANDARD.md` Sections 7.2 and 9: removed references to `dev-inventory.csv`; new-system procedure now edits SSH config and Section 2.1 table
+- **Updated** `claude-dev/GIT_RELEASE_STEPS.md`: removed `remote-testing.example.conf` from dev-file table
+- **Updated** `claude-dev/ARCHITECTURE.md`: removed `remote-testing.example.conf` from file structure tree
+- **Added** decision log entry to `claude-dev/PLAN.md`
+- **User action**: `~/.ssh/config` VMID comments already updated to `VMID=<id> PROXMOX=<alias>` format (verified)
+
+Rationale: all three planned tracking files duplicated SSH config data. Direct SSH to `proxmox0` replaces the Proxmox API file. Per-VM OS/version metadata lives in `TESTING_STANDARD.md` Section 2.1 (documentation, not connection data). Pattern is now portable to other projects.
+
 ## Blockers
 
-None. Phase 11 complete. Ready for commit, push, and v7 release.
+None. Phase 11 complete. License update complete. VM tracking simplified. Ready for commit, push, and v7 release.
 
 ## Next Steps
 

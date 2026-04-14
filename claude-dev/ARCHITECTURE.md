@@ -261,7 +261,6 @@ ICSWatchDog/
         REMOTE_TESTING.md                          # Proxmox VM test environment setup
         GITHUB_ISSUE_STANDARD.md                   # Issue template and label conventions
         html-css-jekyll.md                         # HTML/CSS/Jekyll code standard
-        remote-testing.example.conf                # Local-config template (placeholders only)
         test-fixtures/coverage/                    # Coverage/compare tool fixtures (dev only)
     docs/                                          # Jekyll website source (dev only)
         _config.yml

@@ -33,7 +33,7 @@ Every config and module file begins with a comment block containing:
 | Version | Required | Semantic version (vMajor.Minor) |
 | Author | Required | ICS Watch Dog Project (or community contributor name) |
 | Project | Required | Project URL |
-| License | Required | Creative Commons Attribution 4.0 |
+| License | Required | CC BY-SA 4.0 &#124; Commercial licensing available (info@cutawaysecurity.com) |
 | Minimum Sysmon | Required | e.g., v15+ (schema 4.90) |
 | Target | Required | Intended deployment role (workstation, server, DC, OT, etc.) |
 | SANS ICS 5 Critical Controls | Required for curated configs | Mapping of controls supported |
@@ -52,7 +52,8 @@ Header format example:
   Version:      vX.Y
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
-  License:      Creative Commons Attribution 4.0
+  Copyright:    (c) 2024-2026 Cutaway Security, LLC
+  License:      CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
 
   Minimum Sysmon:   vNN+ (schema X.YZ)
   Target:           <deployment role>
@@ -803,7 +804,8 @@ Validation files are committed alongside their modules and are included in relea
 
 - Author: `ICS Watch Dog Project (https://icswatchdog.com)`
 - Project URL: `https://github.com/cutaway-security/ICSWatchDog`
-- License: `Creative Commons Attribution 4.0`
+- Copyright: `(c) 2024-2026 Cutaway Security, LLC`
+- License: `CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)`
 
 ### 10.2 SwiftOnSecurity Reference
 

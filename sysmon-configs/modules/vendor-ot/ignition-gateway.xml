@@ -4,6 +4,8 @@
   Version:      v1.1
   Schema:       4.50
   Dependencies: none
+  Copyright:    (c) 2024-2026 Cutaway Security, LLC
+  License:      CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
   ATT&CK:       T1505.003 Web Shell, T1565.002 Transmitted Data Manipulation
 
   PURPOSE:

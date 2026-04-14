@@ -95,7 +95,7 @@ git commit -m "Remove development files for release v#"
 
 ### 5. Verify the release branch
 
-- [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, images/, CNAME, .github/ISSUE_TEMPLATE/
+- [ ] All user-facing files are present: sysmon-configs/ (with community/ and reference/), README.md, License, NOTICE, images/, CNAME, .github/ISSUE_TEMPLATE/
 - [ ] No development files remain (`ls claude-dev/` should fail, `ls docs/` should fail, `ls CLAUDE.md` should fail, `ls tools/test-fixtures/` should fail, `ls tools/Test-GetSysmonCoverage.ps1` should fail)
 - [ ] Validate XML configs: `for f in sysmon-configs/*.xml sysmon-configs/community/*.xml sysmon-configs/reference/*.xml; do xmllint --noout "$f"; done`
 
@@ -181,7 +181,6 @@ The following files exist only on the `claude-dev` branch and are stripped befor
 | `claude-dev/SYSMON_CODING_STANDARD.md` | Sysmon XML coding standard |
 | `claude-dev/TOOL_CODING_STANDARD.md` | PowerShell/Python tool coding standard |
 | `claude-dev/REMOTE_TESTING.md` | Proxmox remote test environment setup |
-| `claude-dev/remote-testing.example.conf` | Local-config template (real config gitignored) |
 | `claude-dev/TESTING_STANDARD.md` | Config and script testing procedures |
 | `claude-dev/test-fixtures/` | Dev-only test fixtures for tool harnesses |
 | `tools/Test-GetSysmonCoverage.ps1` | Coverage tool test harness (needs dev fixtures) |

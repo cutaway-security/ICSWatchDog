@@ -1,0 +1,42 @@
+ICS Watch Dog
+Copyright (c) 2024-2026 Cutaway Security, LLC
+https://github.com/cutaway-security/ICSWatchDog
+
+This project is dual-licensed:
+
+  1. Public License: Creative Commons Attribution-ShareAlike 4.0
+     International (CC BY-SA 4.0)
+     https://creativecommons.org/licenses/by-sa/4.0/
+
+  2. Commercial License: Available for organizations that need to
+     incorporate ICS Watch Dog content into proprietary products or
+     services without the ShareAlike obligation. Contact
+     Cutaway Security, LLC for terms.
+     Email: info@cutawaysecurity.com
+     Web:   https://www.cutawaysecurity.com/
+
+Attribution Requirements
+========================
+
+When sharing or redistributing ICS Watch Dog content (configs,
+modules, tools, or documentation), attribution must include:
+
+  - Project name: ICS Watch Dog
+  - Project URL: https://github.com/cutaway-security/ICSWatchDog
+  - Author: Cutaway Security, LLC (https://www.cutawaysecurity.com/)
+  - License notice: Licensed under CC BY-SA 4.0
+  - Indication of modifications (if the material was changed)
+
+Third-Party Content
+===================
+
+The following files contain third-party content under separate licenses:
+
+  sysmon-configs/reference/sysmonconfig-swiftonsecurity-v74.xml
+    Author: SwiftOnSecurity
+    License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+    Source: https://github.com/SwiftOnSecurity/sysmon-config
+
+Community-contributed configurations in sysmon-configs/community/
+retain their original author attribution and are licensed under
+CC BY-SA 4.0 as part of this project.

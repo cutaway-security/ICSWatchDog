@@ -3,7 +3,8 @@
   Version:      v1.3
   Author:       ICS Watch Dog Project (https://icswatchdog.com)
   Project:      https://github.com/cutaway-security/ICSWatchDog
-  License:      Creative Commons Attribution 4.0
+  Copyright:    (c) 2024-2026 Cutaway Security, LLC
+  License:      CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
 
   Minimum Sysmon:   v15+ (schema 4.90)
   Target:           Jump hosts, bastion hosts, kiosk systems used for OT remote access

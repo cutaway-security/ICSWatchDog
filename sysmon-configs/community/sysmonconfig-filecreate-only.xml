@@ -2,7 +2,8 @@
   Version:	v0.1
   Author:	Aaron Boyd (icsblitz)
   Project:	ICSWatchDog (Community Contribution)
-  License:	Creative Commons Attribution 4.0 | You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
+  Copyright:	(c) 2024-2026 Cutaway Security, LLC
+  License:	CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
 
   DISCLAIMER: This configuration is provided as-is for educational and operational use.
   It is NOT tested against all environments and may require tuning for your specific systems.

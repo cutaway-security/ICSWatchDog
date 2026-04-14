@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) 2024-2026 Cutaway Security, LLC
+# License: CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
+# Project: https://github.com/cutaway-security/ICSWatchDog
 """Diff-check tool for verifying Sysmon config rule preservation across edits.
 
 Verifies that an edit to a curated Sysmon config preserved all existing rule

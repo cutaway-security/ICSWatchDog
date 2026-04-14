@@ -1,3 +1,7 @@
+# Copyright (c) 2024-2026 Cutaway Security, LLC
+# License: CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
+# Project: https://github.com/cutaway-security/ICSWatchDog
+
 <#
 .SYNOPSIS
     Captures a read-only system inventory for Sysmon coverage analysis.

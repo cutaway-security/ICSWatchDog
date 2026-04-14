@@ -22,14 +22,14 @@ Each category has its own procedures and pass/fail criteria defined below. Do no
 
 ### 2.1 Available systems
 
-| SSH Alias | OS | Sysmon | Schema | PS Version | Notes |
-|---|---|---|---|---|---|
-| Win7Pro-Dev | Windows 7 Pro | 10.42 | 4.23 | 2.0 | Legacy. Needs dedicated 4.23 config. PS 2.0 is below tool minimum (3.0). |
-| Win10Pro-Dev | Windows 10 Pro | 15.20 | 4.91 | 5.1 | |
-| Win11Pro-Dev | Windows 11 Pro | 15.20 | 4.91 | 5.1 | |
-| WinServer2016-Dev | Windows Server 2016 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
-| WinServer2019-Dev | Windows Server 2019 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
-| WinServer2022-Dev | Windows Server 2022 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
+| SSH Alias | VMID | Proxmox | OS | Sysmon | Schema | PS Version | Notes |
+|---|---|---|---|---|---|---|---|
+| Win7Pro-Dev | 107 | proxmox0 | Windows 7 Pro | 10.42 | 4.23 | 2.0 | Legacy. Needs dedicated 4.23 config. PS 2.0 is below tool minimum (3.0). |
+| Win10Pro-Dev | 108 | proxmox0 | Windows 10 Pro | 15.20 | 4.91 | 5.1 | |
+| Win11Pro-Dev | 102 | proxmox0 | Windows 11 Pro | 15.20 | 4.91 | 5.1 | |
+| WinServer2016-Dev | 110 | proxmox0 | Windows Server 2016 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
+| WinServer2019-Dev | 109 | proxmox0 | Windows Server 2019 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
+| WinServer2022-Dev | 111 | proxmox0 | Windows Server 2022 | 15.20 | 4.91 | TBD | Start VM and verify before first test. |
 
 Systems not yet available (VMID = N/A): WinServer2012-Dev, WinServer2025-Dev. Do not include in test runs until installed and added to this table.
 
@@ -37,13 +37,13 @@ Systems not yet available (VMID = N/A): WinServer2012-Dev, WinServer2025-Dev. Do
 
 - **Maximum 3 VMs running concurrently.** The Proxmox hosts are Intel NUCs with limited RAM.
 - **Start before testing, stop when done.** Do not leave VMs running overnight or between sessions.
-- Start/stop via SSH to the Proxmox host:
+- Start/stop via SSH to the Proxmox host (use the VMID from the table above):
   ```
   ssh proxmox0 "qm start <VMID>"
   ssh proxmox0 "qm stop <VMID>"
   ssh proxmox0 "qm status <VMID>"
   ```
-- VMID mapping is in `claude-dev/dev-inventory.csv` (gitignored). Use SSH aliases (e.g., `Win10Pro-Dev`) for all test commands, not raw IPs.
+- **Single source of truth: `~/.ssh/config`.** The developer workstation's SSH config holds the host alias, IP, user, key, and VMID for every test VM. The VMID is stored as a structured comment on each host entry (format: `# VMID=<id> PROXMOX=<alias>`). Use SSH aliases (e.g., `Win10Pro-Dev`) for all test commands, not raw IPs.
 
 ### 2.3 File transfer pattern
 
@@ -298,7 +298,7 @@ Detailed efficacy test procedures will be defined when this phase is reached. Co
 
 - Use `Administrator` (not `devadm`) as the SSH user.
 - These VMs are stopped by default. Start them before testing and stop them when done.
-- PS version and specific Sysmon behavior should be verified on first test and recorded in `dev-inventory.csv`.
+- PS version and specific Sysmon behavior should be verified on first test and recorded in the Section 2.1 table above.
 
 ---
 
@@ -331,8 +331,8 @@ If a config or script is modified after testing (e.g., schema bump, bug fix), al
 
 When a new VM is added to the fleet (e.g., Server 2012, Server 2025):
 
-1. Update `claude-dev/dev-inventory.csv` with VMID, IP, credentials, Sysmon/PS versions
-2. Add a row to the "Available systems" table in Section 2.1 above
+1. Add a `Host <alias>` block to `~/.ssh/config` with `HostName`, `IdentityFile`, and a `# VMID=<id> PROXMOX=<alias>` comment line
+2. Add a row to the "Available systems" table in Section 2.1 above (SSH alias, VMID, Proxmox, OS, Sysmon, Schema, PS Version)
 3. Add a column to the test matrices in Sections 4 and 5
 4. Run the full config and script test suite against the new system
 5. Update README.md compatibility matrix with results

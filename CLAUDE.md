@@ -67,7 +67,7 @@ Before moving to the next phase:
 | Primary Artifacts | Sysmon XML configuration files |
 | Schema Version | 4.90 for all standard configs; 4.23 for legacy Win7 config |
 | Sysmon Minimum | v15+ for standard configs (schema 4.90); v10+ for legacy Win7 config (schema 4.23) |
-| License | Creative Commons Attribution 4.0 International |
+| License | CC BY-SA 4.0 (dual-licensed; commercial license available) |
 
 ### Website
 

@@ -4,6 +4,8 @@
   Version:      v1.1
   Schema:       4.50
   Dependencies: none
+  Copyright:    (c) 2024-2026 Cutaway Security, LLC
+  License:      CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
   Rule type:    Exclude (noise reduction)
   Dual-use:     Use exclude_dropbox.xml if Dropbox is sanctioned;
                 use include_dropbox.xml if Dropbox is unsanctioned.

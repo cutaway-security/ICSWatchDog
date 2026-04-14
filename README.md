@@ -187,7 +187,13 @@ Contributions are welcome via pull requests or GitHub issues (feature enhancemen
 
 ## Project License
 
-[Creative Commons Attribution 4.0 International](https://choosealicense.com/licenses/cc-by-4.0/): You may privatize, fork, edit, teach, publish, or deploy for commercial use - with attribution in the text.
+This project is dual-licensed:
+
+**Open Source**: [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/) -- you may use, modify, and redistribute with attribution, provided derivative works are shared under the same or compatible license.
+
+**Commercial**: Organizations that need to incorporate ICS Watch Dog content into proprietary products or services without the ShareAlike obligation may obtain a commercial license. Contact [Cutaway Security, LLC](https://www.cutawaysecurity.com/) at info@cutawaysecurity.com for terms.
+
+See the [NOTICE](NOTICE) file for full attribution requirements.
 
 ## Contributors
 

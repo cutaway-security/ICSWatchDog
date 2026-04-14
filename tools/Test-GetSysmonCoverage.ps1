@@ -1,3 +1,7 @@
+# Copyright (c) 2024-2026 Cutaway Security, LLC
+# License: CC BY-SA 4.0 | Commercial licensing available (info@cutawaysecurity.com)
+# Project: https://github.com/cutaway-security/ICSWatchDog
+
 <#
 .SYNOPSIS
     Test harness for Get-SysmonCoverage.ps1.

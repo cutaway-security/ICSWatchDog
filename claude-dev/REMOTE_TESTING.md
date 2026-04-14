@@ -29,7 +29,7 @@ The following MUST NEVER appear in any file under this repository:
 | `~/.ssh/icswd_dev_ed25519` | Local-only SSH key path. The key file itself is never committed. |
 | `<lab-network>` | The lab subnet, e.g. `<lab-network>/24` |
 
-If you find yourself wanting to type a real hostname into a committed file, stop. Put it in a local config file instead (see Section 7).
+If you find yourself wanting to type a real hostname into a committed file, stop. Put it in `~/.ssh/config` instead (see Section 7).
 
 ---
 
@@ -56,7 +56,8 @@ If you find yourself wanting to type a real hostname into a committed file, stop
 |  Developer workstation (Linux)   |
 |  - tools/ scripts                |
 |  - SSH client                    |
-|  - claude-dev/remote-testing.local.conf  (gitignored)
+|  - ~/.ssh/config  (host aliases, |
+|    VMIDs, keys -- never in repo) |
 +----------------------------------+
               |
               | SSH (key-based, port 22)
@@ -220,66 +221,85 @@ Should return the PowerShell version with no password prompt.
 
 ---
 
-## 7. Local Configuration File (Never Committed)
+## 7. VM Tracking: `~/.ssh/config` as Single Source of Truth
 
-Real hostnames, IPs, and key paths live in a single local file that is git-ignored.
+Real hostnames, IPs, usernames, key paths, and Proxmox VMIDs all live in the developer workstation's `~/.ssh/config` file. That file is never in the repo, so real data cannot leak through it. There is no per-project local conf file, no inventory CSV, and no Proxmox API credentials file -- direct SSH to the Proxmox host is the lifecycle channel.
 
-### 7.1 Template (committed)
+### 7.1 Required format
 
-`claude-dev/remote-testing.example.conf`:
-
-```
-# Copy this file to remote-testing.local.conf and fill in real values.
-# remote-testing.local.conf is gitignored and MUST NEVER be committed.
-
-# Proxmox host (only used for VM lifecycle commands, not test runs)
-PROXMOX_HOST=<lab-host>
-PROXMOX_USER=<proxmox-user>
-
-# SSH key (path on developer workstation; key file itself is never committed)
-SSH_KEY_PATH=~/.ssh/icswd_dev_ed25519
-
-# Test VMs (one line per VM)
-# Format: VM_<role>=<user>@<host-or-ip>
-VM_WIN10_ENG=<lab-user>@<vm-name>
-VM_WIN11_HMI=<lab-user>@<vm-name>
-VM_SRV2019_DC=<lab-user>@<vm-name>
-VM_SRV2022_HISTORIAN=<lab-user>@<vm-name>
-VM_WIN10_JUMPHOST=<lab-user>@<vm-name>
-```
-
-### 7.2 .gitignore entries
-
-Add to `.gitignore` at repo root:
+Each test VM gets a `Host` block with `HostName`, and a structured VMID comment. Shared settings (user, key, known-hosts behavior) use wildcard blocks:
 
 ```
-claude-dev/remote-testing.local.conf
-~/.ssh/icswd_dev_*
+# Proxmox hosts
+Host proxmox0
+    HostName <real-ip>
+    User root
+    IdentityFile ~/.ssh/<lab-key>
+    StrictHostKeyChecking accept-new
+
+# Dev VMs
+Host Win10Pro-Dev
+    HostName <real-ip>
+    # VMID=108 PROXMOX=proxmox0
+
+Host Win11Pro-Dev
+    HostName <real-ip>
+    # VMID=102 PROXMOX=proxmox0
+
+# Shared settings for all workstation dev VMs
+Host Win*Pro-Dev
+    User <lab-user>
+    IdentityFile ~/.ssh/<lab-key>
+    StrictHostKeyChecking accept-new
+    UserKnownHostsFile /dev/null
+
+# Shared settings for all server dev VMs
+Host WinServer*-Dev
+    User Administrator
+    IdentityFile ~/.ssh/<lab-key>
+    StrictHostKeyChecking accept-new
+    UserKnownHostsFile /dev/null
 ```
 
-### 7.3 Loading the config
+The **VMID comment format is mandatory**: `# VMID=<id> PROXMOX=<alias>` on its own line, no other text. Use `VMID=N/A PROXMOX=N/A` for placeholder entries (VMs that are aliased but not yet built). This exact format lets helper scripts parse VMID with a one-line `awk`.
 
-Test orchestration scripts (none committed yet — to be written when the test runner lands) source this file and substitute placeholders. Nothing the script reads from the local config ever gets written to a log file or committed artifact.
+### 7.2 Why no local conf file
+
+Every field that a `remote-testing.local.conf` would hold is already in `~/.ssh/config`: host alias, IP, user, key path, Proxmox host, VMID. Duplicating into a second file creates drift. The project's `TESTING_STANDARD.md` Section 2.1 table holds the non-SSH metadata (OS version, Sysmon version, PS version) because that's documentation, not connection data.
+
+### 7.3 Rebuilding `~/.ssh/config` after loss
+
+If the workstation is rebuilt, recreate the SSH config by:
+
+1. Running `ssh <any-reachable-proxmox-host> "qm list"` against the remembered Proxmox IP. This gives VMID -> VM name for every configured VM.
+2. Getting IPs from the Proxmox VM configs: `ssh proxmox0 "qm config <vmid>"` shows network and hostname.
+3. Restoring the SSH private key from its backup location (the key is not in this repo and is not reconstructible from anything here).
+4. Populating `~/.ssh/config` using the format in Section 7.1.
+
+The `TESTING_STANDARD.md` Section 2.1 table is a partial safety net -- it holds SSH alias and VMID. If that's the only surviving source, combine it with `qm list` on the Proxmox host to fully reconstruct.
 
 ---
 
 ## 8. Test Run Pattern
 
-Once a VM is reachable via SSH, a typical test session looks like:
+Once a VM is reachable via SSH, a typical test session uses SSH aliases directly -- no conf file to source, no `-i <key>` flag (the key is resolved from `~/.ssh/config`):
 
 ```
-# From the developer workstation, sourcing the local config:
-source claude-dev/remote-testing.local.conf
+# Start the target VM via the Proxmox host (look up VMID in ~/.ssh/config)
+ssh proxmox0 "qm start 108"
 
 # Copy the tool to the VM
-scp -i $SSH_KEY_PATH tools/Get-SysmonCoverage.ps1 $VM_WIN10_ENG:C:/Temp/
+scp tools/Get-SysmonCoverage.ps1 Win10Pro-Dev:C:/Temp/
 
 # Run it remotely
-ssh -i $SSH_KEY_PATH $VM_WIN10_ENG "powershell -File C:/Temp/Get-SysmonCoverage.ps1 -ConfigPath C:/Temp/sysmonconfig-baseline-ot.xml -OutputFormat JSON" > coverage-result.json
+ssh Win10Pro-Dev "powershell -File C:/Temp/Get-SysmonCoverage.ps1 -ConfigPath C:/Temp/sysmonconfig-baseline-ot.xml -OutputFormat JSON" > coverage-result.json
 
 # Or run an inventory export and bring the JSON back
-ssh -i $SSH_KEY_PATH $VM_WIN10_ENG "powershell -File C:/Temp/Export-SystemInventory.ps1 -OutputPath C:/Temp/inventory.json"
-scp -i $SSH_KEY_PATH $VM_WIN10_ENG:C:/Temp/inventory.json ./local-inventory.json
+ssh Win10Pro-Dev "powershell -File C:/Temp/Export-SystemInventory.ps1 -OutputPath C:/Temp/inventory.json"
+scp Win10Pro-Dev:C:/Temp/inventory.json ./local-inventory.json
+
+# Stop the VM when done
+ssh proxmox0 "qm stop 108"
 ```
 
 The VM is treated as a black box. Tools are copied in, run, results pulled out. The VM does not need to know anything about the developer workstation.
@@ -322,7 +342,7 @@ A test VM that becomes wedged should be rolled back, not debugged in place.
 
 These are the gaps to close as remote testing matures. None are blockers for the current Phase 11d work.
 
-- [ ] Build a small test orchestration script (`claude-dev/remote-test-runner.ps1` or `.sh`) that reads `remote-testing.local.conf`, copies tools to a target VM, runs them, retrieves results, and produces a pass/fail summary.
+- [ ] Build a small test orchestration script (`claude-dev/remote-test-runner.ps1` or `.sh`) that parses VMIDs from `~/.ssh/config` comments, copies tools to a target VM, runs them, retrieves results, and produces a pass/fail summary.
 - [ ] Standardize VM naming and snapshot conventions across the lab.
 - [ ] Decide whether OT vendor software (Siemens TIA, Rockwell Studio 5000) gets installed in dedicated VMs, given license terms.
 - [ ] Determine which Windows versions are in scope for routine CI vs. occasional manual validation.
@@ -336,6 +356,6 @@ These are the gaps to close as remote testing matures. None are blockers for the
 Brief, because this is a dev-only lab on an isolated network:
 
 - **Test VMs are untrusted by default.** They run experimental Sysmon configs, may have Defender disabled, and may host vendor software with known CVEs. Do not give them access to anything outside the lab network.
-- **The developer SSH key is the crown jewel.** Lose it and an attacker gets root on every test VM. Keep the private key on the developer workstation only, never on a VM, never in the repo, never in the local config file.
+- **The developer SSH key is the crown jewel.** Lose it and an attacker gets root on every test VM. Keep the private key on the developer workstation only, never on a VM, never in the repo.
 - **Proxmox host management interface** must not be exposed to the public internet. Keep it on a management network only reachable from the dev workstation.
 - **Test data is not real OT data.** Inventory JSONs captured from these VMs can be shared (after sanitization) without operational risk because nothing in them came from a real plant.
