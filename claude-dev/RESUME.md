@@ -292,9 +292,37 @@ Changes made:
 
 Rationale: all three planned tracking files duplicated SSH config data. Direct SSH to `proxmox0` replaces the Proxmox API file. Per-VM OS/version metadata lives in `TESTING_STANDARD.md` Section 2.1 (documentation, not connection data). Pattern is now portable to other projects.
 
+## Release Tooling Updates (2026-04-14)
+
+Reviewed `GIT_RELEASE_STEPS.md` after v8 release, fixed three staleness issues, and added a release helper script.
+
+Staleness fixes in `claude-dev/GIT_RELEASE_STEPS.md`:
+- Overview section's "Defensive layer" description now lists all seven export-ignore paths (was only showing three, omitting the per-file tool harness entries and `tools/test-fixtures/`)
+- Pre-Release Checklist now includes a line item for the `NOTICE` file
+- "Files Removed During Release" table now includes `claude-dev/GITHUB_ISSUE_STANDARD.md` (was omitted; stripped correctly by `git rm -r claude-dev/` but undocumented) and the new `claude-dev/release.sh`
+
+New file: `claude-dev/release.sh` -- bash helper that automates Steps 1-5 of the release process and stops before any push to main:
+- Preflight: on `claude-dev`, clean tree, target tags and branch don't exist, local in sync with origin
+- **Website-only detection:** diffs HEAD against most recent `dev-v*` tag; if only `docs/` files changed, recommends running `./claude-dev/deploy-site.sh` instead of a full release and asks to confirm before proceeding
+- Manual checklist confirmation prompt (PLAN/RESUME/README/NOTICE/links/sensitive data)
+- Automated checks: xmllint on all configs, grep for `[TBD]` markers in shipping files
+- Creates and pushes `dev-v#`, creates `release-v#`, runs the dev-file `git rm` list, commits
+- Verifies release branch: required files present, dev files absent, xmllint passes
+- **Stops.** Prints exact commands for Steps 6/7/8/9 (force-push to main, tag `v#`, cleanup, deploy site) for manual execution
+- Prints abandon commands if inspection reveals a problem
+- Force-push to main is never automated -- user runs it by copy-paste after inspecting the release branch
+
+New section in `GIT_RELEASE_STEPS.md`: "Using release.sh (Recommended)" positioned before the full manual procedure. Manual procedure retained as the authoritative reference and fallback.
+
+Decision log updated in `PLAN.md`.
+
+User action: `release-v1` stray tag deleted by user (old naming convention; non-conforming to the documented `dev-v#`/`v#` scheme).
+
+Next actual use: release v9, which will bundle the license change, VM tracking simplification, and this release tooling itself.
+
 ## Blockers
 
-None. Phase 11 complete. License update complete. VM tracking simplified. Ready for commit, push, and v7 release.
+None. Phase 11 complete. License update complete. VM tracking simplified. Release tooling updated. Ready for commit, push, and v9 release.
 
 ## Next Steps
 
